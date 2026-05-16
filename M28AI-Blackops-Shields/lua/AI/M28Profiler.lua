@@ -3,8 +3,8 @@
 --- Created by maudlin27.
 --- DateTime: 16/11/2022 07:28
 ---
-local M28Config = import('/mods/M28AI/lua/M28Config.lua')
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
+local M28Config = import('/mods/M28AI-Blackops-Shields/lua/M28Config.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
 
 
 --Profiling variables
@@ -297,44 +297,44 @@ function ShowFileMemoryUsage()
 
     if not(bActiveMemoryProfiler) then
         bActiveMemoryProfiler = true
-        local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
-        local M28Map = import('/mods/M28AI/lua/AI/M28Map.lua')
-        local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
-        local M28UnitInfo = import('/mods/M28AI/lua/AI/M28UnitInfo.lua')
-        local M28Economy = import('/mods/M28AI/lua/AI/M28Economy.lua')
-        local M28ACU = import('/mods/M28AI/lua/AI/M28ACU.lua')
-        local M28Engineer = import('/mods/M28AI/lua/AI/M28Engineer.lua')
-        local M28Factory = import('/mods/M28AI/lua/AI/M28Factory.lua')
-        local M28Team = import('/mods/M28AI/lua/AI/M28Team.lua')
-        local M28Conditions = import('/mods/M28AI/lua/AI/M28Conditions.lua')
-        local M28Chat = import('/mods/M28AI/lua/AI/M28Chat.lua')
-        local M28Land = import('/mods/M28AI/lua/AI/M28Land.lua')
-        local M28Air = import('/mods/M28AI/lua/AI/M28Air.lua')
-        local M28Orders = import('/mods/M28AI/lua/AI/M28Orders.lua')
-        local M28Micro = import('/mods/M28AI/lua/AI/M28Micro.lua')
-        local M28Overseer = import('/mods/M28AI/lua/AI/M28Overseer.lua')
-        local M28Building = import('/mods/M28AI/lua/AI/M28Building.lua')
+        local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
+        local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
+        local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
+        local M28UnitInfo = import('/mods/M28AI-Blackops-Shields/lua/AI/M28UnitInfo.lua')
+        local M28Economy = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Economy.lua')
+        local M28ACU = import('/mods/M28AI-Blackops-Shields/lua/AI/M28ACU.lua')
+        local M28Engineer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Engineer.lua')
+        local M28Factory = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Factory.lua')
+        local M28Team = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Team.lua')
+        local M28Conditions = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Conditions.lua')
+        local M28Chat = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Chat.lua')
+        local M28Land = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Land.lua')
+        local M28Air = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Air.lua')
+        local M28Orders = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Orders.lua')
+        local M28Micro = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Micro.lua')
+        local M28Overseer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua')
+        local M28Building = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Building.lua')
 
         local Utils = import('/lua/system/utils.lua')
         local tsFileNames = {
             ['M28ACU'] = M28ACU,
             ['M28Air'] = M28Air,
-            ['M28Brain'] = import('/mods/M28AI/lua/AI/M28Brain.lua'),
+            ['M28Brain'] = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Brain.lua'),
             ['M28Building'] = M28Building,
             ['M28Chat'] = M28Chat,
             ['M28Conditions'] = M28Conditions,
             ['M28Economy'] = M28Economy,
             ['M28Engineer'] = M28Engineer,
-            ['M28Events'] = import('/mods/M28AI/lua/AI/M28Events.lua'),
+            ['M28Events'] = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua'),
             ['M28Factory'] = M28Factory,
             ['M28Land'] = M28Land,
-            ['M28Logic'] = import('/mods/M28AI/lua/AI/M28Logic.lua'),
+            ['M28Logic'] = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Logic.lua'),
             ['M28Map'] = M28Map,
             ['M28Micro'] = M28Micro,
-            ['M28Navy'] = import('/mods/M28AI/lua/AI/M28Navy.lua'),
+            ['M28Navy'] = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Navy.lua'),
             ['M28Orders'] = M28Orders,
             ['M28Overseer'] = M28Overseer,
-            ['M28Profiler'] = import('/mods/M28AI/lua/AI/M28Profiler.lua'),
+            ['M28Profiler'] = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua'),
             ['M28Team'] = M28Team,
             ['M28UnitInfo'] = M28UnitInfo,
             ['M28Utilities'] = M28Utilities,
@@ -360,7 +360,7 @@ function SpawnSetUnitsForBrain(aiBrain)
     --Done to help with profiling - spawn in specific units
     local iCategoriesToSpawn = categories.TECH3 * M28UnitInfo.refCategoryAmphibious + categories.EXPERIMENTAL * categories.AMPHIBIOUS + categories.TECH2 * categories.AMPHIBIOUS - categories.UNTARGETABLE
     local tsUnitsToSpawn = EntityCategoryGetUnitList(iCategoriesToSpawn)
-    local M28Map = import('/mods/M28AI/lua/AI/M28Map.lua')
+    local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
     local tSpawnLocationBase = M28Map.PlayerStartPoints[aiBrain:GetArmyIndex()]
     for iUnit, sUnit in tsUnitsToSpawn do
         CreateUnit(sUnit, aiBrain:GetArmyIndex(), tSpawnLocationBase[1], tSpawnLocationBase[2], tSpawnLocationBase[3], 0, 0, 0, 0, 'Air')
@@ -383,10 +383,10 @@ function CompareDifferentThreatCalculations(aiBrain)
         bTestProfiler = true
         local iCategoriesToSpawn = categories.TECH3 * M28UnitInfo.refCategoryAmphibious + categories.EXPERIMENTAL * categories.AMPHIBIOUS + categories.TECH2 * categories.AMPHIBIOUS - categories.UNTARGETABLE
         local tsUnitsToSpawn = EntityCategoryGetUnitList(iCategoriesToSpawn)
-        local M28Map = import('/mods/M28AI/lua/AI/M28Map.lua')
+        local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
         local tSpawnLocationBase = M28Map.PlayerStartPoints[aiBrain:GetArmyIndex()]
         local toUnits = {}
-        local M28UnitInfo = import('/mods/M28AI/lua/AI/M28UnitInfo.lua')
+        local M28UnitInfo = import('/mods/M28AI-Blackops-Shields/lua/AI/M28UnitInfo.lua')
         for iUnit, sUnit in tsUnitsToSpawn do
             local oUnit = CreateUnit(sUnit, aiBrain:GetArmyIndex(), tSpawnLocationBase[1], tSpawnLocationBase[2], tSpawnLocationBase[3], 0, 0, 0, 0, 'Air')
             table.insert(toUnits, oUnit)
@@ -402,7 +402,7 @@ function CompareDifThreatCalculationsForTableOfUnits(toUnits)
     local iCycleCount = 100000
     local tiTimeByScenario = {}
     local iThreatVal
-    local M28UnitInfo = import('/mods/M28AI/lua/AI/M28UnitInfo.lua')
+    local M28UnitInfo = import('/mods/M28AI-Blackops-Shields/lua/AI/M28UnitInfo.lua')
     tiTimeByScenario[0] = GetSystemTimeSecondsOnlyForProfileUse()
     iThreatVal = 0
     for iCurCycle = 1, iCycleCount do

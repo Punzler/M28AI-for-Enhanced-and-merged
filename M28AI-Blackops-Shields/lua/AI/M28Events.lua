@@ -6,26 +6,26 @@
 
 
 
-local M28UnitInfo = import('/mods/M28AI/lua/AI/M28UnitInfo.lua')
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
-local M28Economy = import('/mods/M28AI/lua/AI/M28Economy.lua')
-local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
-local M28ACU = import('/mods/M28AI/lua/AI/M28ACU.lua')
-local M28Engineer = import('/mods/M28AI/lua/AI/M28Engineer.lua')
-local M28Team = import('/mods/M28AI/lua/AI/M28Team.lua')
-local M28Overseer = import('/mods/M28AI/lua/AI/M28Overseer.lua')
-local M28Factory = import('/mods/M28AI/lua/AI/M28Factory.lua')
-local M28Map = import('/mods/M28AI/lua/AI/M28Map.lua')
-local M28Orders = import('/mods/M28AI/lua/AI/M28Orders.lua')
-local M28Config = import('/mods/M28AI/lua/M28Config.lua')
-local M28Conditions = import('/mods/M28AI/lua/AI/M28Conditions.lua')
-local M28Land = import('/mods/M28AI/lua/AI/M28Land.lua')
-local M28Logic = import('/mods/M28AI/lua/AI/M28Logic.lua')
-local M28Micro = import('/mods/M28AI/lua/AI/M28Micro.lua')
-local M28Building = import('/mods/M28AI/lua/AI/M28Building.lua')
-local M28Air = import('/mods/M28AI/lua/AI/M28Air.lua')
-local M28Navy = import('/mods/M28AI/lua/AI/M28Navy.lua')
-local M28Chat = import('/mods/M28AI/lua/AI/M28Chat.lua')
+local M28UnitInfo = import('/mods/M28AI-Blackops-Shields/lua/AI/M28UnitInfo.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
+local M28Economy = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Economy.lua')
+local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
+local M28ACU = import('/mods/M28AI-Blackops-Shields/lua/AI/M28ACU.lua')
+local M28Engineer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Engineer.lua')
+local M28Team = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Team.lua')
+local M28Overseer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua')
+local M28Factory = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Factory.lua')
+local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
+local M28Orders = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Orders.lua')
+local M28Config = import('/mods/M28AI-Blackops-Shields/lua/M28Config.lua')
+local M28Conditions = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Conditions.lua')
+local M28Land = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Land.lua')
+local M28Logic = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Logic.lua')
+local M28Micro = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Micro.lua')
+local M28Building = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Building.lua')
+local M28Air = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Air.lua')
+local M28Navy = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Navy.lua')
+local M28Chat = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Chat.lua')
 
 refiLastWeaponEvent = 'M28LastWep' --Gametimeseconds that last updated onweapon
 refbAlreadyRunUnitKilled = 'M28EventsOnKilledRun'
@@ -3919,7 +3919,7 @@ function OnCreateBrain(aiBrain, planName, bIsHuman)
     local bDebugMessages = false if M28Profiler.bGlobalDebugOverride == true then   bDebugMessages = true end
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
 
-    if M28Utilities.bSteamActive then import('/mods/M28AI/lua/AI/Steam/SteamCompatibility.lua').OtherSteamCompatibilityInformation() end
+    if M28Utilities.bSteamActive then import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/SteamCompatibility.lua').OtherSteamCompatibilityInformation() end
     if bDebugMessages == true then LOG(sFunctionRef..': aiBrain has just been created at time '..GetGameTimeSeconds()..'; Brain nickname='..(aiBrain.Nickname or 'nil')..'; Has setup been run='..tostring(aiBrain['M28BrainSetupRun'] or false)..'; Brain type='..(aiBrain.BrainType or 'nil')..'; M28Team (if brain setup)='..(aiBrain.M28Team or 'nil')..'; aiBrain.Civilian='..tostring(aiBrain.Civilian or false)..'; .M28AI='..tostring(aiBrain.M28AI or false)..'; .M27AI='..tostring(aiBrain.M27AI or false)..'; M28Overseer.iTimeOfLatestBrainToCheckForM28Logic='..(M28Overseer.iTimeOfLatestBrainToCheckForM28Logic or 'nil')..'; brain current plan first 6 chars='..string.sub(aiBrain.CurrentPlan or 'nil', 1, 6)..'; Army index='..aiBrain:GetArmyIndex()..';  ScenarioInfo.ArmySetup='..reprs( ScenarioInfo.ArmySetup)..'; reprs for player2='..reprs(ScenarioInfo.ArmySetup['Player2'])) end
     if M28Overseer.iTimeOfLatestBrainToCheckForM28Logic >= 0 then
         while GetGameTimeSeconds() < M28Overseer.iTimeOfLatestBrainToCheckForM28Logic + 1 do
@@ -4807,7 +4807,7 @@ end
 
 function OnGameStart()
     --Called vai hook of simInit
-    if import('/mods/M28AI/lua/M28Config.lua').M28RunSimpleProfiling then
+    if import('/mods/M28AI-Blackops-Shields/lua/M28Config.lua').M28RunSimpleProfiling then
         ForkThread(M28Profiler.SimpleProfiler, 10)
     end
 

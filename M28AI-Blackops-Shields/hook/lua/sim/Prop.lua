@@ -4,7 +4,7 @@
 --- DateTime: 02/12/2022 09:12
 ---
 local Entity = import('/lua/sim/Entity.lua').Entity
-local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
 
 local M28OldProp = Prop
 Prop = Class(M28OldProp) {

@@ -54,14 +54,14 @@ refiLastUnloadAttemptTime = 'M28OrdUnlAtmp' --gametimeseconds we tried to unload
 reftMoveDestinationIgnoredDueToMicro = 'M28OUnDIg' --{x,y,z} position that the unit was given a move order to go to, but ignored due to active micro
 refiMoveAndBuildStuckCount = 'M28OUMvB' --whenever give a move+build order, this increases by 1; it resets when unit starts building or reclaiming; used to identify stuck engineers; see also M28Conditions.refiEngineerStuckCheckCount
 
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
-local M28UnitInfo = import('/mods/M28AI/lua/AI/M28UnitInfo.lua')
-local M28Engineer = import('/mods/M28AI/lua/AI/M28Engineer.lua')
-local M28Config = import('/mods/M28AI/lua/M28Config.lua')
-local M28Map = import('/mods/M28AI/lua/AI/M28Map.lua')
-local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
-local M28Team = import('/mods/M28AI/lua/AI/M28Team.lua')
-local M28Air = import('/mods/M28AI/lua/AI/M28Air.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
+local M28UnitInfo = import('/mods/M28AI-Blackops-Shields/lua/AI/M28UnitInfo.lua')
+local M28Engineer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Engineer.lua')
+local M28Config = import('/mods/M28AI-Blackops-Shields/lua/M28Config.lua')
+local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
+local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
+local M28Team = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Team.lua')
+local M28Air = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Air.lua')
 
 
 function UpdateUnitNameForOrder(oUnit, sOptionalOrderDesc)
@@ -589,7 +589,7 @@ function IssueTrackedMoveAndBuild(oUnit, tBuildLocation, sOrderBlueprint, tMoveT
                     M28Utilities.ErrorHandler('Attempted to build something with no blueprint')
                 end
                 if (oUnit[refiMoveAndBuildStuckCount] or 0) >= 5 and not(oUnit[M28UnitInfo.refbSpecialMicroActive]) then
-                    local M28Micro = import('/mods/M28AI/lua/AI/M28Micro.lua')
+                    local M28Micro = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Micro.lua')
                     M28Micro.TrackTemporaryUnitMicro(oUnit, 30 + (oUnit[refiMoveAndBuildStuckCount] - 5)*10)
                 end
                 --[[if oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit) == 'ual02087' and oUnit:GetAIBrain():GetArmyIndex() == 3 then
@@ -650,7 +650,7 @@ function IssueTrackedFactoryBuild(oUnit, sOrderBlueprint, bAddToExistingQueue, s
             oUnit[refiOrderCount] = oUnit[refiOrderCount] + 1
             table.insert(oUnit[reftiLastOrders], {[subrefiOrderType] = refiOrderIssueFactoryBuild, [subrefsOrderBlueprint] = sOrderBlueprint})
             IssueBuildFactory({ oUnit }, sOrderBlueprint, 1)
-            local M28Factory = import('/mods/M28AI/lua/AI/M28Factory.lua')
+            local M28Factory = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Factory.lua')
             M28Factory.UpdateLastBuiltTracker(oUnit, sOrderBlueprint)
 
         end
@@ -844,7 +844,7 @@ function IssueTrackedEnhancement(oUnit, sUpgradeRef, bAddToExistingQueue, sOptio
 
         if bDebugMessages == true then
             LOG(sFunctionRef..': Start of code for oUnit='..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..' at time='..GetGameTimeSeconds())
-            if sUpgradeRef == 'AdvancedProduction' then LOG(sFunctionRef..': Getting advanced production, do we have ImprovedProduction='..tostring(oUnit:HasEnhancement('ImprovedProduction'))..'; do we have AdvancedProduction='..tostring(oUnit:HasEnhancement('AdvancedProduction'))..'; reftPreferredUpgrades='..repru(oUnit[import('/mods/M28AI/lua/AI/M28ACU.lua').reftPreferredUpgrades])) end
+            if sUpgradeRef == 'AdvancedProduction' then LOG(sFunctionRef..': Getting advanced production, do we have ImprovedProduction='..tostring(oUnit:HasEnhancement('ImprovedProduction'))..'; do we have AdvancedProduction='..tostring(oUnit:HasEnhancement('AdvancedProduction'))..'; reftPreferredUpgrades='..repru(oUnit[import('/mods/M28AI-Blackops-Shields/lua/AI/M28ACU.lua').reftPreferredUpgrades])) end
         end
         UpdateRecordedOrders(oUnit)
         --Issue order if we arent already trying to attack them
@@ -936,7 +936,7 @@ function IssueTrackedEnhancement(oUnit, sUpgradeRef, bAddToExistingQueue, sOptio
                 if not(oUnit[reftiLastOrders]) then oUnit[reftiLastOrders] = {} oUnit[refiOrderCount] = 0 end
                 oUnit[refiOrderCount] = oUnit[refiOrderCount] + 1
                 table.insert(oUnit[reftiLastOrders], {[subrefiOrderType] = refiOrderEnhancement, [subrefsOrderBlueprint] = sUpgradeRef})
-                --LOG('About ot tell unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..'; owned by '..oUnit:GetAIBrain().Nickname..' to get enhancement upgrade '..sUpgradeRef..'; ACU upgrade count='..(oUnit[import('/mods/M28AI/lua/AI/M28ACU.lua').refiUpgradeCount] or 'nil'))
+                --LOG('About ot tell unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..'; owned by '..oUnit:GetAIBrain().Nickname..' to get enhancement upgrade '..sUpgradeRef..'; ACU upgrade count='..(oUnit[import('/mods/M28AI-Blackops-Shields/lua/AI/M28ACU.lua').refiUpgradeCount] or 'nil'))
                 IssueScript({oUnit}, {TaskName = 'EnhanceTask', Enhancement = sUpgradeRef})
                 if bDebugMessages == true then LOG(sFunctionRef..': WIll ugprade unit with actual upgrade '..sUpgradeRef..'; just tried running issuescript for the unit') end
                 M28Team.UpdateUpgradeTrackingOfUnit(oUnit, false, sUpgradeRef)
@@ -949,7 +949,7 @@ function IssueTrackedEnhancement(oUnit, sUpgradeRef, bAddToExistingQueue, sOptio
                     local oExistingPlatoon = oUnit.PlatoonHandle
                     if bDebugMessages == true then LOG(sFunctionRef..': Considering if have existing platoon for unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..'; oExistingPlatoon is nil?='..tostring(oExistingPlatoon == nil)..'; Is getplan nil='..tostring(oExistingPlatoon.GetPlan == nil)) end
                     if oExistingPlatoon then
-                        local M28Overseer = import('/mods/M28AI/lua/AI/M28Overseer.lua')
+                        local M28Overseer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua')
                         ForkThread(M28Overseer.RemoveUnitsFromPlatoon, oExistingPlatoon, { oUnit }, false, nil)
                         if bDebugMessages == true then LOG(sFunctionRef..': Tried to remove unit from existing platoon') end
                     end
@@ -1349,7 +1349,7 @@ function IssueTrackedTransportLoad(oUnit, oOrderTarget, bAddToExistingQueue, sOp
                 if not(bDontTryBackup) then ForkThread(DelayedTransportReloadCheck, oUnit, oOrderTarget) end --Found this caused more problems than it solved when it  just reissued the order; however per sprouto's suggestion warping the engineer first solves most issues where this happens; is on a 10s delay so should be slower than a human
                 --Treat engi as having a high priority action now
                 M28Engineer.TrackEngineerAction(oUnit, M28Engineer.refActionLoadOntoTransport, false, 1)
-                oUnit[import('/mods/M28AI/lua/AI/M28Conditions.lua').refiEngineerStuckCheckCount] = 0
+                oUnit[import('/mods/M28AI-Blackops-Shields/lua/AI/M28Conditions.lua').refiEngineerStuckCheckCount] = 0
             end
             if M28Config.M28ShowUnitNames then UpdateUnitNameForOrder(oUnit, sOptionalOrderDesc) end
         end
@@ -1369,7 +1369,7 @@ function IssueTrackedTMLMissileLaunch(oUnit, tOrderPosition, iDistanceToReissueO
             end
         end
 
-        local M28Building = import('/mods/M28AI/lua/AI/M28Building.lua')
+        local M28Building = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Building.lua')
 
         if not(oUnit:IsUnitState('Busy')) or (not(tLastOrder[subrefiOrderType] == refiOrderIssueTMLMissile and iDistanceToReissueOrder and M28Utilities.GetDistanceBetweenPositions(tOrderPosition, tLastOrder[subreftOrderPosition]) < iDistanceToReissueOrder) and (bOverrideMicroOrder or not(oUnit[M28UnitInfo.refbSpecialMicroActive]))) then
             --LOG('About to issue TML launch for unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..'; Unit state='..M28UnitInfo.GetUnitState(oUnit)..'; Time='..GetGameTimeSeconds())
@@ -1406,7 +1406,7 @@ function IssueTrackedNukeMissileLaunch(oUnit, tOrderPosition, iDistanceToReissue
             end
         end
 
-        local M28Building = import('/mods/M28AI/lua/AI/M28Building.lua')
+        local M28Building = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Building.lua')
         --LOG('Dealing with unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..'; Unit state='..M28UnitInfo.GetUnitState(oUnit)..'; Last order='..reprs(tLastOrder)..'; oUnit[M28UnitInfo.refbSpecialMicroActive]='..tostring(oUnit[M28UnitInfo.refbSpecialMicroActive])..'; Dist to last order position='..M28Utilities.GetDistanceBetweenPositions(tOrderPosition, (tLastOrder[subreftOrderPosition] or {0,0,0})))
         if not(oUnit:IsUnitState('Busy')) or (not(tLastOrder[subrefiOrderType] == refiOrderIssueNukeMissile and iDistanceToReissueOrder and M28Utilities.GetDistanceBetweenPositions(tOrderPosition, tLastOrder[subreftOrderPosition]) < iDistanceToReissueOrder) and (bOverrideMicroOrder or not(oUnit[M28UnitInfo.refbSpecialMicroActive]))) then
             --LOG('About to issue nuke launch for unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..'; Unit state='..M28UnitInfo.GetUnitState(oUnit)..'; bAddToExistingQueue='..tostring(bAddToExistingQueue)..'; Time='..GetGameTimeSeconds())
@@ -1434,7 +1434,7 @@ function IssueTrackedNukeMissileLaunch(oUnit, tOrderPosition, iDistanceToReissue
             M28UnitInfo.PauseOrUnpauseUnitWithoutTracking(oUnit, false)
         end
         local iTeam = oUnit:GetAIBrain().M28Team
-        import('/mods/M28AI/lua/AI/M28Building.lua').RecordNukeTarget(iTeam, tOrderPosition)
+        import('/mods/M28AI-Blackops-Shields/lua/AI/M28Building.lua').RecordNukeTarget(iTeam, tOrderPosition)
         --if not(M28Team.tTeamData[iTeam][M28Team.subrefNukeLaunchLocations]) then M28Team.tTeamData[iTeam][M28Team.subrefNukeLaunchLocations] = {} end
         --M28Team.tTeamData[iTeam][M28Team.subrefNukeLaunchLocations][math.floor(GetGameTimeSeconds())] = tOrderPosition
 
@@ -1492,7 +1492,7 @@ function IssueTrackedTeleport(oUnit, tOrderPosition, iDistanceToReissueOrder, bA
             table.insert(oUnit[reftiLastOrders], {[subrefiOrderType] = refiOrderIssueTeleport, [subreftOrderPosition] = {tOrderPosition[1], tOrderPosition[2], tOrderPosition[3]}})
             IssueTeleport({oUnit}, tOrderPosition)
             oUnit[M28UnitInfo.reftLastLocationWhenGaveTeleportOrder] = {oUnit:GetPosition()[1], oUnit:GetPosition()[2], oUnit:GetPosition()[3]}
-            import('/mods/M28AI/lua/AI/M28Micro.lua').TrackTemporaryUnitMicro(oUnit, 10) --Additional redundancy to reduce risk we cancel ACU orders while its teleporting
+            import('/mods/M28AI-Blackops-Shields/lua/AI/M28Micro.lua').TrackTemporaryUnitMicro(oUnit, 10) --Additional redundancy to reduce risk we cancel ACU orders while its teleporting
             if bDebugMessages == true then LOG(sFunctionRef..': Have given teleport order to unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)) end
 
         end

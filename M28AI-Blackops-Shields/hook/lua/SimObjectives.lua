@@ -62,13 +62,13 @@ AddObjective = function(Type,         -- 'primary', 'bonus', etc
         loadedTag     -- If IsLoading is specified, whats the tag?
 )
     local oObjective = M28OldAddObjective(Type, Complete, Title, Description, ActionImage, Target, IsLoading, loadedTag)
-    ForkThread(import('/mods/M28AI/lua/AI/M28Events.lua').ObjectiveAdded, oObjective, Type, Complete, Title, Description, ActionImage, Target, IsLoading, loadedTag)
+    ForkThread(import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua').ObjectiveAdded, oObjective, Type, Complete, Title, Description, ActionImage, Target, IsLoading, loadedTag)
     return oObjective
 end
 
 local M28OldReclaim = Reclaim
 Reclaim = function(Type, Complete, Title, Description, Target)
-    ForkThread(import('/mods/M28AI/lua/AI/M28Events.lua').ReclaimTargetObjectiveAdded, Type, Complete, Title, Description, Target)
+    ForkThread(import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua').ReclaimTargetObjectiveAdded, Type, Complete, Title, Description, Target)
     return M28OldReclaim(Type, Complete, Title, Description, Target)
 end
 

@@ -3,7 +3,7 @@
 --- Created by maudlin27.
 --- DateTime: 04/08/2024 09:55
 ---
-local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
 --Needed for LOUD as for some reason callbacks dont trigger for Seraphim (e.g. when building a shield); although expected to be fixed in LOUD, want to leave in in case steam has the same issue
 local M28OldUnit = SConstructionUnit
 if M28OldUnit then

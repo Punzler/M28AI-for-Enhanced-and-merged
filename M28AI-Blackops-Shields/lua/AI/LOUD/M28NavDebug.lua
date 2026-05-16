@@ -20,10 +20,10 @@
 --** SOFTWARE.
 --**********************************************************************************
 
-local Shared = import('/mods/M28AI/lua/AI/LOUD/M28SharedNavGenerator.lua')
-local NavGenerator = import('/mods/M28AI/lua/AI/LOUD/M28NavGenerator.lua') --import("/lua/sim/navgenerator.lua")
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
-local NavUtils = M28Utilities.NavUtils --import('/mods/M28AI/lua/AI/LOUD/M28NavUtils.lua') --import("/lua/sim/navutils.lua")
+local Shared = import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28SharedNavGenerator.lua')
+local NavGenerator = import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28NavGenerator.lua') --import("/lua/sim/navgenerator.lua")
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
+local NavUtils = M28Utilities.NavUtils --import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28NavUtils.lua') --import("/lua/sim/navutils.lua")
 
 local Debug = false
 function EnableDebugging()

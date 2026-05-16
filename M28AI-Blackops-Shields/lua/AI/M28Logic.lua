@@ -3,14 +3,14 @@
 --- Created by maudlin27.
 --- DateTime: 07/12/2022 19:50
 ---
-local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
-local M28UnitInfo = import('/mods/M28AI/lua/AI/M28UnitInfo.lua')
-local M28Team = import('/mods/M28AI/lua/AI/M28Team.lua')
-local M28Conditions = import('/mods/M28AI/lua/AI/M28Conditions.lua')
-local M28Map = import('/mods/M28AI/lua/AI/M28Map.lua')
-local M28Overseer = import('/mods/M28AI/lua/AI/M28Overseer.lua')
-local M28Building = import('/mods/M28AI/lua/AI/M28Building.lua')
+local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
+local M28UnitInfo = import('/mods/M28AI-Blackops-Shields/lua/AI/M28UnitInfo.lua')
+local M28Team = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Team.lua')
+local M28Conditions = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Conditions.lua')
+local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
+local M28Overseer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua')
+local M28Building = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Building.lua')
 
 
 refiNearestEnemyIndex = 'M28NearestEnemyIndex'

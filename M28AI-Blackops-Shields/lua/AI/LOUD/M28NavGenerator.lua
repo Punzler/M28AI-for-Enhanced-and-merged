@@ -20,8 +20,8 @@
 --** SOFTWARE.
 --******************************************************************************************************
 
-local Shared = import('/mods/M28AI/lua/AI/LOUD/M28SharedNavGenerator.lua')
---SEE BELOW FOR import('/mods/M28AI/lua/AI/LOUD/M28NavGenerator.lua')
+local Shared = import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28SharedNavGenerator.lua')
+--SEE BELOW FOR import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28NavGenerator.lua')
 
 
 ---@alias NavTerrainCache number[][]
@@ -1562,7 +1562,7 @@ local function GenerateMarkerMetadata(mapHasWater)
     if file_exists("/lua/sim/markerutilities.lua") then
         extractors = import("/lua/sim/markerutilities.lua").GetMarkersByType('Mass')
     else
-        extractors = import('/mods/M28AI/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Mass')
+        extractors = import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Mass')
     end
 
     for id, extractor in extractors do
@@ -1586,7 +1586,7 @@ local function GenerateMarkerMetadata(mapHasWater)
     if file_exists("/lua/sim/markerutilities.lua") then
         hydrocarbons = import("/lua/sim/markerutilities.lua").GetMarkersByType('Hydrocarbon')
     else
-        hydrocarbons = import('/mods/M28AI/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Hydrocarbon')
+        hydrocarbons = import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Hydrocarbon')
     end
 
     for id, hydro in hydrocarbons do
@@ -1919,5 +1919,5 @@ function Generate()
     Generated = true
 
     -- allows debugging tools to function
-    import('/mods/M28AI/lua/AI/LOUD/M28NavGenerator.lua')
+    import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28NavGenerator.lua')
 end

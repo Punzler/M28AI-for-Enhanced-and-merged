@@ -8,21 +8,21 @@ local file_exists = function(name)
 end
 
 local SimPing = import("/lua/simping.lua")
-local M28UnitInfo = import('/mods/M28AI/lua/AI/M28UnitInfo.lua')
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
-local M28Team = import('/mods/M28AI/lua/AI/M28Team.lua')
-local M28Overseer = import('/mods/M28AI/lua/AI/M28Overseer.lua')
-local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
-local M28Economy = import('/mods/M28AI/lua/AI/M28Economy.lua')
-local M28Map = import('/mods/M28AI/lua/AI/M28Map.lua')
-local M28Conditions = import('/mods/M28AI/lua/AI/M28Conditions.lua')
+local M28UnitInfo = import('/mods/M28AI-Blackops-Shields/lua/AI/M28UnitInfo.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
+local M28Team = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Team.lua')
+local M28Overseer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua')
+local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
+local M28Economy = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Economy.lua')
+local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
+local M28Conditions = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Conditions.lua')
 local SUtils
 if file_exists('/lua/AI/sorianutilities.lua') then SUtils = import('/lua/AI/sorianutilities.lua')
-else SUtils = import('/mods/M28AI/lua/AI/Steam/sorianutilities.lua')
+else SUtils = import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/sorianutilities.lua')
 end
 local SimSyncUtils
 if file_exists('/lua/simsyncutils.lua') then SimSyncUtils = import('/lua/simsyncutils.lua')
-else SimSyncUtils = import('/mods/M28AI/lua/AI/LOUD/M28SimSyncUtils.lua')
+else SimSyncUtils = import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28SimSyncUtils.lua')
 end
 
 tiM28VoiceTauntByType = {} --[x] = string for the type of voice taunt (functionref), returns gametimeseconds it was last issued

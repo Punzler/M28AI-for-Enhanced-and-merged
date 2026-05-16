@@ -6,6 +6,6 @@
 local M28OldTransferUnitsOwnership = TransferUnitsOwnership
 TransferUnitsOwnership = function(units, toArmy, captured)
     local tCaptured = M28OldTransferUnitsOwnership(units, toArmy, captured)
-    ForkThread(import('/mods/M28AI/lua/AI/M28Events.lua').OnCaptured, tCaptured, toArmy, captured)
+    ForkThread(import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua').OnCaptured, tCaptured, toArmy, captured)
     return tCaptured
 end

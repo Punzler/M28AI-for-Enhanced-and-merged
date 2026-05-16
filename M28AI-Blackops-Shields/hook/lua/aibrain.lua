@@ -1,9 +1,9 @@
-local M28Overseer = import('/mods/M28AI/lua/AI/M28Overseer.lua')
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
-local M28Map = import('/mods/M28AI/lua/AI/M28Map.lua')
-local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
-local M28Config = import('/mods/M28AI/lua/M28Config.lua')
-local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+local M28Overseer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
+local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
+local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
+local M28Config = import('/mods/M28AI-Blackops-Shields/lua/M28Config.lua')
+local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
 
 --Note - looks like this logic may be moved to lua\aibrains\base-ai.lua at some point based on FAF develop (as at May 2023)
 --In theory the below shouldt be needed once the FAF-Develop changes are integrated into FAF (expected June 2023), although probably no harm leaving for backwards compatibility
@@ -22,7 +22,7 @@ AIBrain = Class(M28AIBrainClass) {
 
     OnCreateAI = function(self, planName)
         if M28Utilities.bSteamActive then
-            local M28Conditions = import('/mods/M28AI/lua/AI/M28Conditions.lua')
+            local M28Conditions = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Conditions.lua')
             --Only apply M28 to easy and normal
             LOG('Brain OnCreateAI for brain'..self.Nickname..' with personality '..(self.Personality or ScenarioInfo.ArmySetup[self.Name].AIPersonality or 'nil'))
             local sPersonality = self.Personality or ScenarioInfo.ArmySetup[self.Name].AIPersonality

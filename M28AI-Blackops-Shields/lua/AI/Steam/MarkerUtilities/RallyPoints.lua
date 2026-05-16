@@ -21,7 +21,7 @@
 --** SOFTWARE.
 --******************************************************************************************************
 
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
 local NavUtils = M28Utilities.NavUtils
 
 ---@class MarkerRallyPoint : MarkerData
@@ -74,7 +74,7 @@ end
 function Generate()
 
     -- verify that we have what we need
-    if not import('/mods/M28AI/lua/AI/Steam/markerutilities/Expansions.lua').IsGenerated() then
+    if not import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities/Expansions.lua').IsGenerated() then
         WARN("Unable to generate rally point markers without expansion markers")
     end
 
@@ -82,10 +82,10 @@ function Generate()
         WARN("Unable to generate rally point markers without navigational mesh")
     end
 
-    local largeExpansions = import('/mods/M28AI/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Large Expansion Area') --[[@as (MarkerExpansion[])]]
+    local largeExpansions = import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Large Expansion Area') --[[@as (MarkerExpansion[])]]
     local largeExpansionCount = table.getn(largeExpansions)
 
-    local smallExpansions = import('/mods/M28AI/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Expansion Area') --[[@as (MarkerExpansion[])]]
+    local smallExpansions = import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Expansion Area') --[[@as (MarkerExpansion[])]]
     local smallExpansionCount = table.getn(smallExpansions)
 
     if largeExpansionCount == 0 and smallExpansionCount == 0 then
@@ -109,7 +109,7 @@ function Generate()
         GenerateForExpansion(largeExpansions[k], 'Land', 50, 16)
     end
 
-    import('/mods/M28AI/lua/AI/Steam/markerutilities.lua').OverwriteMarkerByType('Rally Point', RallyPoints)
+    import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities.lua').OverwriteMarkerByType('Rally Point', RallyPoints)
 
     SPEW(string.format("Generated rally point markers in %.2f miliseconds", 1000 * (GetSystemTimeSecondsOnlyForProfileUse() - start)))
 end

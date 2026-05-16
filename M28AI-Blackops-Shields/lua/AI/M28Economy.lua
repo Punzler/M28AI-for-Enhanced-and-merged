@@ -4,21 +4,21 @@
 --- DateTime: 02/12/2022 08:37
 ---
 
-local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
-local M28UnitInfo = import('/mods/M28AI/lua/AI/M28UnitInfo.lua')
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
-local M28Team = import('/mods/M28AI/lua/AI/M28Team.lua')
-local M28Map = import('/mods/M28AI/lua/AI/M28Map.lua')
-local M28Land = import('/mods/M28AI/lua/AI/M28Land.lua')
-local M28Factory = import('/mods/M28AI/lua/AI/M28Factory.lua')
-local M28Orders = import('/mods/M28AI/lua/AI/M28Orders.lua')
-local M28Conditions = import('/mods/M28AI/lua/AI/M28Conditions.lua')
-local M28Engineer = import('/mods/M28AI/lua/AI/M28Engineer.lua')
-local M28Building = import('/mods/M28AI/lua/AI/M28Building.lua')
+local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
+local M28UnitInfo = import('/mods/M28AI-Blackops-Shields/lua/AI/M28UnitInfo.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
+local M28Team = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Team.lua')
+local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
+local M28Land = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Land.lua')
+local M28Factory = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Factory.lua')
+local M28Orders = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Orders.lua')
+local M28Conditions = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Conditions.lua')
+local M28Engineer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Engineer.lua')
+local M28Building = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Building.lua')
 local NavUtils = M28Utilities.NavUtils
-local M28Navy = import('/mods/M28AI/lua/AI/M28Navy.lua')
-local M28Overseer = import('/mods/M28AI/lua/AI/M28Overseer.lua')
-local M28ACU = import('/mods/M28AI/lua/AI/M28ACU.lua')
+local M28Navy = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Navy.lua')
+local M28Overseer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua')
+local M28ACU = import('/mods/M28AI-Blackops-Shields/lua/AI/M28ACU.lua')
 
 --Variables against aiBrain:
 --ECONOMY VARIABLES - below 4 are to track values based on base production, ignoring reclaim. Provide per tick values so 10% of per second)
@@ -171,10 +171,17 @@ function UpgradeUnit(oUnitToUpgrade, bUpdateUpgradeTracker, iOptionalWait)
             ForkThread(M28Orders.DelayedUpgradeTracking, oUnitToUpgrade, sUpgradeID)
         end
     else
-        --Dont have an upgrade ID; if the unit has an UpgradesTo value in the blueprint and that unit is restricted, then dont show an error
+        --Dont have an upgrade ID. Legitimate silent-skip conditions before falling through to the error:
         local sExpectedUpgradeID = oUnitToUpgrade:GetBlueprint().General.UpgradesTo
-        if sExpectedUpgradeID and M28UnitInfo.IsUnitRestricted(sExpectedUpgradeID, oUnitToUpgrade:GetAIBrain():GetArmyIndex()) then
+        if not(sExpectedUpgradeID) or sExpectedUpgradeID == '' then
+            --Top-tier unit with no upgrade path defined in its BP. Designed so (e.g. exp shields ueb9301/xsb9301/urb9207, BlackOps top-tier units like beb5205, vanilla top-tier shields like urb4302). Not an error, just a category M28's upgrade-sweep happens to touch.
+        elseif M28UnitInfo.IsUnitRestricted(sExpectedUpgradeID, oUnitToUpgrade:GetAIBrain():GetArmyIndex()) then
             --Restricted e.g. due to campaign or other settings
+        elseif not(bUpdateUpgradeTracker) then
+            --Recursive retry from the BeingUpgraded-with-FractionComplete=1 race-handler at the ForkThread call above. The parent call already issued/tracked the upgrade; this recursion only existed to wait out an engine state-flap. Reaching the else here means the state didnt resolve as expected, but there is nothing useful left to do or report.
+        elseif not(oUnitToUpgrade:CanBuild(sExpectedUpgradeID)) then
+            --BP declares an upgrade path but the engine refuses to issue it (e.g. cross-mod upgrade chains like BlackOps power urb1102->brb1202 where the target requires a different engineer/conditions M28 doesnt set up). Worth knowing about, but not a M28 bug — log as a Warning rather than an Error so it surfaces once and then throttles down.
+            M28Utilities.ErrorHandler('Cannot upgrade to declared UpgradesTo (CanBuild failed); UnitID=' .. (oUnitToUpgrade.UnitId or 'nil')..'; sExpectedUpgradeID='..sExpectedUpgradeID, true)
         elseif not(M28Map.bIsCampaignMap) then --on campaign had issue where could have t3 HQs but not be allowed to upgrade t2 support factory to t3, so have disabled error message on all campaign maps
             M28Utilities.ErrorHandler('Dont have a valid upgrade ID; UnitID=' .. (oUnitToUpgrade.UnitId or 'nil')..'; sExpectedUpgradeID='..(sExpectedUpgradeID or 'nil'))
             if bDebugMessages == true and sExpectedUpgradeID then
@@ -639,7 +646,7 @@ function UpdateHighestFactoryTechLevelForBuiltUnit(oUnitJustBuilt)
 
             --Special bomber snipe logic
             if aiBrain[M28Overseer.refbBomberSnipe] and iUnitTechLevel >= 2 and EntityCategoryContains(M28UnitInfo.refCategoryAirFactory, oUnitJustBuilt.UnitId) then
-                local M28Air = import('/mods/M28AI/lua/AI/M28Air.lua')
+                local M28Air = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Air.lua')
                 ForkThread(M28Air.AssessPotentialBomberSnipeTargetsNowReachedT2Air, aiBrain.M28Team)
             end
         elseif EntityCategoryContains(M28UnitInfo.refCategoryQuantumGateway, oUnitJustBuilt.UnitId) then

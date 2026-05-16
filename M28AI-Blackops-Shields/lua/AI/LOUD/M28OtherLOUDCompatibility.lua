@@ -7,8 +7,8 @@
 --Update unit categories
 
 --1 issue - LOUD has removed ANTINAVY category, use destroyer and submarine as basic proxy
-local M28UnitInfo = import('/mods/M28AI/lua/AI/M28UnitInfo.lua')
-local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
+local M28UnitInfo = import('/mods/M28AI-Blackops-Shields/lua/AI/M28UnitInfo.lua')
+local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
 bUpdatedRepr = false
 bUpdatedOtherLOUDInfo = false
 bUpdatedUnitCategories = false
@@ -16,7 +16,7 @@ bUpdatedUnitCategories = false
 function AddReprCommands()
     if not(bUpdatedRepr) then
         bUpdatedRepr = true
-        local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
+        local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
         _G.repru = rawget(_G, 'repru') or repr --With thanks to Balthazar for suggesting this for where e.g. FAF develop has a function that isnt yet in FAF main
         _G.reprs = rawget(_G, 'reprs') or
                 function(tTable)
@@ -113,11 +113,11 @@ function UpdateOtherLOUDInformation()
         bUpdatedOtherLOUDInfo = true
         AddReprCommands()
 
-        local M28Building = import('/mods/M28AI/lua/AI/M28Building.lua')
+        local M28Building = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Building.lua')
         M28Building.bShieldsCanDischarge = false
 
         --fix the scenarioinfo values from custom game options if are in LOUD, as it uses keys
-        local LobbyOptions = import('/mods/M28AI/lua/CustomOptions/M28LOUDLobbyOptions.lua')
+        local LobbyOptions = import('/mods/M28AI-Blackops-Shields/lua/CustomOptions/M28LOUDLobbyOptions.lua')
         local vCurKey
         if bDebugMessages == true then LOG(sFunctionRef..': About to go through lobby options and update scenario info, LobbyOptions.LobbyGlobalOptions='..repru(LobbyOptions.LobbyGlobalOptions)) end
         local bUseKeyForValue
@@ -207,7 +207,7 @@ function UpdateUnitCategories()
         M28UnitInfo.refCategoryCombatScout =  M28UnitInfo.refCategoryCombatScout + categories.xsl0101
 
         --Az further changes for QUIET
-        local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
+        local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
         if M28Utilities.bQuietModActive then
             --(QUIET removes the base exclusion of certain unit categories from lAB/addition to indirect fire, due to these being considered T0.5 units)
             M28UnitInfo.refCategoryIndirect = categories.LAND * categories.MOBILE * categories.INDIRECTFIRE - categories.DIRECTFIRE - M28UnitInfo.refCategoryLandExperimental - M28UnitInfo.refCategoryScathis - categories.UNSELECTABLE - categories.UNTARGETABLE

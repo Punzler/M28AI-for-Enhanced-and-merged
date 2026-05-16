@@ -4,7 +4,7 @@
 --- DateTime: 02/12/2022 09:10
 ---
 --WARNING: CAREFUL with below hooks - caused spamming of error messages when T1 arti fired despite the event code being commented out
-local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
 
 M28DefaultProjectileWeapon = DefaultProjectileWeapon
 

@@ -3,25 +3,25 @@
 --- Created by maudlin27.
 --- DateTime: 02/12/2022 19:23
 ---
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
-local M28UnitInfo = import('/mods/M28AI/lua/AI/M28UnitInfo.lua')
-local M28Economy = import('/mods/M28AI/lua/AI/M28Economy.lua')
-local M28Map = import('/mods/M28AI/lua/AI/M28Map.lua')
-local M28Orders = import('/mods/M28AI/lua/AI/M28Orders.lua')
-local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
-local M28Factory = import('/mods/M28AI/lua/AI/M28Factory.lua')
-local M28Conditions = import('/mods/M28AI/lua/AI/M28Conditions.lua')
-local M28Overseer = import('/mods/M28AI/lua/AI/M28Overseer.lua')
-local M28Team = import('/mods/M28AI/lua/AI/M28Team.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
+local M28UnitInfo = import('/mods/M28AI-Blackops-Shields/lua/AI/M28UnitInfo.lua')
+local M28Economy = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Economy.lua')
+local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
+local M28Orders = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Orders.lua')
+local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
+local M28Factory = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Factory.lua')
+local M28Conditions = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Conditions.lua')
+local M28Overseer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua')
+local M28Team = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Team.lua')
 local NavUtils = M28Utilities.NavUtils
-local M28Land = import('/mods/M28AI/lua/AI/M28Land.lua')
-local M28Config = import('/mods/M28AI/lua/M28Config.lua')
-local M28Building = import('/mods/M28AI/lua/AI/M28Building.lua')
-local M28Navy = import('/mods/M28AI/lua/AI/M28Navy.lua')
-local M28Air = import('/mods/M28AI/lua/AI/M28Air.lua')
-local M28ACU = import('/mods/M28AI/lua/AI/M28ACU.lua')
-local M28Chat = import('/mods/M28AI/lua/AI/M28Chat.lua')
-local M28Micro = import('/mods/M28AI/lua/AI/M28Micro.lua')
+local M28Land = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Land.lua')
+local M28Config = import('/mods/M28AI-Blackops-Shields/lua/M28Config.lua')
+local M28Building = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Building.lua')
+local M28Navy = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Navy.lua')
+local M28Air = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Air.lua')
+local M28ACU = import('/mods/M28AI-Blackops-Shields/lua/AI/M28ACU.lua')
+local M28Chat = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Chat.lua')
+local M28Micro = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Micro.lua')
 
 
 
@@ -15481,7 +15481,7 @@ function ConsiderCoreBaseLandZoneEngineerAssignment(tLZTeamData, iTeam, iPlateau
     if bDebugMessages == true then LOG(sFunctionRef..': Is table of upgrading ACUs on team empty='..tostring(M28Utilities.IsTableEmpty(M28Team.tTeamData[iTeam][M28Team.subreftTeamUpgradingACUs]))) end
     if M28Utilities.IsTableEmpty(M28Team.tTeamData[iTeam][M28Team.subreftTeamUpgradingACUs]) == false then
         local oACUUpgradingForTeleportInThisZone
-        local M28ACU = import('/mods/M28AI/lua/AI/M28ACU.lua') --done here incase having it above causes issues (havent actually tested, but m28acu refers to parts of m28engineer)
+        local M28ACU = import('/mods/M28AI-Blackops-Shields/lua/AI/M28ACU.lua') --done here incase having it above causes issues (havent actually tested, but m28acu refers to parts of m28engineer)
         if M28Conditions.IsTableOfUnitsStillValid(M28Team.tTeamData[iTeam][M28Team.subreftTeamUpgradingACUs], false) then
             for iACU, oACU in M28Team.tTeamData[iTeam][M28Team.subreftTeamUpgradingACUs] do
                 if bDebugMessages == true then LOG(sFunctionRef..': Considering upgrading ACU oACU='..oACU.UnitId..M28UnitInfo.GetUnitLifetimeCount(oACU)..' owned by brain '..oACU:GetAIBrain().Nickname..'; Unit state='..M28UnitInfo.GetUnitState(oACU)..'; Planning to get teleport='..tostring(oACU[M28ACU.refbPlanningToGetTeleport])) end
@@ -20814,8 +20814,8 @@ function GetStartSearchPositionForEmergencyPD(tNearestEnemy, tLZMidpoint, iPlate
                         local aiBrain = ArmyBrains[tLZTeamData[M28Map.reftiClosestFriendlyM28BrainIndex]]
                         local tShotStart = {tAltLocation[1], tAltLocation[2] + iExpectedPDTechLevel * 0.5, tAltLocation[3]}
                         local tShotEndPosition = {tPotentialWaterLocation[1], tPotentialWaterLocation[2] + 1, tPotentialWaterLocation[3]}
-                        if bDebugMessages == true then LOG(sFunctionRef..': Is line blocked between shot start and shot end='..tostring(import('/mods/M28AI/lua/AI/M28Logic.lua').IsLineBlocked(aiBrain, tShotStart, tShotEndPosition, 0, false, false))) end
-                        if not(import('/mods/M28AI/lua/AI/M28Logic.lua').IsLineBlocked(aiBrain, tShotStart, tShotEndPosition, 0, false, false)) then
+                        if bDebugMessages == true then LOG(sFunctionRef..': Is line blocked between shot start and shot end='..tostring(import('/mods/M28AI-Blackops-Shields/lua/AI/M28Logic.lua').IsLineBlocked(aiBrain, tShotStart, tShotEndPosition, 0, false, false))) end
+                        if not(import('/mods/M28AI-Blackops-Shields/lua/AI/M28Logic.lua').IsLineBlocked(aiBrain, tShotStart, tShotEndPosition, 0, false, false)) then
                             --Change the start position
                             tTargetLocation = {tAltLocation[1], tAltLocation[2], tAltLocation[3]}
                             if bDebugMessages == true then LOG(sFunctionRef..': Changing PD placement so we move back from water by '..iCurMoveBackDist) end

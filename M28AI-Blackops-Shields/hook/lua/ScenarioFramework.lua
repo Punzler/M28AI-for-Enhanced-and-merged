@@ -16,13 +16,13 @@ function ForkedPlayableAreaChange(rect, voFlag)
     if GetGameTimeSeconds() < 3 then
         WaitSeconds(3 - math.floor(GetGameTimeSeconds()))
     end
-    if import('/mods/M28AI/lua/AI/M28Utilities.lua').bM28AIInGame then
-        local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
+    if import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua').bM28AIInGame then
+        local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
         local bDebugMessages = false if M28Profiler.bGlobalDebugOverride == true then   bDebugMessages = true end
         local sFunctionRef = 'ForkedPlayableAreaChange'
         M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
         if bDebugMessages == true then LOG(sFunctionRef..': rect='..repru(rect)..'; voFlag='..reprs(voFlag)) end
-        ForkThread(import('/mods/M28AI/lua/AI/M28Events.lua').OnPlayableAreaChange, rect, voFlag)
+        ForkThread(import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua').OnPlayableAreaChange, rect, voFlag)
         M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
     end
 end
@@ -32,7 +32,7 @@ CreatePlatoonDeathTrigger = function(callback, platoon)
     M28OldCreatePlatoonDeathTrigger(callback, platoon)
     local tUnits = platoon:GetPlatoonUnits()
     if tUnits then
-        local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+        local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
         for iUnit, oUnit in tUnits do
             ForkThread(M28Events.DeathTriggerAdded, oUnit)
         end

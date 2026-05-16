@@ -16,7 +16,7 @@ GetOrderBitmapNames = function(bitmapId)
     local button_prefix
     --LOG('bitmapId='..(bitmapId or 'nil')..'; string.sub(bitmapId, 1, 3)='..string.sub(bitmapId, 1, 3))
     if string.sub(bitmapId, 1, 3) == 'M28' then
-        button_prefix = "/mods/M28AI/textures/"..bitmapId.."_btn_"
+        button_prefix = "/mods/M28AI-Blackops-Shields/textures/"..bitmapId.."_btn_"
     else
         button_prefix = "/game/orders/" .. bitmapId .. "_btn_"
     end

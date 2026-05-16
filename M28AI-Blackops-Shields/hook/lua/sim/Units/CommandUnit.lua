@@ -4,7 +4,7 @@
 --- DateTime: 05/05/2025 19:06
 ---
 
-local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
 local M28OldCommandUnit = CommandUnit
 CommandUnit = Class(M28OldCommandUnit) {
     OnWorkBegin = function(self, work)

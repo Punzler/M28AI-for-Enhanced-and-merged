@@ -4,7 +4,7 @@
 --- DateTime: 28/03/2024 08:45
 ---
 --Looks like FAF moved the defaultwewapons.lua into sub-files at some point in 2023; below is copy of what i had in defaultweapons, added in v83, if run into issues then may need to test further
-local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
 
 M28DefaultProjectileWeapon = DefaultProjectileWeapon
 

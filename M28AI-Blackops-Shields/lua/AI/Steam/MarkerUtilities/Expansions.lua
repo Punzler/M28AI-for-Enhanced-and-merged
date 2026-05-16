@@ -21,8 +21,8 @@
 --** SOFTWARE.
 --******************************************************************************************************
 
-local Stack = import('/mods/M28AI/lua/AI/LOUD/M28NavDataStructures.lua').Stack --import("/lua/sim/navdatastructures.lua").Stack
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
+local Stack = import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28NavDataStructures.lua').Stack --import("/lua/sim/navdatastructures.lua").Stack
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
 local NavUtils = M28Utilities.NavUtils
 
 local Generated = false
@@ -75,7 +75,7 @@ local function GenerateExpansionMarkers ()
         end
     end
 
-    local extractors = import('/mods/M28AI/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Mass')
+    local extractors = import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Mass')
     for k, resource in extractors do
         local p = resource.position
         local px, pz = p[1], p[3]
@@ -96,7 +96,7 @@ local function GenerateExpansionMarkers ()
         end
     end
 
-    local hydrocarbonPlants = import('/mods/M28AI/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Hydrocarbon')
+    local hydrocarbonPlants = import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Hydrocarbon')
     for k, resource in hydrocarbonPlants do
         local p = resource.position
         local px, pz = p[1], p[3]
@@ -234,7 +234,7 @@ end
 ---@return integer
 local function AssimilateExpansionMarkers(expansions, expansionCount)
 
-    local startLocations, startLocationCount = import('/mods/M28AI/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Start Location')
+    local startLocations, startLocationCount = import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Start Location')
     local mapSize = math.max(ScenarioInfo.size[1], ScenarioInfo.size[2])
     local threshold = 30 + 0.02 * mapSize
 
@@ -363,8 +363,8 @@ function Generate()
     -- found. The center of those extractors is used as the location of the 
     -- marker
 
-    import('/mods/M28AI/lua/AI/Steam/markerutilities.lua').OverwriteMarkerByType('Large Expansion Area', largeExpansions)
-    import('/mods/M28AI/lua/AI/Steam/markerutilities.lua').OverwriteMarkerByType('Expansion Area', smallExpansions)
+    import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities.lua').OverwriteMarkerByType('Large Expansion Area', largeExpansions)
+    import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities.lua').OverwriteMarkerByType('Expansion Area', smallExpansions)
 
     SPEW(string.format("Generated rally point markers in %.2f miliseconds", 1000 * (GetSystemTimeSecondsOnlyForProfileUse() - start)))
 end

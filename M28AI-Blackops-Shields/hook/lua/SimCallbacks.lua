@@ -6,7 +6,7 @@
 ---
 Callbacks.M28SharedArmiesCallback = function(data, units)
     if not(tonumber(ScenarioInfo.Options.M28CombinedArmy or 2) == 1) then --i.e. option 1 enables; 2 and 4 disable (shouldnt be able to get here if are option 4), and 3 is moba mode
-        local M28Chat = import('/mods/M28AI/lua/AI/M28Chat.lua')
+        local M28Chat = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Chat.lua')
         local aiBrain
         for _, oUnit in units or {} do
             if oUnit.GetAIBrain and not (oUnit.Dead) then

@@ -3,7 +3,7 @@
 --- Created by maudlin27.
 --- DateTime: 26/09/2024 08:00
 ---
-local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
 local M28OldWeapon = Weapon
 Weapon = Class(M28OldWeapon) {
     OnWeaponFired = function(self, target)

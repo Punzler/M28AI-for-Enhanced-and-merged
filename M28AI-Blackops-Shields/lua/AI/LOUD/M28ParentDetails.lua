@@ -7,7 +7,7 @@
 
 --For copyright applying more generally, see LICENSE
 
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
 ConsiderIfLoudActive = M28Utilities.ConsiderIfLoudActive()
 
 function BrainBeginSession()

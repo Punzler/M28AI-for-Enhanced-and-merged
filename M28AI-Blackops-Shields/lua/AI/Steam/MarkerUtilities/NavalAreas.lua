@@ -20,7 +20,7 @@
 --** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 --** SOFTWARE.
 --******************************************************************************************************
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
 local NavUtils = M28Utilities.NavUtils
 
 ---@class MarkerNavalArea : MarkerData
@@ -114,15 +114,15 @@ function Generate()
     NavUtils.Generate()
 
     -- requires expansion markers
-    import('/mods/M28AI/lua/AI/Steam/markerutilities/expansions.lua').Generate()
+    import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities/expansions.lua').Generate()
 
-    local spawns, spawnCount = import('/mods/M28AI/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Spawn') --[[@as (MarkerExpansion[])]]
-    local largeExpansions, largeExpansionCount = import('/mods/M28AI/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Large Expansion Area') --[[@as (MarkerExpansion[])]]
-    local smallExpansions, smallExpansionCount = import('/mods/M28AI/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Expansion Area') --[[@as (MarkerExpansion[])]]
+    local spawns, spawnCount = import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Spawn') --[[@as (MarkerExpansion[])]]
+    local largeExpansions, largeExpansionCount = import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Large Expansion Area') --[[@as (MarkerExpansion[])]]
+    local smallExpansions, smallExpansionCount = import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities.lua').GetMarkersByType('Expansion Area') --[[@as (MarkerExpansion[])]]
 
     if (largeExpansionCount == 0) and (smallExpansionCount == 0) and (spawnCount == 0) then
         WARN("Unable to generate naval area markers without expansion markers")
-        import('/mods/M28AI/lua/AI/Steam/markerutilities.lua').OverwriteMarkerByType('Naval Area', Markers)
+        import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities.lua').OverwriteMarkerByType('Naval Area', Markers)
         return
     end
 
@@ -171,7 +171,7 @@ function Generate()
         GenerateForExpansion(spawns[k], thresholdDistance, thresholdSize, thresholdArea, 6)
     end
 
-    import('/mods/M28AI/lua/AI/Steam/markerutilities.lua').OverwriteMarkerByType('Naval Area', Markers)
+    import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities.lua').OverwriteMarkerByType('Naval Area', Markers)
 
     SPEW(string.format("Generated naval area markers in %.2f miliseconds", 1000 * (GetSystemTimeSecondsOnlyForProfileUse() - start)))
 end

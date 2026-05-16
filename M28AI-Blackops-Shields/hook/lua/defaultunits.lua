@@ -3,7 +3,7 @@
 --- DateTime: 13/08/2022 18:01
 ---
 ---
-local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
 --safeGetGlobal provided by chatGPT
 local function safeGetGlobal(varName)
     local success, value = pcall(function() return _G[varName] end)

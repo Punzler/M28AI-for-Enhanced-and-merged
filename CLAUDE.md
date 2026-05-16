@@ -1,0 +1,161 @@
+# M28AI-Blackops+Shields — Project Context
+
+## What this is
+
+A fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) (v297) by Punzler,
+tuned for play alongside Shields Enhanced and BlackOpsFAF-Merged in FAF
+(Forged Alliance Forever).
+
+The user (Punzler / e-kuendig) is the author of **Shields Enhanced** and
+modifies M28AI directly to support typical mod experimental shields in
+M28's engineer-strategy chain.
+
+## Current state
+
+**Working:** Lower experimental-shield-detection thresholds in
+`M28AI-Blackops-Shields/lua/AI/M28Building.lua` so M28's engineer-strategy
+chain activates with mod shields (Shields Enhanced Small variants:
+50–63k HP):
+
+- Line 35: `iExperimentalShieldHealthValue = 48000` (was 90000)
+- Line 6318: `local iMinShieldSize = 48` (was 50)
+- Line 6321: `local iMaxShieldCost = 25000` (was 20000)
+
+Verified in-game over a 53-min match — `ueb9301` (UEF Bulwark Small) and
+`urb9207` (Cybran Iron Veil Small) built by M28 brains. Large variants
+(`uab9401`/`ueb9401`/`urb9407`/`xsb9401`) correctly filtered out by the
+cost-cap + M28's existing `iCheapestShield * 1.2` clustering.
+
+`mod_info.lua` retitled to `M28AI-Blackops+Shields`, new UID, attribution
+to maudlin27.
+
+**Self-contained fork (as of 2026-05-16):** All 467 `import('/mods/M28AI/...')`
+references were bulk-rewritten to `import('/mods/M28AI-Blackops-Shields/...')`
+so the fork loads its own code instead of shadowing the canonical M28AI
+mount. Original M28AI mod no longer needs to be installed/active for the
+fork to run. Side-effect: BlackOpsFAF-Merged / BlackOpsFAF-ACUs-Enhanced /
+Shields Enhanced still hook `/mods/m28ai/...` paths — if the original
+M28AI folder isn't mounted those hooks no-op. Accept for now.
+
+## Open tasks (in priority order)
+
+### 1. ✅ Fix `ueb9301`/`urb9207` "no valid upgrade ID" errors (DONE 2026-05-16)
+
+**Root cause:** the bug was *not* a misbehaving caller. It was three orthogonal silent-skip conditions missing inside `M28Economy.UpgradeUnit` itself. Diagnosed via temp debug logging at function entry — once a verification run confirmed the pattern, the debug block was removed and the fix landed at the error site.
+
+Three error flavors all flowed into the same `else`-branch:
+1. **Empty/nil `UpgradesTo`** — top-tier units (modded `ueb9301`/`xsb9301`/`beb5205`, also vanilla `urb4302`). Some BP layer in the FAF mod stack normalizes the missing field to `""` (empty string), which is truthy in Lua and slips past the existing `if BP.UpgradesTo then` guards at the ForkThread call sites.
+2. **Recursion at [M28Economy.lua:157](M28AI-Blackops-Shields/lua/AI/M28Economy.lua#L157)** — race-state retry handler for the `BeingUpgraded+FractionComplete=1` engine state-flap. The recursion passes `bUpdateUpgradeTracker=false`, which forces the function's outer `if`-condition to fail on re-entry. Architectural quirk: the workaround sabotages its own retry path.
+3. **CanBuild fails** — BlackOps cross-mod chains like `urb1102→brb1202` where the upgrade target's BP exists but the engineer can't issue it. After `refbTriedIgnoringCanBuildForUpgrade` is set, subsequent attempts can't even use the fallback path, so they fall into the error.
+
+**Fix:** four-branch logic at [M28Economy.lua:173+](M28AI-Blackops-Shields/lua/AI/M28Economy.lua#L173):
+- empty/nil `UpgradesTo` → silent
+- restricted (existing) → silent
+- `not(bUpdateUpgradeTracker)` (recursion) → silent
+- `CanBuild` fails → Warning (`ErrorHandler(msg, true)`) instead of Error, so it surfaces once then auto-throttles
+- real bug → Error as before
+
+**Result (game_27069683.log):** 16 `M28ERROR` → 0. 5 throttled `M28Warning` lines for support-factory upgrades (`zrb9501→zrb9601`, `zsb9502→zsb9602`) — a separate edge case in M28's `GetUnitUpgradeBlueprint` support-factory mapping, surfaced cleanly by Branch 3 but not addressed here.
+
+### 2. Large-shield generic support
+
+Currently the cost-cap (25000) keeps Large variants
+(`uab9401`/`ueb9401`/`urb9407`/`xsb9401`) out of M28's build pool. User
+wants these eventually buildable by M28 too, **but** without corrupting
+M28's prebuild/planning state — Large shields have 5x5 footprint + 8x8
+build skirt, which doesn't fit M28's stock-T3-sized template slots and
+caused thousands of placement-fail retries in earlier experiments.
+
+Open design questions (from
+`C:\Users\etien\.claude\plans\how-would-i-go-shimmying-cookie.md`):
+- How M28 caches build-locations for the exp-shield category and whether
+  multiple sizes in the same category collide
+- Whether `refiExperimentalShieldCategory` can hold multiple size classes
+  or needs separate brain-flags for Small vs Large
+- Whether splitting cost-cap by tier is the right approach, or if a
+  separate Large-shield brain-flag is needed
+
+## Workflow
+
+### Code lives in two places
+
+- **Workspace (this folder):** `C:\Users\etien\modding\workspace\M28AI-Blackops-Shields\` — git repo root.
+  - Top-level (repo meta only): `.git/`, `.gitattributes`, `.gitignore`, `.claude/`, `CLAUDE.md`, `installation.txt`
+  - Mod files in nested subfolder: `M28AI-Blackops-Shields/` containing `mod_info.lua`, `LICENSE`, `M28AI.jpg`, `hook/`, `lua/`, `units/`, `textures/`. Restructured 2026-05-16 so meta-files don't sit next to mod files.
+  - `.gitignore` excludes `.idea/` (auto-generated IntelliJ scaffold, no real config — regenerates on next IDE open).
+- **FAF live folder:** `C:\Users\etien\Documents\My Games\Gas Powered Games\Supreme Commander Forged Alliance\mods\M28AI-Blackops-Shields\` — needs manual sync from workspace's inner subfolder (`workspace/M28AI-Blackops-Shields/M28AI-Blackops-Shields/`) before each test. 1:1 mapping.
+
+Sync after every edit. The FAF folder is gitignored; only the workspace
+is version-controlled.
+
+### Testing
+
+- Activate **only** `M28AI-Blackops+Shields` in FAF lobby. With the
+  self-contained rewrite (2026-05-16) the original M28AI mod is no longer
+  needed for the fork to load its own code. Activating both at the same
+  time risks Lua state confusion.
+- Mod stack used: Total Mayhem, BlackOps FAF Merged, BlackOpsFAF-ACUs-
+  Enhanced, Shields Enhanced, Savers Unitspack
+- Run minimum 8–15 min for T3 engineers to spawn (gate fires on
+  `LifetimeCount == 1 + TECH3 * Engineer` in M28Events.lua:3885)
+- Logs: `C:\Users\etien\AppData\Roaming\Forged Alliance Forever\logs\game_*.log`
+- Crash exit code via `client.log`:
+  - `0` = clean exit
+  - `-1073741819` (0xC0000005) = engine access violation
+- Search log for `M28-BLACKOPS-DEBUG` (current debug marker for the
+  UpgradeUnit no-UpgradesTo investigation), `M28-MyAddon` (legacy
+  Hook-Addon approach), and `M28AI-Blackops+Shields`
+
+## Important context from earlier diagnosis
+
+The user originally tried to make a separate addon mod (`M28-MyAddon`)
+using FAF's `hook/mods/M28AI/lua/AI/M28Building.lua` mechanism instead
+of directly forking. **That approach was abandoned** due to:
+
+1. **SCR_LuaDoFileConcat parser bug** — Multi-line `if`/`and`/`or` or
+   multi-line function-calls in a hook file break Lua's parser on the
+   concatenated original+hook file. Symptom: `unexpected symbol near 'end'`
+   error, entire M28Building.lua module fails to load, hundreds of
+   `access to nonexistent global` errors at runtime.
+
+2. **Top-level `import()` in hooks** corrupts M28's module state. Got
+   1770–14964 `access to nonexistent global variable` errors when hook
+   had `import('M28UnitInfo.lua')` and `import('M28Factory.lua')` at
+   top level. Only `import('M28Overseer.lua')` worked. Lazy imports
+   (inside function body) helped but not fully.
+
+3. **`categories[sBP]`** is an engine-internal C-API call that can
+   natively crash (Access Violation `0xC0000005`) on certain mod BPs.
+
+The fork approach sidesteps all three issues — we just edit M28's code
+directly. The legacy `M28-MyAddon/` folder is not in the workspace by
+default; ask the user to copy it in if its history is needed.
+
+## Sibling reference repos in workspace
+
+Per user's file-access rule: only browse `c:\Users\etien\modding\workspace\`
+and the FAF logs folder. Other paths (FAF live mods, system folders) are
+off-limits unless the user explicitly copies content in. The workspace is
+curated by the user — they add/remove folders as needed. Verify presence
+before assuming. For FAF engine code, use the FAF GitHub repo via
+WebFetch/WebSearch, not local filesystem hunting.
+
+Currently typical contents (subject to change):
+- `BlackOpsFAF-Merged/`, `BlackOpsFAF-ACUs-Enhanced/` — used together in
+  the mod stack
+- `Shields Enhanced/` — Punzler's own shield mod (the BPs we're targeting)
+
+## User preferences
+
+- German-speaking (replies in German preferred for natural conversation)
+- FAF modder, prefers minimal/idiomatic patches, no unnecessary code or
+  comments
+- Background: software-aware (uses PyCharm for Python work) but Lua/FAF
+  modding is the focus here
+- Editor: VSCode with Lua + GitLens extensions
+
+## License
+
+Source M28AI is CC BY-NC-SA 4.0. This fork must retain attribution to
+maudlin27 and stay under the same license. See `mod_info.lua` for
+attribution string.

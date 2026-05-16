@@ -5,7 +5,7 @@
 ---
 
 --Update unit categories
-local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
+local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
 bUpdatedRepr = false
 bUpdatedOtherSteamInfo = false
 bUpdatedUnitCategories = false
@@ -13,7 +13,7 @@ bUpdatedUnitCategories = false
 function AddReprCommands()
     if not(bUpdatedRepr) then
         bUpdatedRepr = true
-        local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
+        local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
         _G.repru = rawget(_G, 'repru') or repr --With thanks to Balthazar for suggesting this for where e.g. FAF develop has a function that isnt yet in FAF main
         _G.reprs = rawget(_G, 'reprs') or
                 function(tTable)
@@ -111,13 +111,13 @@ function OtherSteamCompatibilityInformation()
         if not(ScenarioInfo.Options.CheatMult) then ScenarioInfo.Options.CheatMult = '2.0' end
         if not(ScenarioInfo.Options.BuildMult) then ScenarioInfo.Options.BuildMult = '2.0' end
 
-        local M28Building = import('/mods/M28AI/lua/AI/M28Building.lua')
+        local M28Building = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Building.lua')
         M28Building.bShieldsCanDischarge = false
         if not(ScenarioInfo.Options.Share) then ScenarioInfo.Options.Share = 'None' end
         if bDebugMessages == true then LOG(sFunctionRef..': Finsihed updating for steam compatibility') end
 
         --fix the scenarioinfo values from custom game options if are in LOUD, as it uses keys
-        --[[local LobbyOptions = import('/mods/M28AI/lua/CustomOptions/M28LOUDLobbyOptions.lua')
+        --[[local LobbyOptions = import('/mods/M28AI-Blackops-Shields/lua/CustomOptions/M28LOUDLobbyOptions.lua')
         local vCurKey
         if bDebugMessages == true then LOG(sFunctionRef..': About to go through lobby options and update scenario info, LobbyOptions.LobbyGlobalOptions='..repru(LobbyOptions.LobbyGlobalOptions)) end
         for iEntry, tOptionData in LobbyOptions.LobbyGlobalOptions do
@@ -140,7 +140,7 @@ end
 function UpdateUnitCategories()
     if not(bUpdatedUnitCategories) then
         bUpdatedUnitCategories = true
-        local M28UnitInfo = import('/mods/M28AI/lua/AI/M28UnitInfo.lua')
+        local M28UnitInfo = import('/mods/M28AI-Blackops-Shields/lua/AI/M28UnitInfo.lua')
         --Land based:
         --lack of BOT category for experimentals
         M28UnitInfo.refCategoryMonkeylord = categories.CYBRAN * categories.MOBILE * categories.EXPERIMENTAL * categories.DIRECTFIRE - categories.CONSTRUCTION + categories.url0402

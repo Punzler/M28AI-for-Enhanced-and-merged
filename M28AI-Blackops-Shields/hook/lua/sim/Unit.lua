@@ -3,7 +3,7 @@
 --- Created by maudlin27.
 --- DateTime: 02/12/2022 09:13
 ---
-local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
 
 do --Per Balthazaar - encasing the code in do .... end means that you dont have to worry about using unique variables
         --ORIG FAF HOOKS FROM V102 BEFORE LOUD COMPATIBILITY

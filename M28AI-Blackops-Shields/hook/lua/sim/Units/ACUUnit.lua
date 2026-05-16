@@ -3,7 +3,7 @@
 --- Created by maudlin27.
 --- DateTime: 05/05/2025 19:06
 ---
-local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
 local M28OldACUUnit = ACUUnit
 ACUUnit = Class(M28OldACUUnit) {
     OnWorkBegin = function(self, work)

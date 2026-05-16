@@ -6,8 +6,8 @@
 --Note - this file only exists in FAF-Develop as of May 2023 (at later point expect this may replace lua\aibrain.lua)
 --In theory the below shouldt be needed once the FAF-Develop changes are integrated into FAF (expected June 2023), although probably no harm leaving for backwards compatibility
 --Commented out for v24
---[[local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
+--[[local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
 
 local M28OldAIBrain = AIBrain
 AIBrain = Class(M28OldAIBrain) {

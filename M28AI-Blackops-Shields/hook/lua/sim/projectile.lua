@@ -3,7 +3,7 @@
 --- Created by maudlin27.
 --- DateTime: 02/12/2022 09:11
 ---
-local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
 
 do --Per Balthazaar - encasing the code in do .... end means that you dont have to worry about using unique variables
     local M28OldProjectile = Projectile

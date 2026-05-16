@@ -4,17 +4,17 @@
 --- DateTime: 16/11/2022 07:22
 ---
 
-local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
+local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
 local NavUtils = M28Utilities.NavUtils --import("/lua/sim/navutils.lua")
-local M28Conditions = import('/mods/M28AI/lua/AI/M28Conditions.lua')
-local M28Team = import('/mods/M28AI/lua/AI/M28Team.lua')
-local M28Logic = import('/mods/M28AI/lua/AI/M28Logic.lua')
-local M28Overseer = import('/mods/M28AI/lua/AI/M28Overseer.lua')
-local M28Chat = import('/mods/M28AI/lua/AI/M28Chat.lua')
-local M28Land = import('/mods/M28AI/lua/AI/M28Land.lua')
-local M28UnitInfo = import('/mods/M28AI/lua/AI/M28UnitInfo.lua')
-local M28Config = import('/mods/M28AI/lua/M28Config.lua')
+local M28Conditions = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Conditions.lua')
+local M28Team = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Team.lua')
+local M28Logic = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Logic.lua')
+local M28Overseer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua')
+local M28Chat = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Chat.lua')
+local M28Land = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Land.lua')
+local M28UnitInfo = import('/mods/M28AI-Blackops-Shields/lua/AI/M28UnitInfo.lua')
+local M28Config = import('/mods/M28AI-Blackops-Shields/lua/M28Config.lua')
 
 bPlayableAreaSetup = false
 bUnexploredMap = false --Mapgen map had some sort of 'unexplored' feature which messes up the playable area logic
@@ -1081,7 +1081,7 @@ function SetupPlayableAreaAndSegmentSizes(rCampaignPlayableAreaOverride)
         --iTableSizeCap = SegmentCount^2; SegmentCount = iTotalSize / SegmentSize; (TotalSize/SegmentSize)^2 = iTableSizeCap; SemgentSize = TotalSize/Sqrt(iTableSizeCap)
         iLandZoneSegmentSize = math.ceil(iHighestSize / math.sqrt(iTableSizeCap))
         if iMapSize > 256 then iLandZoneSegmentSize = math.max(iLandZoneSegmentSize, 2) end --otherwise get too many building locations
-        import('/mods/M28AI/lua/AI/M28Engineer.lua').iLandZoneSegmentSize = iLandZoneSegmentSize
+        import('/mods/M28AI-Blackops-Shields/lua/AI/M28Engineer.lua').iLandZoneSegmentSize = iLandZoneSegmentSize
 
         --Record the max values
         iMaxLandSegmentX, iMaxLandSegmentZ = GetPathingSegmentFromPosition({rMapPotentialPlayableArea[3], 0, rMapPotentialPlayableArea[4]})
@@ -6076,10 +6076,10 @@ function RecordPondToExpandTo(aiBrain)
         local tStartPos = GetPlayerStartPosition(aiBrain)
         if GetTerrainHeight(tStartPos[1], tStartPos[3]) < GetSurfaceHeight(tStartPos[1], tStartPos[3]) then bStartLocationIsUnderwater = true end
         if bDebugMessages == true then
-            local M28Overseer = import('/mods/M28AI/lua/AI/M28Overseer.lua')
+            local M28Overseer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua')
             LOG(sFunctionRef..': Considering aiBrain '..aiBrain.Nickname..' location for naval fac, bStartLocationIsUnderwater='..tostring(bStartLocationIsUnderwater)..'; tStartPos='..repru(tStartPos)..'; Terrain height='..GetTerrainHeight(tStartPos[1], tStartPos[3])..'; Surface height='..GetSurfaceHeight(tStartPos[1], tStartPos[3])..'; aiBrain[M28Overseer.refiDistanceToNearestEnemyBase]='..(aiBrain[M28Overseer.refiDistanceToNearestEnemyBase] or 'nil')..'; Brain index='..aiBrain:GetArmyIndex()..'; reprs of start poitns='..reprs(PlayerStartPoints)..'; refbInitialised='..tostring(aiBrain[M28Overseer.refbInitialised] or false)..'; iMapSize='..(iMapSize or 'nil')..'; GameTime='..GetGameTimeSeconds())
         end
-        local M28Navy = import('/mods/M28AI/lua/AI/M28Navy.lua')
+        local M28Navy = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Navy.lua')
         aiBrain[M28Navy.reftiPondThreatToUs] = {}
         aiBrain[M28Navy.reftiPondValueToUs] = {}
         local iCurPondValue
@@ -9612,7 +9612,7 @@ function AddGameEnderTemplateInfoToTable(tMidpoint, iPreferredSize)
 
     --tLZData[subrefGameEnderTemplateBackupLocationSizeAndSegment] = {[subrefiSize]=iPreferredSize, [subrefiSegX] = iPreferredSegX, [subrefiSegZ] = iPreferredSegZ, [subrefiSmallArtiLocationCount]=1,[subrefiSmallArtiMaxSize]=10,[subrefiSmallShieldLocationCount]=1,[subreftSmallArtiLocations]=0,[subreftSmallShieldLocations]=0,[subrefiLargeArtiLocationCount]=1,[subrefiLargeArtiMaxSize]=10,[subrefiLargeShieldLocationCount]=1,[subreftLargeArtiLocations]=0,[subreftLargeShieldLocations]=0}
 
-    if bDebugMessages == true then LOG(sFunctionRef..': Adding game ender template info to table for midpoint='..repru(tMidpoint)..'; iPreferredSize='..iPreferredSize..'; Can we build a preferred size unit here='..tostring(M28Overseer.GetFirstActiveBrain():CanBuildStructureAt(import('/mods/M28AI/lua/AI/M28Engineer.lua').tsBlueprintsBySize[iPreferredSize], tMidpoint)))
+    if bDebugMessages == true then LOG(sFunctionRef..': Adding game ender template info to table for midpoint='..repru(tMidpoint)..'; iPreferredSize='..iPreferredSize..'; Can we build a preferred size unit here='..tostring(M28Overseer.GetFirstActiveBrain():CanBuildStructureAt(import('/mods/M28AI-Blackops-Shields/lua/AI/M28Engineer.lua').tsBlueprintsBySize[iPreferredSize], tMidpoint)))
         M28Utilities.DrawRectangle(M28Utilities.GetRectAroundLocation(tMidpoint, iPreferredSize*0.5), 5, 400)
     end
 
@@ -9791,7 +9791,7 @@ function RecordBackupGameEnderLocation()
         local iCurCount = 0
         local tiSizesToConsider = {26,24,22} --If changing, then update similar in M28Engineer AssignEngineerToGameEnderTemplate
         local iCurDistToMid, iMidpointX, iMidpointZ, iPreferredSegX, iPreferredSegZ, iPreferredSize, iClosestDistToMid
-        local M28Engineer = import('/mods/M28AI/lua/AI/M28Engineer.lua')
+        local M28Engineer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Engineer.lua')
         local iSegmentsToSearch
         local iMidpointAdjust = 0
         --[[if math.floor(iLandZoneSegmentSize * 0.5) - iLandZoneSegmentSize * 0.5 == 0 then
@@ -9961,7 +9961,7 @@ function ReassessPositionsForPlayerDeath(aiBrain)
                     RecordPondToExpandTo(oBrain)
                 end
             end
-            local M28Navy = import('/mods/M28AI/lua/AI/M28Navy.lua')
+            local M28Navy = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Navy.lua')
             M28Navy.FlagWaterZoneStartPositions(iTeam)
         elseif M28Team.tTeamData[iTeam][M28Team.subrefiActiveM28BrainCount] > 0 and M28Utilities.IsTableEmpty(M28Team.tTeamData[iTeam][M28Team.subreftoEnemyBrains]) then
             M28Team.tTeamData[iTeam][M28Team.refiTimeOfEnemiesDefeated] = GetGameTimeSeconds()

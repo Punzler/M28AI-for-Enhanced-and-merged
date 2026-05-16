@@ -4,23 +4,23 @@
 --- DateTime: 16/11/2022 07:20
 ---
 
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
-local M28Map = import('/mods/M28AI/lua/AI/M28Map.lua')
-local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
-local M28UnitInfo = import('/mods/M28AI/lua/AI/M28UnitInfo.lua')
-local M28Economy = import('/mods/M28AI/lua/AI/M28Economy.lua')
-local M28ACU = import('/mods/M28AI/lua/AI/M28ACU.lua')
-local M28Engineer = import('/mods/M28AI/lua/AI/M28Engineer.lua')
-local M28Factory = import('/mods/M28AI/lua/AI/M28Factory.lua')
-local M28Team = import('/mods/M28AI/lua/AI/M28Team.lua')
-local M28Conditions = import('/mods/M28AI/lua/AI/M28Conditions.lua')
-local M28Chat = import('/mods/M28AI/lua/AI/M28Chat.lua')
-local M28Land = import('/mods/M28AI/lua/AI/M28Land.lua')
-local M28Air = import('/mods/M28AI/lua/AI/M28Air.lua')
-local M28Orders = import('/mods/M28AI/lua/AI/M28Orders.lua')
-local M28Micro = import('/mods/M28AI/lua/AI/M28Micro.lua')
-local M28Building = import('/mods/M28AI/lua/AI/M28Building.lua')
-local M28Navy = import('/mods/M28AI/lua/AI/M28Navy.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
+local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
+local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
+local M28UnitInfo = import('/mods/M28AI-Blackops-Shields/lua/AI/M28UnitInfo.lua')
+local M28Economy = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Economy.lua')
+local M28ACU = import('/mods/M28AI-Blackops-Shields/lua/AI/M28ACU.lua')
+local M28Engineer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Engineer.lua')
+local M28Factory = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Factory.lua')
+local M28Team = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Team.lua')
+local M28Conditions = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Conditions.lua')
+local M28Chat = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Chat.lua')
+local M28Land = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Land.lua')
+local M28Air = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Air.lua')
+local M28Orders = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Orders.lua')
+local M28Micro = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Micro.lua')
+local M28Building = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Building.lua')
+local M28Navy = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Navy.lua')
 local NavUtils = M28Utilities.NavUtils
 
 
@@ -398,7 +398,7 @@ function GameSettingWarningsChecksAndInitialChatMessages(aiBrain)
                 M28Chat.SendMessage(aiBrain, 'SendGameCompatibilityWarning', 'Sorry I don’t get on well with my brother M27 when adults are around – he teases me about how much better he is and sometimes the game desyncs', 15, 15)
             end
         else
-            M28Chat.SendMessage(aiBrain, 'SendGameCompatibilityWarning', 'Detected'..sIncompatibleMessage .. ' (v'..import('/mods/M28AI/mod_info.lua').version..') if you come across M28AI issues with these settings/mods let maudlin27 know via Discord', 0, 10)
+            M28Chat.SendMessage(aiBrain, 'SendGameCompatibilityWarning', 'Detected'..sIncompatibleMessage .. ' (v'..import('/mods/M28AI-Blackops-Shields/mod_info.lua').version..') if you come across M28AI issues with these settings/mods let maudlin27 know via Discord', 0, 10)
         end
     end
 
@@ -581,7 +581,7 @@ function M28BrainCreated(aiBrain)
 
     if not(bInitialSetup) then
         bInitialSetup = true
-        local LoudCompatibility = import('/mods/M28AI/lua/AI/LOUD/M28OtherLOUDCompatibility.lua')
+        local LoudCompatibility = import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28OtherLOUDCompatibility.lua')
         if not(M28Utilities.bFAFActive) or not(_G.reprs) then LoudCompatibility.AddReprCommands() end --If LOUD is active will have already called this
         if bDebugMessages == true then LOG(sFunctionRef..': About to do one-off setup for all brains, will also fork various threads including for overwhelm, Overwhelm rate='..tonumber(ScenarioInfo.Options.M28OvwR or tostring(0))..'; ScenarioInfo.Options.M28OvwT='..(ScenarioInfo.Options.M28OvwT or 'nil')..'; reprs of ScenarioInfo.Options='..reprs(ScenarioInfo.Options)) end
         M28Utilities.bM28AIInGame = true
@@ -591,7 +591,7 @@ function M28BrainCreated(aiBrain)
             M28UnitInfo.iLandThreatIgnoreHealthThreshold = 900
             M28UnitInfo.iLandThreatJustConsiderHealthThreshold = 500000
         end
-        if import('/mods/M28AI/lua/M28Config.lua').M28RunProfiling then M28Utilities.ErrorHandler('Debut mode is enabled') end
+        if import('/mods/M28AI-Blackops-Shields/lua/M28Config.lua').M28RunProfiling then M28Utilities.ErrorHandler('Debut mode is enabled') end
         --LOG('M28 in game 3')
 
         --Get the first non-human M28Brain
@@ -603,7 +603,7 @@ function M28BrainCreated(aiBrain)
         end
 
         --Send a message warning players this could take a while
-        M28Chat.SendMessage(oChatBrain, 'LoadingMap', 'Analysing map (M28 v'..import('/mods/M28AI/mod_info.lua').version..'), wait a minute', 0, 10000, false)
+        M28Chat.SendMessage(oChatBrain, 'LoadingMap', 'Analysing map (M28 v'..import('/mods/M28AI-Blackops-Shields/mod_info.lua').version..'), wait a minute', 0, 10000, false)
 
         ForkThread(GameSettingWarningsChecksAndInitialChatMessages, oChatBrain)
         if bDebugMessages == true then LOG(sFunctionRef..': oChatBrain='..oChatBrain.Nickname..'; ScenarioInfo.Options.M28CombinedArmy='..(ScenarioInfo.Options.M28CombinedArmy or 'nil')..'; PerformanceMode='..tostring(M28Utilities.bCPUPerformanceMode)) end
@@ -1512,7 +1512,7 @@ function OverseerManager(aiBrain)
 
     --ForkThread(TestCustom, aiBrain)
 
-    local M28Config = import('/mods/M28AI/lua/M28Config.lua')
+    local M28Config = import('/mods/M28AI-Blackops-Shields/lua/M28Config.lua')
     local bSetHook = false --Used for debugging
     if M28Config.M28RunMemoryProfiling then ForkThread(M28Profiler.ShowFileMemoryUsage) end
     if bDebugMessages == true then LOG(sFunctionRef..': About to run main overseer loop') end
@@ -1520,14 +1520,14 @@ function OverseerManager(aiBrain)
         local bEnabledProfiling = false
 
         --[[if GetGameTimeSeconds() >= 900 and not(bEnabledProfiling) then
-             if not(import('/mods/M28AI/lua/M28Config.lua').M28RunProfiling) then
+             if not(import('/mods/M28AI-Blackops-Shields/lua/M28Config.lua').M28RunProfiling) then
                  ForkThread(M28Profiler.ProfilerActualTimePerTick)
-                 import('/mods/M28AI/lua/M28Config.lua').M28RunProfiling = true
+                 import('/mods/M28AI-Blackops-Shields/lua/M28Config.lua').M28RunProfiling = true
              end
              bEnabledProfiling = true
          end--]]
 
-        --if GetGameTimeSeconds() >= 2700 then import('/mods/M28AI/lua/M28Config.lua').M28ShowUnitNames = true end
+        --if GetGameTimeSeconds() >= 2700 then import('/mods/M28AI-Blackops-Shields/lua/M28Config.lua').M28ShowUnitNames = true end
         --if GetGameTimeSeconds() >= 90 and GetGameTimeSeconds() <= 91 then TestCustom(aiBrain) end
         --Enable below to help figure out infinite loops
         --[[if GetGameTimeSeconds() >= 173 and not(bSetHook) then
@@ -2911,7 +2911,7 @@ function DecideWhetherToApplyM28ToCampaignAI(aiBrain, planName, bDontWait)
     --Wait a second so hopefully isenemy is more accurate
     if not(bDontWait) then WaitSeconds(1) end --also need to update references to iTimeOfLatestBrainToCheckForM28Logic if changing this
     if M28Conditions.ApplyM28ToOtherAI(aiBrain) then
-        local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+        local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
         aiBrain.M28AI = true
         M28Utilities.bM28AIInGame = true
         --LOG('M28 in game 4')
@@ -3012,7 +3012,7 @@ function DelayedCheckOfUnitsAtStartOfGame()
             if GetGameTimeSeconds() >= 10 then break end
         end
         WaitTicks(1)
-        local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+        local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
         for iBrain, oBrain in ArmyBrains do
             if oBrain.GetListOfUnits then
                 local tAllUnits = oBrain:GetListOfUnits(categories.ALLUNITS - categories.UNSELECTABLE - categories.UNTARGETABLE, false, true)

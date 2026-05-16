@@ -4,9 +4,9 @@
 --- DateTime: 01/12/2022 08:18
 ---
 
-local M28Map = import('/mods/M28AI/lua/AI/M28Map.lua')
-local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
+local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
+local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
 --Dont include m28factory or m28engineer here or will get a crash at start of the game
 
 --global (non-category) varaibles:
@@ -1557,7 +1557,7 @@ function CheckBlueprintSizeSupport(oBP, sUnitId)
     local sFunctionRef = 'CheckBlueprintSizeSupport'
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
 
-    local M28Engineer = import('/mods/M28AI/lua/AI/M28Engineer.lua')
+    local M28Engineer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Engineer.lua')
     if bDebugMessages == true then LOG(sFunctionRef..': Considering unit '..sUnitId..'; Can this be built by T3 engi='..tostring(EntityCategoryContains(categories.BUILTBYTIER3ENGINEER, sUnitId))) end
     if EntityCategoryContains(categories.BUILTBYTIER3ENGINEER, sUnitId) then
         local iUnitSize = GetBuildingSize(sUnitId)
@@ -1643,7 +1643,7 @@ function CalculateBlueprintThreatsByType()
         end
 
         local iCurTechLevel
-        local M28Building = import('/mods/M28AI/lua/AI/M28Building.lua')
+        local M28Building = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Building.lua')
         local bCheckForVolatileUnits = false
         if not(M28Utilities.bFAFActive) or M28Utilities.IsTableEmpty(EntityCategoryGetUnitList(categories.VOLATILE)) then
             bCheckForVolatileUnits = true
@@ -1714,7 +1714,7 @@ function CalculateBlueprintThreatsByType()
                             end
                             refCategoryAllAmphibiousAndNavy = refCategoryAllAmphibiousAndNavy + categories[sUnitId]
                             if bDebugMessages == true then
-                                LOG(sFunctionRef..': Recorded that PD unit '..sUnitId..' can be built on both land and water, list of blueprints that meet the engineer build torp luancher cat='..repru(EntityCategoryGetUnitList(import('/mods/M28AI/lua/AI/M28Engineer.lua').tiActionCategory[import('/mods/M28AI/lua/AI/M28Engineer.lua').refActionBuildTorpLauncher]))..'; List of unit blueprints in refCategoryHoverPD='..repru(EntityCategoryGetUnitList(refCategoryHoverPD)))
+                                LOG(sFunctionRef..': Recorded that PD unit '..sUnitId..' can be built on both land and water, list of blueprints that meet the engineer build torp luancher cat='..repru(EntityCategoryGetUnitList(import('/mods/M28AI-Blackops-Shields/lua/AI/M28Engineer.lua').tiActionCategory[import('/mods/M28AI-Blackops-Shields/lua/AI/M28Engineer.lua').refActionBuildTorpLauncher]))..'; List of unit blueprints in refCategoryHoverPD='..repru(EntityCategoryGetUnitList(refCategoryHoverPD)))
                             end
                         end
                     end
@@ -1762,7 +1762,7 @@ function CalculateBlueprintThreatsByType()
         if bDebugMessages == true then LOG(sFunctionRef..': Finished checking if can get exp PD or SAMs for all factions, bHaveAllFactionExpPD='..tostring(M28Building.bHaveAllFactionExpPD)..'; tbHaveT3PlusPDByFaction='..repru(tbHaveT3PlusPDByFaction)..'; bHaveAllFactionExperimentalSAM='..tostring(M28Building.bHaveAllFactionExperimentalSAM)..'; tbHaveExperimentalStructureAAByFaction='..repru(tbHaveExperimentalStructureAAByFaction)) end
 
         --Update engineer categories
-        local M28Engineer = import('/mods/M28AI/lua/AI/M28Engineer.lua')
+        local M28Engineer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Engineer.lua')
         M28Engineer.tiActionCategory[M28Engineer.refActionBuildTorpLauncher] = refCategoryTorpedoLauncher + refCategoryHoverPD
 
         --Special eco checks - e.g. for mods that adjust resource mod of all units - will use UEF t3 mass fab as a rough proxy for this, if they both have the same ratio then will use this
@@ -1775,7 +1775,7 @@ function CalculateBlueprintThreatsByType()
                 iMassRatio =  (oBP.Economy.ProductionPerSecondMass or 0) / iExpectedMass
             end
         end
-        local M28Overseer = import('/mods/M28AI/lua/AI/M28Overseer.lua')
+        local M28Overseer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua')
         M28Overseer.iMassFabRatio = iMassRatio
 
 
@@ -2349,7 +2349,7 @@ function RecordUnitRange(oUnit, bReferenceIsATableWithUnitId)
     end
     --LOUD - doesnt record whether weapons for ACU are enabled by enhancement or not.  As a very simplistic measure, if the unit has an enhancement count of 0 then treat its range as being 30, or 36 with 1 enhancement, or the max DF range otherwise
     if (M28Utilities.bLoudModActive or M28Utilities.bQuietModActive) and EntityCategoryContains(categories.COMMAND, oUnit.UnitId) then
-        local M28ACU = import('/mods/M28AI/lua/AI/M28ACU.lua')
+        local M28ACU = import('/mods/M28AI-Blackops-Shields/lua/AI/M28ACU.lua')
         if (oUnit[M28ACU.refiUpgradeCount] or 0) == 0 then
             oUnit[refiDFRange] = math.min(30, (oUnit[refiDFRange] or 0))
             if oUnit[refiAntiNavyRange] then oUnit[refiAntiNavyRange] = 0 end
@@ -2571,7 +2571,7 @@ function AddOrRemoveUnitFromListOfPausedUnits(oUnit, bPauseNotUnpause, iOptional
     if not(bPauseNotUnpause) then
         local iUnitPausePriority = oUnit[refiPausedPriority]
         if iUnitPausePriority then
-            local M28Team = import('/mods/M28AI/lua/AI/M28Team.lua')
+            local M28Team = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Team.lua')
             local tUnitTable = M28Team.tTeamData[iTeam][M28Team.subreftoPausedUnitsByPriority][iUnitPausePriority]
             if M28Utilities.IsTableEmpty(tUnitTable) == false then
                 local iAllPausedUnits = table.getn(tUnitTable)
@@ -2592,7 +2592,7 @@ function AddOrRemoveUnitFromListOfPausedUnits(oUnit, bPauseNotUnpause, iOptional
         --Are pausing unit, make sure it is in the table of paused units
         if not(oUnit[refbPaused]) or not(oUnit[refiPausedPriority]) then
             local bRecordUnit = true
-            local M28Team = import('/mods/M28AI/lua/AI/M28Team.lua')
+            local M28Team = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Team.lua')
             if not(M28Team.tTeamData[iTeam][M28Team.subreftoPausedUnitsByPriority][iPausePriority]) then
                 if bDebugMessages == true then LOG(sFunctionRef..': First time running so will setup variable, iTeam='..(iTeam or 'nil')..'; Unit='..(oUnit.UnitId or 'nil')..(GetUnitLifetimeCount(oUnit) or 'nil')) end
                 if not(M28Team.tTeamData[iTeam][M28Team.subreftoPausedUnitsByPriority]) then M28Team.tTeamData[iTeam][M28Team.subreftoPausedUnitsByPriority] = {} end
@@ -2649,7 +2649,7 @@ function PauseOrUnpauseMassUsage(oUnit, bPauseNotUnpause, iOptionalTeam, iPauseP
 
 
         if bDebugMessages == true then
-            local M28Engineer = import('/mods/M28AI/lua/AI/M28Engineer.lua')
+            local M28Engineer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Engineer.lua')
             LOG(sFunctionRef..': Start of code time='..GetGameTimeSeconds()..', oUnit='..oUnit.UnitId..GetUnitLifetimeCount(oUnit)..'; bPauseNotUnpause='..tostring(bPauseNotUnpause)..'; Unit state='..GetUnitState(oUnit)..'; Engineer action (if have one)='..(oUnit[M28Engineer.refiAssignedAction] or 'nil')..'; oUnit:IsPaused='..tostring(oUnit:IsPaused()))
             if oUnit.GetWorkProgress then LOG(sFunctionRef..': Unit work progress='..oUnit:GetWorkProgress()) end
         end
@@ -2705,7 +2705,7 @@ function PauseOrUnpauseEnergyUsage(oUnit, bPauseNotUnpause, bExcludeProduction, 
         if bDebugMessages == true then
             LOG(sFunctionRef..': Start of code time='..GetGameTimeSeconds()..', oUnit='..oUnit.UnitId..GetUnitLifetimeCount(oUnit)..' owned by brain '..oUnit:GetAIBrain().Nickname..'; bPauseNotUnpause='..tostring(bPauseNotUnpause)..'; Unit state='..GetUnitState(oUnit)..'; Unit is paused='..tostring(oUnit:IsPaused())..'; bExcludeProduction='..tostring(bExcludeProduction or false))
             if oUnit.GetFocusUnit and oUnit:GetFocusUnit() then LOG(sFunctionRef..': Focus unit='..oUnit:GetFocusUnit().UnitId..GetUnitLifetimeCount(oUnit:GetFocusUnit())) end
-            if oUnit.GetWorkProgress then LOG(sFunctionRef..': Unit work progress='..oUnit:GetWorkProgress()..'; Unit fraction complete='..oUnit:GetFractionComplete()..'; Is arti template nil='..tostring(oUnit[import('/mods/M28AI/lua/AI/M28Building.lua').reftArtiTemplateRefs] == nil)) end
+            if oUnit.GetWorkProgress then LOG(sFunctionRef..': Unit work progress='..oUnit:GetWorkProgress()..'; Unit fraction complete='..oUnit:GetFractionComplete()..'; Is arti template nil='..tostring(oUnit[import('/mods/M28AI-Blackops-Shields/lua/AI/M28Building.lua').reftArtiTemplateRefs] == nil)) end
         end
         if IsUnitValid(oUnit) and oUnit:GetFractionComplete() == 1 and oUnit.SetPaused and (not(oUnit[refbCampaignNeverPause]) or not(bPauseNotUnpause)) then
             --Normal logic - just pause unit - exception if are dealing with a factory whose workcomplete is 100%
@@ -2823,7 +2823,7 @@ function GetUnitFaction(oUnit)
 end
 
 function GetFactoryType(oUnit)
-    local M28Factory = import('/mods/M28AI/lua/AI/M28Factory.lua') --Putting this at the top crashes the game
+    local M28Factory = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Factory.lua') --Putting this at the top crashes the game
 
     if EntityCategoryContains(refCategoryLandFactory, oUnit.UnitId) then
         return M28Factory.refiFactoryTypeLand, refCategoryLandFactory
@@ -3148,10 +3148,10 @@ function ToggleUnitDiveOrSurfaceStatus(oUnit)
     --Assumes have already checked that the unit is or isnt underwater
     if bDontConsiderCombinedArmy or oUnit.M28Active then
         if not(oUnit[refbSpecialMicroActive]) or GetGameTimeSeconds() > oUnit[refiGameTimeToResetMicroActive] then
-            local M28Orders = import('/mods/M28AI/lua/AI/M28Orders.lua')
+            local M28Orders = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Orders.lua')
             M28Orders.IssueTrackedClearCommands(oUnit)
             IssueDive({oUnit})
-            local M28Micro = import('/mods/M28AI/lua/AI/M28Micro.lua')
+            local M28Micro = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Micro.lua')
             M28Micro.TrackTemporaryUnitMicro(oUnit, 3)
         end
     end
@@ -3193,7 +3193,7 @@ function FixUnitResourceCheatModifiers(oUnit)
                 --Buffs['CheatBuildRate'].Affects.BuildRate.Mult = iBuildModifier
                 local iIndex = oUnit:GetAIBrain():GetArmyIndex()
                 if not(Buffs['CheatIncome'..iIndex]) then
-                    local M28Overseer = import('/mods/M28AI/lua/AI/M28Overseer.lua')
+                    local M28Overseer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua')
                     M28Overseer.SetBuildAndResourceCheatModifiers(oUnit:GetAIBrain(), iBuildModifier, iResourceModifier, true, nil, true, false)
                 end
                 --Buffs['CheatIncome'..iIndex].Affects.EnergyProduction.Mult = iResourceModifier
@@ -3227,7 +3227,7 @@ function FixUnitResourceCheatModifiers(oUnit)
             if oBP.Economy.BuildRate then
                 local iIndex = oUnit:GetAIBrain():GetArmyIndex()
                 if not(Buffs['CheatBuildRate'..iIndex]) then
-                    local M28Overseer = import('/mods/M28AI/lua/AI/M28Overseer.lua')
+                    local M28Overseer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua')
                     M28Overseer.SetBuildAndResourceCheatModifiers(oUnit:GetAIBrain(), iBuildModifier, iResourceModifier, true, nil, true, false)
                     if bDebugMessages == true then
                         LOG(sFunctionRef..': unit.Buffs.BuffTable='..reprs(oUnit.Buffs.BuffTable)..'; Buffs[\'BuildRate\'..iIndex].Affects.BuildRate.Mult='..(Buffs['BuildRate'..iIndex].Affects.BuildRate.Mult or 'nil'))
@@ -3290,7 +3290,7 @@ function DisableUnitWeapon(oUnit)
         oUnit[refbWeaponDisabled] = true
         oUnit[refiTimeLastDisabledWeapon] = GetGameTimeSeconds()
         if not(bAlreadyRecorded) then
-            local M28Team = import('/mods/M28AI/lua/AI/M28Team.lua')
+            local M28Team = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Team.lua')
             local iTeam = oUnit:GetAIBrain().M28Team
             if not(M28Team.tTeamData[iTeam][M28Team.reftoUnitsWithDisabledWeapons]) then
                 M28Team.tTeamData[iTeam][M28Team.reftoUnitsWithDisabledWeapons] = {}
@@ -3309,7 +3309,7 @@ function EnableUnitWeapon(oUnit)
         oUnit[refiTimeLastDisabledWeapon] = nil
         if not(bAlreadyRecorded) then
             local iTeam = oUnit:GetAIBrain().M28Team
-            local M28Team = import('/mods/M28AI/lua/AI/M28Team.lua')
+            local M28Team = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Team.lua')
             if M28Utilities.IsTableEmpty(M28Team.tTeamData[iTeam][M28Team.reftoUnitsWithDisabledWeapons]) == false then
                 for iRecorded, oRecorded in M28Team.tTeamData[iTeam][M28Team.reftoUnitsWithDisabledWeapons] do
                     if oRecorded == oUnit then
@@ -3400,7 +3400,7 @@ end
 
 function CloakUnit(oUnit, bDontClearExistingOrders, bUpdateTracking)
     if bDontConsiderCombinedArmy or oUnit.M28Active then
-        if not(bDontClearExistingOrders) then import('/mods/M28AI/lua/AI/M28Orders.lua').IssueTrackedClearCommands(oUnit) end
+        if not(bDontClearExistingOrders) then import('/mods/M28AI-Blackops-Shields/lua/AI/M28Orders.lua').IssueTrackedClearCommands(oUnit) end
         if M28Utilities.bFAFActive and oUnit.HideUnit then
             oUnit:HideUnit()
         --LOUD and steam give error when do oUnit:InvisState on selen, despite .InvisState not being nil;

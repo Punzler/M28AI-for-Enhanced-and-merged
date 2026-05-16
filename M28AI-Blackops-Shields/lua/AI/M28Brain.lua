@@ -7,13 +7,13 @@
 
 --Thanks to Jip who provided the below code as part of the FAF changes to how brains are handled
 local StandardBrain = import("/lua/aibrain.lua").AIBrain
-local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
 
 NewAIBrain = Class(StandardBrain) {
 
     OnBeginSession = function(self)
         StandardBrain.OnBeginSession(self)
-        import('/mods/M28AI/lua/AI/M28Overseer.lua').bBeginSessionTriggered = true
+        import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua').bBeginSessionTriggered = true
     end,
 
     OnDefeat = function(self)
@@ -26,7 +26,7 @@ NewAIBrain = Class(StandardBrain) {
         StandardBrain.OnCreateAI(self)
         --LOG('M28AI brain class OnCreateAI triggered, brain nickname='..self.Nickname)
         self.M28AI = true
-        import('/mods/M28AI/lua/AI/M28Utilities.lua').bM28AIInGame = true
+        import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua').bM28AIInGame = true
         ForkThread(M28Events.OnCreateBrain, self, planName, false)
     end,
 

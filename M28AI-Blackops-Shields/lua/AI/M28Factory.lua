@@ -3,22 +3,22 @@
 --- Created by maudlin27.
 --- DateTime: 02/12/2022 22:33
 ---
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
-local M28UnitInfo = import('/mods/M28AI/lua/AI/M28UnitInfo.lua')
-local M28Economy = import('/mods/M28AI/lua/AI/M28Economy.lua')
-local M28Map = import('/mods/M28AI/lua/AI/M28Map.lua')
-local M28Overseer = import('/mods/M28AI/lua/AI/M28Overseer.lua')
-local M28Orders = import('/mods/M28AI/lua/AI/M28Orders.lua')
-local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
-local M28Conditions = import('/mods/M28AI/lua/AI/M28Conditions.lua')
-local M28Team = import('/mods/M28AI/lua/AI/M28Team.lua')
-local M28Engineer = import('/mods/M28AI/lua/AI/M28Engineer.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
+local M28UnitInfo = import('/mods/M28AI-Blackops-Shields/lua/AI/M28UnitInfo.lua')
+local M28Economy = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Economy.lua')
+local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
+local M28Overseer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua')
+local M28Orders = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Orders.lua')
+local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
+local M28Conditions = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Conditions.lua')
+local M28Team = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Team.lua')
+local M28Engineer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Engineer.lua')
 local NavUtils = M28Utilities.NavUtils
-local M28Building = import('/mods/M28AI/lua/AI/M28Building.lua')
-local M28Air = import('/mods/M28AI/lua/AI/M28Air.lua')
-local M28Micro = import('/mods/M28AI/lua/AI/M28Micro.lua')
-local M28ACU = import('/mods/M28AI/lua/AI/M28ACU.lua')
-local M28Land = import('/mods/M28AI/lua/AI/M28Land.lua')
+local M28Building = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Building.lua')
+local M28Air = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Air.lua')
+local M28Micro = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Micro.lua')
+local M28ACU = import('/mods/M28AI-Blackops-Shields/lua/AI/M28ACU.lua')
+local M28Land = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Land.lua')
 
 reftBlueprintPriorityOverride = 'M28FactoryPreferredBlueprintByCategory' --[x] is the blueprint ref, if there's a priority override it returns a numerical value (higher number = higher priority)
 local refiTimeSinceLastOrderCheck = 'M28FactoryTimeSinceLastCheck' --against factory, gametime in seconds when the factory was last checked to consider an order

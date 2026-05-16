@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git rm *)",
+      "Bash(mv \"C:/Users/etien/.claude/projects/c--Users-etien-modding-workspace-M28AI-Blackops-Shields/memory/feedback_mod_folder_includes_idea.md\" \"C:/Users/etien/.claude/projects/c--Users-etien-modding-workspace-M28AI-Blackops-Shields/memory/feedback_clarify_before_acting.md\" && ls \"C:/Users/etien/.claude/projects/c--Users-etien-modding-workspace-M28AI-Blackops-Shields/memory/\")",
+      "Read(//c/Users/etien/.claude/projects/c--Users-etien-modding-workspace-M28AI-Blackops-Shields/memory/**)"
+    ]
+  }
+}

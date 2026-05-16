@@ -4,25 +4,25 @@
 --- DateTime: 07/12/2022 07:50
 ---
 
-local M28UnitInfo = import('/mods/M28AI/lua/AI/M28UnitInfo.lua')
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
-local M28Map = import('/mods/M28AI/lua/AI/M28Map.lua')
+local M28UnitInfo = import('/mods/M28AI-Blackops-Shields/lua/AI/M28UnitInfo.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
+local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
 local NavUtils = M28Utilities.NavUtils
-local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
-local M28Conditions = import('/mods/M28AI/lua/AI/M28Conditions.lua')
-local M28Overseer = import('/mods/M28AI/lua/AI/M28Overseer.lua')
-local M28Land = import('/mods/M28AI/lua/AI/M28Land.lua')
-local M28Economy = import('/mods/M28AI/lua/AI/M28Economy.lua')
-local M28Orders = import('/mods/M28AI/lua/AI/M28Orders.lua')
-local M28Engineer = import('/mods/M28AI/lua/AI/M28Engineer.lua')
-local M28Factory = import('/mods/M28AI/lua/AI/M28Factory.lua')
-local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
-local M28Air = import('/mods/M28AI/lua/AI/M28Air.lua')
-local M28Building = import('/mods/M28AI/lua/AI/M28Building.lua')
-local M28Config = import('/mods/M28AI/lua/M28Config.lua')
-local M28Navy = import('/mods/M28AI/lua/AI/M28Navy.lua')
-local M28ACU = import('/mods/M28AI/lua/AI/M28ACU.lua')
-local M28Chat = import('/mods/M28AI/lua/AI/M28Chat.lua')
+local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
+local M28Conditions = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Conditions.lua')
+local M28Overseer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua')
+local M28Land = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Land.lua')
+local M28Economy = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Economy.lua')
+local M28Orders = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Orders.lua')
+local M28Engineer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Engineer.lua')
+local M28Factory = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Factory.lua')
+local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
+local M28Air = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Air.lua')
+local M28Building = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Building.lua')
+local M28Config = import('/mods/M28AI-Blackops-Shields/lua/M28Config.lua')
+local M28Navy = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Navy.lua')
+local M28ACU = import('/mods/M28AI-Blackops-Shields/lua/AI/M28ACU.lua')
+local M28Chat = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Chat.lua')
 
 
 --Team data variables

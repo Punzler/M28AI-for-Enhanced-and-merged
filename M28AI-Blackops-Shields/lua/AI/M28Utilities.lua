@@ -206,7 +206,7 @@ function ConsiderIfLoudActive()
 end
 if not(bFAFActive) and not(bLoudModActive) and not(bSteamActive) and not(bQuietModActive) then
     ConsiderIfLoudActive()
-    --local M28ParentDetails = import('/mods/M28AI/lua/AI/LOUD/M28ParentDetails.lua')
+    --local M28ParentDetails = import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28ParentDetails.lua')
     --M28ParentDetails.ConsiderIfLoudActive()
 end
 
@@ -225,17 +225,17 @@ if file_exists('/lua/sim/navutils.lua') then
     if NavUtils and rawget(NavUtils, 'DetailedPathTo') then
         --FAF appears to be active
     else
-        NavUtils = import('/mods/M28AI/lua/AI/LOUD/M28NavUtils.lua')
+        NavUtils = import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28NavUtils.lua')
     end
 else
-    NavUtils = import('/mods/M28AI/lua/AI/LOUD/M28NavUtils.lua')
+    NavUtils = import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28NavUtils.lua')
 end
 
-local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
+local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
 --local NavUtils = import("/lua/sim/navutils.lua")
-local M28Map = import('/mods/M28AI/lua/AI/M28Map.lua')
-local M28Overseer = import('/mods/M28AI/lua/AI/M28Overseer.lua')
-local M28Conditions = import('/mods/M28AI/lua/AI/M28Conditions.lua')
+local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
+local M28Overseer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua')
+local M28Conditions = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Conditions.lua')
 
 
 --Global variables:
@@ -394,7 +394,7 @@ function DrawRectangle(rRectangle, iOptionalColour, iOptionalTimeInTicks, iOptio
 end
 
 function DrawLocation(tLocation, iOptionalColour, iOptionalTimeInTicks, iOptionalSize)
-    --import('/mods/M28AI/lua/AI/M28Utilities.lua').ErrorHandler('Draw location audit trail', true, true)
+    --import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua').ErrorHandler('Draw location audit trail', true, true)
     local iRadius = (iOptionalSize or 1) * 0.5
     ForkThread(ForkedDrawRectangle, Rect(tLocation[1] - iRadius, tLocation[3] - iRadius, tLocation[1] + iRadius, tLocation[3] + iRadius), (iOptionalColour or 1), (iOptionalTimeInTicks or 200))
 end
@@ -520,7 +520,7 @@ function GenerateUniqueColourTable(iTableSize)
     if FileIsValid('/lua/shared/color.lua') then
         FAFColour = import('/lua/shared/color.lua')
     else
-        FAFColour = import('/mods/M28AI/lua/AI/LOUD/M28SharedColor.lua')
+        FAFColour = import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28SharedColor.lua')
     end
     local tColourTable = {}
     local tInterval = {{0.13, 0.23, 0.37}, {0.13,0.37,0.23},{0.23,0.13,.37},{0.23,0.37,0.13},{0.37,0.13,0.23},{0.37,0.23,0.13}}

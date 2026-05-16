@@ -28,7 +28,7 @@
 ---- * Summary    : Contains global functions for working with tables and strings
 ---* Assumed general FAF copyright to apply (see above)
 ---- ==========================================================================================
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
 local NavUtils = M28Utilities.NavUtils
 
 function StringSplit(str, sep)
@@ -637,9 +637,9 @@ function Setup()
     end
 end
 
-GenerateExpansionMarkers = import('/mods/M28AI/lua/AI/Steam/markerutilities/expansions.lua').Generate
-GenerateNavalAreaMarkers = import('/mods/M28AI/lua/AI/Steam/markerutilities/navalareas.lua').Generate
-GenerateRallyPointMarkers = import('/mods/M28AI/lua/AI/Steam/markerutilities/rallypoints.lua').Generate
+GenerateExpansionMarkers = import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities/expansions.lua').Generate
+GenerateNavalAreaMarkers = import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities/navalareas.lua').Generate
+GenerateRallyPointMarkers = import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/markerutilities/rallypoints.lua').Generate
 
 function __moduleinfo.OnReload(newModule)
     -- add existing markers to new module

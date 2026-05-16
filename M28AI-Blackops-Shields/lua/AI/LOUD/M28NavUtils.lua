@@ -21,10 +21,10 @@
 --** SOFTWARE.
 --******************************************************************************************************
 
-local Shared = import('/mods/M28AI/lua/AI/LOUD/M28SharedNavGenerator.lua') --import("/lua/shared/navgenerator.lua")
-local Colors = import('/mods/M28AI/lua/AI/LOUD/M28SharedColor.lua') --import("/lua/shared/color.lua")
-local NavGenerator = import('/mods/M28AI/lua/AI/LOUD/M28NavGenerator.lua') --import("/lua/sim/navgenerator.lua")
-local NavDatastructures = import('/mods/M28AI/lua/AI/LOUD/M28NavDataStructures.lua') --import("/lua/sim/navdatastructures.lua")
+local Shared = import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28SharedNavGenerator.lua') --import("/lua/shared/navgenerator.lua")
+local Colors = import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28SharedColor.lua') --import("/lua/shared/color.lua")
+local NavGenerator = import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28NavGenerator.lua') --import("/lua/sim/navgenerator.lua")
+local NavDatastructures = import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28NavDataStructures.lua') --import("/lua/sim/navdatastructures.lua")
 
 -- upvalue scope for performance
 local TableGetn = table.getn

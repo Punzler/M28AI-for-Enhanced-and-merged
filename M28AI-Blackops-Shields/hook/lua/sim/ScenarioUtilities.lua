@@ -37,7 +37,7 @@ if M28OldACreateArmyGroupAsPlatoon then
         --LOG('CreateArmyGroupAsPlatoon start')
         local oPlatoon = M28OldACreateArmyGroupAsPlatoon(strArmy, strGroup, formation, tblNode, platoon, balance)
 
-        ForkThread(import('/mods/M28AI/lua/AI/M28Events.lua').ScenarioPlatoonCreated, oPlatoon, strArmy, strGroup, formation, tblNode, platoon, balance)
+        ForkThread(import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua').ScenarioPlatoonCreated, oPlatoon, strArmy, strGroup, formation, tblNode, platoon, balance)
         return oPlatoon
     end
     LOG('Hooked CreateArmyGroupAsPlatoon')
@@ -57,15 +57,15 @@ CreateArmyGroupAsPlatoon = function(strArmy, strGroup, formation, tblNode, plato
     --LOG('CreateArmyGroupAsPlatoon start')
     local oPlatoon = M28OldACreateArmyGroupAsPlatoon(strArmy, strGroup, formation, tblNode, platoon, balance)
 
-    ForkThread(import('/mods/M28AI/lua/AI/M28Events.lua').ScenarioPlatoonCreated, oPlatoon, strArmy, strGroup, formation, tblNode, platoon, balance)
+    ForkThread(import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua').ScenarioPlatoonCreated, oPlatoon, strArmy, strGroup, formation, tblNode, platoon, balance)
     return oPlatoon
 end
     --]]
 
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
 M28Utilities.ConsiderIfLoudActive()
 
-local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
 
 --LOG('safeGetGlobal InitializeSkirmishSystems ='..tostring(safeGetGlobal('InitializeSkirmishSystems') or false)..'; AltGetGlobal(varName)='..tostring(AltGetGlobal('InitializeSkirmishSystems' or false)))
 
@@ -78,8 +78,8 @@ local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
 
         if bDebugMessages == true then LOG(sFunctionRef..': Hook active for InitializeSkirmishSystems') end
         if M28Utilities.bLoudModActive or M28Utilities.bQuietModActive then
-            import('/mods/M28AI/lua/AI/M28Overseer.lua').bBeginSessionTriggered = true --needed for M28 code to run and not get stuck in a loop
-            local LoudCompatibility = import('/mods/M28AI/lua/AI/LOUD/M28OtherLOUDCompatibility.lua')
+            import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua').bBeginSessionTriggered = true --needed for M28 code to run and not get stuck in a loop
+            local LoudCompatibility = import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28OtherLOUDCompatibility.lua')
             LoudCompatibility.UpdateUnitCategories()
             LoudCompatibility.UpdateOtherLOUDInformation()
             local oBrain = self
@@ -101,7 +101,7 @@ local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
                         oBrain.CheatEnabled = true
                     elseif oBrain.CheatValue and not(math.round(oBrain.CheatValue * 10) * 0.1 == 1.0) then
                         if bDebugMessages == true then LOG(sFunctionRef..': oBrain.CheatValue='..oBrain.CheatValue..'; math.round of this='..math.round(oBrain.CheatValue*10)*0.1..'; forcing it to be AIx') end
-                        local M28Chat = import('/mods/M28AI/lua/AI/M28Chat.lua')
+                        local M28Chat = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Chat.lua')
                         if not(M28Chat.bSentCheatMessage) then
                             M28Chat.bSentCheatMessage = true
                             M28Chat.SendMessage(oBrain, 'CheatMod', 'AIx modifier set for non-AIx M28 brain, assuming brain should be treated as if it was AIx', 0, 1000000, false, true, nil, nil)
@@ -111,7 +111,7 @@ local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
                     --If have assigned an AIX modifier then enable cheats
 
                     --Add LOUD specific data to avoid certain errors
-                    import('/mods/M28AI/lua/AI/LOUD/M28OtherLOUDCompatibility.lua').LOUDBrainCreateStartVariables(oBrain)
+                    import('/mods/M28AI-Blackops-Shields/lua/AI/LOUD/M28OtherLOUDCompatibility.lua').LOUDBrainCreateStartVariables(oBrain)
                     ForkThread(M28Events.OnCreateBrain, oBrain, nil, false)
                 end
             end
@@ -330,7 +330,7 @@ local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
         elseif M28Utilities.bSteamActive then
             LOG('About to run steam compatibility code')
             --Load code here to avoid errors
-            import('/mods/M28AI/lua/AI/Steam/SteamCompatibility.lua').OtherSteamCompatibilityInformation()
+            import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/SteamCompatibility.lua').OtherSteamCompatibilityInformation()
         else
             LOG('Calling normal OrigInitializeSkirmishSystems logic for brain '..self.Nickname)
             OrigInitializeSkirmishSystems(self)
@@ -343,7 +343,7 @@ InitializeArmies = function()
     LOG('M28 InitializeArmies start, M28Utilities.bLoudModActive='..tostring(M28Utilities.bLoudModActive or false))
     if M28Utilities.bLoudModActive then
         if ArmyBrains then
-            import('/mods/M28AI/lua/AI/M28Overseer.lua').bBeginSessionTriggered = true --needed for M28 code to run and not get stuck in a loop
+            import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua').bBeginSessionTriggered = true --needed for M28 code to run and not get stuck in a loop
             for iBrain, oBrain in ArmyBrains do
                 LOG('oBrain='..(oBrain.Nickname or 'nil')..'; ArmyIsCivilian(oBrain)='..tostring(ArmyIsCivilian(oBrain:GetArmyIndex()))..'; Brain type is AI='..tostring( oBrain.BrainType == 'AI'))
                 if oBrain.BrainType == 'AI' and not(ArmyIsCivilian(oBrain:GetArmyIndex())) then

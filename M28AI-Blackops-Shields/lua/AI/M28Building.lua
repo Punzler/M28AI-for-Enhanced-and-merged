@@ -4,22 +4,22 @@
 --- DateTime: 29/01/2023 18:46
 ---
 
-local M28Team = import('/mods/M28AI/lua/AI/M28Team.lua')
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
-local M28Map = import('/mods/M28AI/lua/AI/M28Map.lua')
-local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
-local M28UnitInfo = import('/mods/M28AI/lua/AI/M28UnitInfo.lua')
-local M28Orders = import('/mods/M28AI/lua/AI/M28Orders.lua')
-local M28Logic = import('/mods/M28AI/lua/AI/M28Logic.lua')
-local M28Chat = import('/mods/M28AI/lua/AI/M28Chat.lua')
-local M28Air = import('/mods/M28AI/lua/AI/M28Air.lua')
-local M28Engineer = import('/mods/M28AI/lua/AI/M28Engineer.lua')
-local M28Factory = import('/mods/M28AI/lua/AI/M28Factory.lua')
-local M28Conditions = import('/mods/M28AI/lua/AI/M28Conditions.lua')
-local M28Economy = import('/mods/M28AI/lua/AI/M28Economy.lua')
-local M28Overseer = import('/mods/M28AI/lua/AI/M28Overseer.lua')
-local M28Land = import('/mods/M28AI/lua/AI/M28Land.lua')
-local M28Micro = import('/mods/M28AI/lua/AI/M28Micro.lua')
+local M28Team = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Team.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
+local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
+local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
+local M28UnitInfo = import('/mods/M28AI-Blackops-Shields/lua/AI/M28UnitInfo.lua')
+local M28Orders = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Orders.lua')
+local M28Logic = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Logic.lua')
+local M28Chat = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Chat.lua')
+local M28Air = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Air.lua')
+local M28Engineer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Engineer.lua')
+local M28Factory = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Factory.lua')
+local M28Conditions = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Conditions.lua')
+local M28Economy = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Economy.lua')
+local M28Overseer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua')
+local M28Land = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Land.lua')
+local M28Micro = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Micro.lua')
 
 
 --Global variables
@@ -3256,7 +3256,7 @@ function GetT3ArtiTarget(oArti, bCalledFromSalvoSize)
 
         local iAOE, iDamage, iMinRange, iMaxRange, iSalvoSize, iSalvoIndividualDelay = M28UnitInfo.GetLauncherAOEStrikeDamageMinAndMaxRange(oArti)
         --Wait if salvo size >1
-        local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+        local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
         if iSalvoSize > 1 and not(bCalledFromSalvoSize) and oArti[M28UnitInfo.refiLastWeaponEvent] then
             --E.g. scathis - dont want to change targets after firing a single shot - we have fired the scathis before, and this has presumably been called from the onweaponevent trigger
 
@@ -4462,7 +4462,7 @@ function JustBuiltParagon(oParagon)
                 if not(bGiftedParagonToOtherBrain) then
                     --Gift mexes, mass storage, and half of our pgens to another teammate; meanwhile have teammates gift mass using units (factories engineers, SACUs) to us
                     --SACUs lose upgrades on transfer!
-                    local M28ACU = import('/mods/M28AI/lua/AI/M28ACU.lua')
+                    local M28ACU = import('/mods/M28AI-Blackops-Shields/lua/AI/M28ACU.lua')
                     local iMaxEngineersToGift = math.max(aiBrain[M28Overseer.refiExpectedRemainingCap] * 0.5, 30)
                     if iMaxEngineersToGift < 80 and GetArmyUnitCap(aiBrain:GetArmyIndex()) >= 700 and (M28Team.tTeamData[iTeam][M28Team.refiLowestUnitCapAdjustmentLevel] or 100) >= 1 then iMaxEngineersToGift = math.min(80, math.max(iMaxEngineersToGift, 30 + 20 * M28Team.tTeamData[iTeam][M28Team.refiLowestUnitCapAdjustmentLevel])) end
                     local iEngineersGifted = 0
@@ -4863,7 +4863,7 @@ function ConsiderManualT2ArtiTarget(oArti, oOptionalWeapon, iOptionalDelaySecond
                 if iClosestTargetOfInterest > oArti[M28UnitInfo.refiIndirectRange] then
                     if oClosestTargetOfInterest.MyShield or iClosestTargetOfInterest <= oArti[M28UnitInfo.refiIndirectRange] + 20 then
                         local iDistShortfall = 1
-                        local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+                        local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
                         if GetGameTimeSeconds() - (oArti[M28Events.refiLastWeaponEvent] or -100) >= 25 then iDistShortfall = 3 end --greater dist threshold in case are trying to fire at elevated position
 
                         tGroundFireTarget = M28Utilities.MoveInDirection(tArtiPosition, M28Utilities.GetAngleFromAToB(tArtiPosition, oClosestTargetOfInterest:GetPosition()), (oArti[M28UnitInfo.refiIndirectRange] or 115) - iDistShortfall, true, false, M28Map.bIsCampaignMap)
@@ -4930,7 +4930,7 @@ function ConsiderManualT2ArtiTarget(oArti, oOptionalWeapon, iOptionalDelaySecond
                     M28Orders.IssueTrackedClearCommands(oArti)
                 else
                     --Give an attack ground order if we haven't fired a shot at all this game, so we are likely to be facing the right direction
-                    local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
+                    local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
                     if bDebugMessages == true then LOG(sFunctionRef..': Last weapon event='..(oArti[M28Events.refiLastWeaponEvent] or 'nil')) end
                     if not(oArti[M28Events.refiLastWeaponEvent]) then
                         local tDirectionTowardsEnemy = M28Utilities.MoveInDirection(oArti:GetPosition(), M28Utilities.GetAngleFromAToB(oArti:GetPosition(), tLZTeamData[M28Map.reftClosestEnemyBase]), (oArti[M28UnitInfo.refiIndirectRange] or 110) - 5, true, false, M28Map.bIsCampaignMap)
@@ -5031,7 +5031,7 @@ function MonitorShieldsForCycling(tTableRef, iTeam, iLandZone, iTemplateRef, tLZ
         tTableRef[M28Map.subrefGEbActiveShieldMonitor] = true
         local oLowestHealthActiveShield, oHighestHealthActiveShield, iCompletedShieldCount, iCurHealth, iMaxHealth, iLowestHealth, iHighestHealth, iLongestRechargeTime
         local iSecondsBetweenShieldCycles = 1 --will change
-        local M28Config = import('/mods/M28AI/lua/M28Config.lua')
+        local M28Config = import('/mods/M28AI-Blackops-Shields/lua/M28Config.lua')
         local bUpdateName = M28Config.M28ShowUnitNames
         local iCurShieldRadius, iShieldWithHealth
 
@@ -5310,7 +5310,7 @@ function MonitorSACUShieldsForCycling(tTableRef, iTeam, iLandZone, iTemplateRef)
 
 
                     iLongestRechargeTime = math.max(iLongestRechargeTime, (oShield.MyShield.ShieldRechargeTime or 215))
-                elseif bDebugMessages == true then LOG(sFunctionRef..': Shield isnt complete or lacks a shield field, shield size='..(oShield.MyShield.Size or 0)..'; oShield='..oShield.UnitId..M28UnitInfo.GetUnitLifetimeCount(oShield)..'; Upgrade count='..(oShield[import('/mods/M28AI/lua/AI/M28ACU.lua').refiUpgradeCount] or 'nil'))
+                elseif bDebugMessages == true then LOG(sFunctionRef..': Shield isnt complete or lacks a shield field, shield size='..(oShield.MyShield.Size or 0)..'; oShield='..oShield.UnitId..M28UnitInfo.GetUnitLifetimeCount(oShield)..'; Upgrade count='..(oShield[import('/mods/M28AI-Blackops-Shields/lua/AI/M28ACU.lua').refiUpgradeCount] or 'nil'))
                 end
             end
             if bDebugMessages == true then LOG(sFunctionRef..': Deciding how long to wait and whether to discharge a shield, iShieldWithHealth='..iShieldWithHealth..'; iCompletedShieldCount='..iCompletedShieldCount) end

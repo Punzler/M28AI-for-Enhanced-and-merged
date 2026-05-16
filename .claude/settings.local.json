@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"c:\\\\Users\\\\etien\\\\modding\\\\workspace\\\\\" 2>&1 | head -30)",
+      "Read(//c/Users/etien/modding/**)",
+      "PowerShell(Get-ChildItem 'c:\\\\Users\\\\etien\\\\modding\\\\workspace\\\\' -Directory -ErrorAction Stop | ForEach-Object { $_.Name })"
+    ]
+  }
+}

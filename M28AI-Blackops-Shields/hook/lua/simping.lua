@@ -6,5 +6,5 @@
 local M28OldSpawnPing = SpawnPing
 SpawnPing = function(data)
     M28OldSpawnPing(data)
-    ForkThread(import('/mods/M28AI/lua/AI/M28Events.lua').PingCreated, data)
+    ForkThread(import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua').PingCreated, data)
 end

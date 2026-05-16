@@ -3,23 +3,23 @@
 --- Created by maudlin27.
 --- DateTime: 05/12/2022 21:39
 ---
-local M28Profiler = import('/mods/M28AI/lua/AI/M28Profiler.lua')
-local M28Utilities = import('/mods/M28AI/lua/AI/M28Utilities.lua')
-local M28Orders = import('/mods/M28AI/lua/AI/M28Orders.lua')
-local M28Overseer = import('/mods/M28AI/lua/AI/M28Overseer.lua')
-local M28Engineer = import('/mods/M28AI/lua/AI/M28Engineer.lua')
-local M28UnitInfo = import('/mods/M28AI/lua/AI/M28UnitInfo.lua')
-local M28Map = import('/mods/M28AI/lua/AI/M28Map.lua')
-local M28Land = import('/mods/M28AI/lua/AI/M28Land.lua')
-local M28Economy = import('/mods/M28AI/lua/AI/M28Economy.lua')
-local M28Team = import('/mods/M28AI/lua/AI/M28Team.lua')
-local M28Factory = import('/mods/M28AI/lua/AI/M28Factory.lua')
-local M28Logic = import('/mods/M28AI/lua/AI/M28Logic.lua')
+local M28Profiler = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Profiler.lua')
+local M28Utilities = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Utilities.lua')
+local M28Orders = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Orders.lua')
+local M28Overseer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Overseer.lua')
+local M28Engineer = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Engineer.lua')
+local M28UnitInfo = import('/mods/M28AI-Blackops-Shields/lua/AI/M28UnitInfo.lua')
+local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
+local M28Land = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Land.lua')
+local M28Economy = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Economy.lua')
+local M28Team = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Team.lua')
+local M28Factory = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Factory.lua')
+local M28Logic = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Logic.lua')
 local NavUtils = M28Utilities.NavUtils
-local M28Navy = import('/mods/M28AI/lua/AI/M28Navy.lua')
-local M28Events = import('/mods/M28AI/lua/AI/M28Events.lua')
-local M28Building = import('/mods/M28AI/lua/AI/M28Building.lua')
-local M28Air = import('/mods/M28AI/lua/AI/M28Air.lua')
+local M28Navy = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Navy.lua')
+local M28Events = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Events.lua')
+local M28Building = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Building.lua')
+local M28Air = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Air.lua')
 
 refiEngineerStuckCheckCount = 'M28CEngSC' --time since last recorded the engineer's position when moving; also used by GE Template logic for when an engi is getting in range of building something via move order (due to rare issue wehre it is given move+buidl order and doesnt move or build)
 reftEngineerStuckCheckLastPosition = 'M28CEngSP' --Position engineer was at when last did the stuck check
@@ -106,7 +106,7 @@ function IsCivilianBrain(aiBrain)
     local sFunctionRef = 'IsCivilianBrain'
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
     if aiBrain.M28IsCivilian == nil then
-        if M28Utilities.bSteamActive then import('/mods/M28AI/lua/AI/Steam/SteamCompatibility.lua').OtherSteamCompatibilityInformation() end
+        if M28Utilities.bSteamActive then import('/mods/M28AI-Blackops-Shields/lua/AI/Steam/SteamCompatibility.lua').OtherSteamCompatibilityInformation() end
         local bIsCivilian = false
         if bDebugMessages == true then
             LOG(sFunctionRef..': Brain index='..aiBrain:GetArmyIndex()..'; BrainType='..(aiBrain.BrainType or 'nil')..'; Personality='..ScenarioInfo.ArmySetup[aiBrain.Name].AIPersonality..'; Nickname='..(aiBrain.Nickname or 'nil')..'; reprs of brain='..reprs(aiBrain))
@@ -2553,7 +2553,7 @@ function SaveMassForMMLOrMobileT3ArtiForFirebase(tLZData, tLZTeamData, iPlateau,
                     if M28Utilities.IsTableEmpty(M28Team.tTeamData[iTeam][M28Team.reftEnemyACUs]) == false then
                         local iDistThreshold = 220
                         if M28Map.iMapSize <= 256 then iDistThreshold = 180 end
-                        local M28ACU = import('/mods/M28AI/lua/AI/M28ACU.lua')
+                        local M28ACU = import('/mods/M28AI-Blackops-Shields/lua/AI/M28ACU.lua')
                         for iACU, oACU in M28Team.tTeamData[iTeam][M28Team.reftEnemyACUs] do
                             if M28UnitInfo.IsUnitValid(oACU) then
                                 if bDebugMessages == true then LOG(sFunctionRef..': Considering enemy ACU owned by brain '..oACU:GetAIBrain().Nickname..'; ACU DF range='..(oACU[M28UnitInfo.refiDFRange] or 0)..'; ACU unit state='..M28UnitInfo.GetUnitState(oACU)..'; Dist from ACU to midpoint='..M28Utilities.GetDistanceBetweenPositions(oACU:GetPosition(), tLZData[M28Map.subrefMidpoint])) end
@@ -3861,9 +3861,9 @@ function PrioritiseSniperBots(tLZData, iTeam, tLZTeamData, iPlateau, iLandZone, 
         --Does enemy have a dangerous ACU instead that is nearby, and we likely have the eco to get T3 land?
         if not(bDangerousExperimentalOrACUThreat) and M28Team.tTeamData[iTeam][M28Team.refbEnemyHasDangerousACU] and M28Team.tTeamData[iTeam][M28Team.subrefiTeamGrossMass] >= 10 and (M28Team.tTeamData[iTeam][M28Team.subrefiTeamGrossMass] >= 30 or tLZTeamData[M28Map.subrefMexCountByTech][3] > 0 or tLZTeamData[M28Map.subrefMexCountByTech][2] >= 4) and not(bEnemyHasLongRangeThreat) and M28Utilities.IsTableEmpty(tLZTeamData[M28Map.subreftoAllNearbyEnemyT2ArtiUnits]) then
             local iACUThreat, oACU = GetThreatOfApproachingEnemyACUsAndNearestACU(tLZData, tLZTeamData, iPlateau, iLandZone, iTeam, 100)
-            if bDebugMessages == true then LOG(sFunctionRef..': Deciding if have approaching ACU threat with a +100 dist mod, iACUThreat='..iACUThreat..'; Build tech='..(oACU[import('/mods/M28AI/lua/AI/M28ACU.lua').refiBuildTech] or 'nil')..'; Closest brain land fac tech='..ArmyBrains[tLZTeamData[M28Map.reftiClosestFriendlyM28BrainIndex]][M28Economy.refiOurHighestLandFactoryTech]) end
+            if bDebugMessages == true then LOG(sFunctionRef..': Deciding if have approaching ACU threat with a +100 dist mod, iACUThreat='..iACUThreat..'; Build tech='..(oACU[import('/mods/M28AI-Blackops-Shields/lua/AI/M28ACU.lua').refiBuildTech] or 'nil')..'; Closest brain land fac tech='..ArmyBrains[tLZTeamData[M28Map.reftiClosestFriendlyM28BrainIndex]][M28Economy.refiOurHighestLandFactoryTech]) end
             if iACUThreat >= 2500 then
-                if (not(EntityCategoryContains(categories.UEF, oACU.UnitId)) or oACU[import('/mods/M28AI/lua/AI/M28ACU.lua').refiBuildTech] or 0) < 3 or ArmyBrains[tLZTeamData[M28Map.reftiClosestFriendlyM28BrainIndex]][M28Economy.refiOurHighestLandFactoryTech] < 3 then
+                if (not(EntityCategoryContains(categories.UEF, oACU.UnitId)) or oACU[import('/mods/M28AI-Blackops-Shields/lua/AI/M28ACU.lua').refiBuildTech] or 0) < 3 or ArmyBrains[tLZTeamData[M28Map.reftiClosestFriendlyM28BrainIndex]][M28Economy.refiOurHighestLandFactoryTech] < 3 then
                     --Check the closest ACU isnt a UEF T3 ACU (since they can build ravagers that counter sniperbots)
                     bDangerousExperimentalOrACUThreat = true
                     if bDebugMessages == true then LOG(sFunctionRef..': Enemy has dangerous ACU that we want to try and beat') end
@@ -4075,7 +4075,7 @@ function ACULikelyToWantCombatUpgradeOrShield(oACU)
                     --If enemy has dangerous ACU that is on the same plateau as us then go defensive
                     if M28Team.tTeamData[iTeam][M28Team.refbEnemyHasDangerousACU] and M28Utilities.IsTableEmpty(M28Team.tTeamData[iTeam][M28Team.reftEnemyACUs]) == false then
                         local iOurPlateau = NavUtils.GetLabel(M28Map.refPathingTypeHover, oACU:GetPosition())
-                        local M28ACU = import('/mods/M28AI/lua/AI/M28ACU.lua')
+                        local M28ACU = import('/mods/M28AI-Blackops-Shields/lua/AI/M28ACU.lua')
                         for iEnemyACU, oEnemyACU in M28Team.tTeamData[iTeam][M28Team.reftEnemyACUs] do
                             if iOurPlateau == NavUtils.GetLabel(M28Map.refPathingTypeHover, oEnemyACU:GetPosition()) and oEnemyACU[M28ACU.refiUpgradeCount] >= 2 then
                                 if bDebugMessages == true then LOG(sFunctionRef..': Enemy has dangerous ACU on the team, and one of the ACUs on this plateau has 2+ upgrades so assuming it is dangerous') end
@@ -4409,7 +4409,7 @@ end
 
 function IsTeamCoalition(iTeam)
     M28Utilities.ErrorHandler('Update ref to refer to M28Chat not M28Conditions', true)
-    return import('/mods/M28AI/lua/AI/M28Chat.lua').IsTeamCoalition(iTeam)
+    return import('/mods/M28AI-Blackops-Shields/lua/AI/M28Chat.lua').IsTeamCoalition(iTeam)
 end
 
 function IsFurthestACUToFriendlyBase(oACU, tLZOrWZTeamData, iTeam)

@@ -1,11 +1,11 @@
-name = "M28AI"
-uid = "fnewm028-v297-55b4-92b6-64398e7ge43f"
-version = 297
-copyright = "CC BY-NC-SA 4.0 Deed"
-description = "Competitive AI for FAF (and LOUD, steam and GOG) with strong macro and micro capabilities, AI variants (including M28Easy that disables most micro).  Customise how it plays through the various 'M28 prefix' game options.  Estimated as challenging for a 900-1200 global rated player. Supports campaign missions (as an AI teammate and/or in place of the default campaign AI). More info: https://forum.faforever.com/topic/5331/m28ai-devlog-v1"
-author = "maudlin27"
-url = ""
-icon = "/mods/M28AI/M28AI.jpg"
+name = "M28AI-Blackops+Shields"
+uid = "78fdf018-6337-4153-ac66-21beda6d4eab"
+version = 1
+copyright = "CC BY-NC-SA 4.0 Deed. Based on M28AI v297 by maudlin27 (https://github.com/maudlin27/M28AI)."
+description = "Fork of M28AI v297 tuned for play with Shields Enhanced and BlackOpsFAF-Merged. Lowered experimental-shield-detection thresholds so M28's engineer-strategy chain activates with typical mod shields (HP >= 48000 instead of 90000). Original M28AI by maudlin27."
+author = "Punzler (fork of M28AI by maudlin27)"
+url = "https://github.com/e-kuendig/M28AI-for-Enhanced-and-merged"
+icon = "/mods/M28AI-Blackops-Shields/M28AI.jpg"
 selectable = true
 enabled = true
 exclusive = false

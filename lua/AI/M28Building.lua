@@ -32,7 +32,7 @@ iLowestAirStagingTechAvailable = 3
 iLowestMassStorageTechAvailable = 3
 iLowestEnergyStorageTechAvailable = 3
 tiWorstPDRangeByTech = {[1]=200,[2]=200,[3]=200,[4]=200}
-iExperimentalShieldHealthValue = 90000 --i.e. if have shields with this much health or more in the game, will act as though there are overpowered shields and need to adjust approach
+iExperimentalShieldHealthValue = 48000 --M28AI-Blackops+Shields fork: lowered from 90000. Typical Mod-Exp-Shields (Shields Enhanced Small: 50–63k HP) erfüllen die Vanilla-Schwelle nicht; mit 48000 kippt der refbCanBuildExperimentalShields-Flag und M28's Tier-Progression in M28Engineer.lua:5212 nutzt die Mod-Shields automatisch.
 bHaveAllFactionExpPD = false --true if all 4 normal factions have access to T3+ PD
 bHaveAllFactionExperimentalSAM = false --true if all 4 normal factions have access to experimental structure AA units
 
@@ -6315,10 +6315,10 @@ function AssessT3EngineerConstructionOptions(oUnit)
         if sMostExpensiveShield then
             local oBP = M28UnitInfo.GetBlueprintFromID(sMostExpensiveShield)
             if bDebugMessages == true then LOG(sFunctionRef..': oBP.Defense.Shield.ShieldMaxHealth='..(oBP.Defense.Shield.ShieldMaxHealth or 'nil')..'; iExperimentalShieldHealthValue='..iExperimentalShieldHealthValue) end
-            local iMinShieldSize = 50 --sera t3 shield is 46, i.e. this means we have a very high health and large shield
+            local iMinShieldSize = 48 --M28AI-Blackops+Shields fork: lowered from 50. Sera Vanilla T3 = 46, gerade darüber. Mit der HP-Schwelle 48000 zusammen sicher.
             if oBP.Defense.Shield.ShieldMaxHealth >= iExperimentalShieldHealthValue and oBP.Defense.Shield.ShieldSize >= iMinShieldSize then
                 --Get list of all shields we can build with this unit, and make sure the cheapest of them that satisfies the requirements is recorded
-                local iMaxShieldCost = 20000 --If the shield costs more than 20k mass then there is no point building running our special logic as it'll lead to us just building loads of shields in our base while enemy overruns us with land units
+                local iMaxShieldCost = 25000 --M28AI-Blackops+Shields fork: raised from 20000 to catch typical Mod-Exp-Shield Small-Variants. iCheapestShield * 1.2-Clusterung filtert Large-Variants weiterhin raus.
                 local iCheapestShield = iMaxShieldCost
                 local tsShieldsOfInterest = {}
                 local tAllShields = EntityCategoryGetUnitList(M28UnitInfo.refCategoryFixedShield)

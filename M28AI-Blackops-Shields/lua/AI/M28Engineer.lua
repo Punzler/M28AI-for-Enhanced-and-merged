@@ -5219,8 +5219,9 @@ function GetCategoryToBuildOrAssistFromAction(iActionToAssign, iMinTechLevel, ai
                 iCategoryToBuild = M28UnitInfo.refCategoryFixedShield * categories.TECH2
                 if bDebugMessages == true then LOG(sFunctionRef..': Will build T2 shield') end
             elseif aiBrain[M28Overseer.refbCanBuildExperimentalShields] and (tLZOrWZTeamData[M28Map.subrefLZbCoreBase] or (not(M28Utilities.bQuietModActive) and not(M28Utilities.bLoudModActive))) and (tLZOrWZTeamData[M28Map.subrefMexCountByTech][3] >= 4 or (tLZOrWZTeamData[M28Map.subrefLZbCoreBase] and M28Team.tTeamData[aiBrain.M28Team][M28Team.subrefiTeamGrossMass] >= 40 * M28Team.tTeamData[aiBrain.M28Team][M28Team.subrefiActiveM28BrainCount])) then
-                iCategoryToBuild = aiBrain[M28Overseer.refiExperimentalShieldCategory] or M28UnitInfo.refCategoryFixedShield - categories.TECH2 - categories.TECH1
-                if bDebugMessages == true then LOG(sFunctionRef..': Want to allow for experimental tech shields') end
+                --M28AI-Blackops+Shields fork: previously redirected to refiExperimentalShieldCategory so EVERY shield in qualifying LZs was an exp shield - good coverage but no clusters formed. Now build T3 to grow the cluster; a separate trigger in M28Events promotes 1-2 of them to exp via in-place upgrade once the cluster reaches 3 T3 shields.
+                iCategoryToBuild = M28UnitInfo.refCategoryFixedShield * categories.TECH3
+                if bDebugMessages == true then LOG(sFunctionRef..': Can build exp shields, but building T3 first - upgrade trigger will promote to exp later once cluster forms') end
             elseif iMinTechLevel >= 3 or (M28Team.tTeamData[aiBrain.M28Team][M28Team.refbDefendAgainstArti] and (M28Team.tTeamData[aiBrain.M28Team][M28Team.refiEnemyT3ArtiCount] > 0 or M28Team.tTeamData[aiBrain.M28Team][M28Team.refiEnemyNovaxCount] > 2)) or aiBrain[M28Overseer.refbCloseToUnitCap] or (M28Team.tTeamData[aiBrain.M28Team][M28Team.refiEnemyAirToGroundThreat] >= 12000 and (tLZOrWZTeamData[M28Map.subrefLZbCoreBase] or tLZOrWZTeamData[M28Map.subrefLZSValue] >= 8000)) then
                 iCategoryToBuild = M28UnitInfo.refCategoryFixedShield * categories.TECH3
                 if bDebugMessages == true then LOG(sFunctionRef..': Only want T3 shields') end
@@ -6455,10 +6456,22 @@ function ActiveShieldMonitor(oUnitToProtect, tLZTeamData, iTeam)
                 end
                 iEngineerFactionRequired = iEngineerFactionRequired * categories.SERAPHIM  - categories.EXPERIMENTAL
             elseif iOptionalFactionRequired == M28UnitInfo.refFactionAeon then
-                iShieldCategoryToBuild = M28UnitInfo.refCategoryFixedShield * categories.AEON - categories.EXPERIMENTAL
+                --M28AI-Blackops+Shields fork: exclude only Large experimental shields (Mavor-tier) for single-unit coverage. Previously excluded ALL `categories.EXPERIMENTAL`, which discriminated against affordable modded EXP shields like Shields Enhanced Small variants when they carry the EXPERIMENTAL tag. refiLargeExperimentalShieldCategory is populated in M28Building.AssessT3EngineerConstructionOptions.
+                iShieldCategoryToBuild = M28UnitInfo.refCategoryFixedShield * categories.AEON
+                if oUnitToProtect:GetAIBrain()[M28Overseer.refiLargeExperimentalShieldCategory] then
+                    iShieldCategoryToBuild = iShieldCategoryToBuild - oUnitToProtect:GetAIBrain()[M28Overseer.refiLargeExperimentalShieldCategory]
+                else
+                    iShieldCategoryToBuild = iShieldCategoryToBuild - categories.EXPERIMENTAL --fallback when Large bucket hasnt been populated yet (e.g. no T3 engineer yet)
+                end
                 iEngineerFactionRequired = iEngineerFactionRequired * categories.AEON
             elseif iOptionalFactionRequired == M28UnitInfo.refFactionUEF then
-                iShieldCategoryToBuild = M28UnitInfo.refCategoryFixedShield * categories.UEF  - categories.EXPERIMENTAL
+                --M28AI-Blackops+Shields fork: see Aeon branch above
+                iShieldCategoryToBuild = M28UnitInfo.refCategoryFixedShield * categories.UEF
+                if oUnitToProtect:GetAIBrain()[M28Overseer.refiLargeExperimentalShieldCategory] then
+                    iShieldCategoryToBuild = iShieldCategoryToBuild - oUnitToProtect:GetAIBrain()[M28Overseer.refiLargeExperimentalShieldCategory]
+                else
+                    iShieldCategoryToBuild = iShieldCategoryToBuild - categories.EXPERIMENTAL
+                end
                 iEngineerFactionRequired = iEngineerFactionRequired * categories.UEF
             else
                 iShieldCategoryToBuild = M28UnitInfo.refCategoryFixedShield
@@ -8680,23 +8693,7 @@ function GameEnderTemplateManager(tLZData, tLZTeamData, iTemplateRef, iPlateau, 
 
                         if M28Utilities.IsTableEmpty(tAvailableEngineers) == false then
                             local iOrigAvailableEngis = table.getn(tAvailableEngineers)
-                            local bExcludeExpShields
-                            if iExpShieldCount > 0 then
-                                if iExpShieldCount >= 2 or (iExpShieldCount >= 1 and iShieldLocations - iCompletedShields - iUnderConstructionShields >= 5) then bExcludeExpShields = true
-                                else
-                                    --We have 1 exp shield - dont get a second if we dont have a gameender
-                                    bExcludeExpShields = true
-                                    if iUnderConstructionArti + iCompletedArti > 0 then
-                                        for iArti, oArti in tTableRef[M28Map.subrefGEArtiUnits] do
-                                            if EntityCategoryContains(M28UnitInfo.refCategoryGameEnder, oArti.UnitId) then
-                                                bExcludeExpShields = false
-                                                break
-                                            end
-                                        end
-
-                                    end
-                                end
-                            end
+                            --M28AI-Blackops+Shields fork: template build sites now always pass bOnlyGetT3=true to GETemplateStartBuildingShield (see below). Direct exp-shield builds are gone; the T3->Exp upgrade-promotion via the 2:1 ratio trigger (ConsiderUpgradingT3ShieldsToExpInTemplate, fired on shield-completion in M28Events) handles promotions instead. The previous bExcludeExpShields computation (1-or-2 cap depending on GameEnder presence) is therefore obsolete and removed.
                             --If have lots of engineers then spread out since the biggest delay may be starting construction of a shield
                             if bDebugMessages == true then LOG(sFunctionRef..': Considering if want to start  building more shields, iCompletedShields='..iCompletedShields..'; iUnderConstructionShields='..iUnderConstructionShields..'; iArtiMassInvestment='..iArtiMassInvestment..'; M28Team.tTeamData[iTeam][M28Team.refbDefendAgainstArti]='..tostring(M28Team.tTeamData[iTeam][M28Team.refbDefendAgainstArti])..'; FAF condition='..tostring((M28Utilities.bFAFActive and (M28Team.tTeamData[iTeam][M28Team.refbDefendAgainstArti] or iArtiMassInvestment >= 100000 or (iCompletedShields + iUnderConstructionShields < 4 and (iCompletedShields+iUnderConstructionShields < 3 or iCompletedArti >= 1)) or (iCompletedArti >= 1 and (iCompletedArti >= 2 or iArtiMassInvestment >= 50000)))))) end
                             if (iUnderConstructionShields == 0 and (iCompletedShields == 0 or iCompletedShields < math.min(6, iHighestCompletionArti * 8))) or (iOrigAvailableEngis >= 5 and iUnderConstructionShields > 0 and iCompletedShields + iUnderConstructionShields < iShieldLocations and iUnderConstructionShields < 4) then
@@ -8709,7 +8706,8 @@ function GameEnderTemplateManager(tLZData, tLZTeamData, iTemplateRef, iPlateau, 
                                         if bDebugMessages == true then LOG(sFunctionRef..': Will try assigning 1 engi each to building a shield since iOrigAvailableEngis='..iOrigAvailableEngis) end
 
                                         --GETemplateStartBuildingShield(tAvailableEngineers, tAvailableT3EngineersByFaction, tLZTeamData, iPlateau, iLandZone, tTableRef, iTemplateRef, oFirstAeon, oFirstSeraphim, oFirstUEF, oFirstCybran, oFirstEngineer, iMaxShieldsToTryAndBuild,                                                                                  iOptionalMaxEngiPerAction, bOnlyGetT3)
-                                        bGaveBuildOrder = GETemplateStartBuildingShield(tAvailableEngineers, tAvailableT3EngineersByFaction, tLZTeamData, iPlateau, iLandZone, tTableRef, iTemplateRef, oFirstAeon, oFirstSeraphim, oFirstUEF, oFirstCybran, oFirstEngineer, math.min(4 - iUnderConstructionShields, iShieldLocations - iCompletedShields - iUnderConstructionShields), 1,                           bExcludeExpShields)
+                                        --M28AI-Blackops+Shields fork: last param forced to true (T3-only) - exp promotion is handled by the upgrade-trigger
+                                        bGaveBuildOrder = GETemplateStartBuildingShield(tAvailableEngineers, tAvailableT3EngineersByFaction, tLZTeamData, iPlateau, iLandZone, tTableRef, iTemplateRef, oFirstAeon, oFirstSeraphim, oFirstUEF, oFirstCybran, oFirstEngineer, math.min(4 - iUnderConstructionShields, iShieldLocations - iCompletedShields - iUnderConstructionShields), 1,                           true)
                                         if bGaveBuildOrder then bTriedBuildingSomething = true end
                                     end
                                 end
@@ -8762,7 +8760,8 @@ function GameEnderTemplateManager(tLZData, tLZTeamData, iTemplateRef, iPlateau, 
                                                         or iCompletedShields + iUnderConstructionShields < math.max(3, M28Team.tTeamData[iTeam][M28Team.refiEnemyT3ArtiCount])) then
                                             if (iHighestCompletionArti >= 0.1 * iCompletedShields or iCompletedShields < 4 or not(M28Conditions.HaveLowPower(iTeam)) or M28Team.tTeamData[iTeam][M28Team.subrefiTeamGrossEnergy] >= 100 + 250 * iCompletedShields) then
                                                 if bDebugMessages == true then LOG(sFunctionRef..': We can build more shields so we will, iCompletedShields='..iCompletedShields..'; iUnderConstructionShields='..iUnderConstructionShields..'; iArtiMassInvestment='..iArtiMassInvestment..'; M28Team.tTeamData[iTeam][M28Team.refbDefendAgainstArti]='..tostring(M28Team.tTeamData[iTeam][M28Team.refbDefendAgainstArti])..'; FAF condition='..tostring((M28Utilities.bFAFActive and (M28Team.tTeamData[iTeam][M28Team.refbDefendAgainstArti] or iArtiMassInvestment >= 100000 or (iCompletedShields + iUnderConstructionShields < 4 and (iCompletedShields+iUnderConstructionShields < 3 or iCompletedArti >= 1)) or (iCompletedArti >= 1 and (iCompletedArti >= 2 or iArtiMassInvestment >= 50000)))))..'; M28Team.tTeamData[iTeam][M28Team.refiEnemyT3ArtiCount]='..M28Team.tTeamData[iTeam][M28Team.refiEnemyT3ArtiCount]) end
-                                                bGaveBuildOrder = GETemplateStartBuildingShield(tAvailableEngineers, tAvailableT3EngineersByFaction, tLZTeamData, iPlateau, iLandZone, tTableRef, iTemplateRef, oFirstAeon, oFirstSeraphim, oFirstUEF, oFirstCybran, oFirstEngineer, math.min(4, iShieldLocations - iCompletedShields), nil, bExcludeExpShields)
+                                                --M28AI-Blackops+Shields fork: last param forced to true (T3-only)
+                                                bGaveBuildOrder = GETemplateStartBuildingShield(tAvailableEngineers, tAvailableT3EngineersByFaction, tLZTeamData, iPlateau, iLandZone, tTableRef, iTemplateRef, oFirstAeon, oFirstSeraphim, oFirstUEF, oFirstCybran, oFirstEngineer, math.min(4, iShieldLocations - iCompletedShields), nil, true)
                                                 if bGaveBuildOrder then bTriedBuildingSomething = true end
                                             else
                                                 if bDebugMessages == true then LOG(sFunctionRef..': Dont want to build more shields unless we have better power')

@@ -6325,13 +6325,25 @@ function AssessT3EngineerConstructionOptions(oUnit)
                 local oCurBP
                 for _, sShieldBlueprint in  tAllShields do
                     oCurBP = M28UnitInfo.GetBlueprintFromID(sShieldBlueprint)
-                    if (oCurBP.Defense.Shield.ShieldMaxHealth or 0) >= iExperimentalShieldHealthValue and oCurBP.Economy.BuildCostMass <= iMaxShieldCost then
-                        table.insert(tsShieldsOfInterest, sShieldBlueprint)
-                        iCheapestShield = math.min(iCheapestShield, (oCurBP.Economy.BuildCostMass or 10000000))
+                    if (oCurBP.Defense.Shield.ShieldMaxHealth or 0) >= iExperimentalShieldHealthValue then
+                        if oCurBP.Economy.BuildCostMass <= iMaxShieldCost then
+                            table.insert(tsShieldsOfInterest, sShieldBlueprint)
+                            iCheapestShield = math.min(iCheapestShield, (oCurBP.Economy.BuildCostMass or 10000000))
+                        else
+                            --M28AI-Blackops+Shields fork: Oversize variants (above cost cap) into a separate bucket so the Aeon/UEF unit-coverage filter in M28Engineer.ActiveShieldMonitor can exclude Large variants specifically instead of all EXPERIMENTAL-tagged shields. Lets Shields-Enhanced Small variants keep an EXPERIMENTAL tag in their BP without being mistakenly filtered out together with Mavor-tier Large variants.
+                            if not(aiBrain[M28Overseer.reftbLargeExperimentalShieldsConsidered]) then aiBrain[M28Overseer.reftbLargeExperimentalShieldsConsidered] = {} end
+                            if not(aiBrain[M28Overseer.reftbLargeExperimentalShieldsConsidered][sShieldBlueprint]) then
+                                aiBrain[M28Overseer.reftbLargeExperimentalShieldsConsidered][sShieldBlueprint] = true
+                                if not(aiBrain[M28Overseer.refiLargeExperimentalShieldCategory]) then aiBrain[M28Overseer.refiLargeExperimentalShieldCategory] = categories[sShieldBlueprint]
+                                else aiBrain[M28Overseer.refiLargeExperimentalShieldCategory] = aiBrain[M28Overseer.refiLargeExperimentalShieldCategory] + categories[sShieldBlueprint]
+                                end
+                                if bDebugMessages == true then LOG(sFunctionRef..': recording LARGE experimental shield '..sShieldBlueprint..' for brain '..aiBrain.Nickname..' (mass='..oCurBP.Economy.BuildCostMass..', shield HP='..oCurBP.Defense.Shield.ShieldMaxHealth..', size='..oCurBP.Defense.Shield.ShieldSize..')') end
+                            end
+                        end
                     end
                 end
                 if M28Utilities.IsTableEmpty(tsShieldsOfInterest) == false then
-                    local iMassThreshold = iCheapestShield * 1.2
+                    local iMassThreshold = iCheapestShield * 2.0 --M28AI-Blackops+Shields fork: raised from 1.2 to 2.0. With Mod-Exp-Shield Small-Variants spanning 12000–21300 mass across factions, the 1.2x cluster only kept the cheapest (UAB9301 at 12000), so non-Aeon brains had an empty refiExperimentalShieldCategory and couldnt build any shield via this path. 2.0x covers 12000..24000, includes all four faction Smalls; the iMaxShieldCost cap (25000) plus the separate refiLargeExperimentalShieldCategory bucket still keep Mavor-tier shields out.
                     for _, sShieldBlueprint in tsShieldsOfInterest do
                         oCurBP = M28UnitInfo.GetBlueprintFromID(sShieldBlueprint)
                         if oCurBP.Economy.BuildCostMass <= iMassThreshold then
@@ -6581,6 +6593,154 @@ function GEMobileShieldTeleDefence(oTeleportingUnit, tTeleportDestination, iTeam
         end
     end
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+end
+
+function ConsiderGlobalT3ToExpUpgrade(aiBrain)
+    --M28AI-Blackops+Shields fork: global team-wide T3->Exp shield upgrade decision. Replaces the previous per-LZ/per-template triggers. Fired on every T3+ shield completion via M28Events.
+    --
+    --Algorithm: aggregate all T3+ shields across the team (cluster + template), check the 2:1 ratio globally (iPureT3 >= 2*iExp + 3 for the post-upgrade ratio to stay >= 2:1), and if satisfied issue ONE upgrade on the highest-priority candidate. One upgrade per trigger so the next completion re-evaluates.
+    --
+    --Priority order for the next upgrade slot (lower priority number = higher priority):
+    --  1 = GE-Template that has 0 exp shields yet (HIGHEST: every GE-template should get its first exp before anything else)
+    --  2 = LZ-cluster that has 0 exp shields yet (HIGH: spread first exp across LZs)
+    --  3 = GE-Template that has 1 exp shield (MEDIUM: second exp per template)
+    --  4 = LZ-cluster that has 1 exp shield (LOW: second exp per LZ only after templates are at 2)
+    --LZ/Template with 2+ exp shields are NOT candidates (cap at 2 per location).
+    --
+    --Large exp shields are never selected: upgrade targets must be in refiExperimentalShieldCategory (Small variants only). The Small/Large split is maintained by AssessT3EngineerConstructionOptions.
+
+    if not(aiBrain) or not(aiBrain.M28Team) then return end
+    local iTeam = aiBrain.M28Team
+    if not(M28Team.tTeamData[iTeam]) then return end
+    local tTeamBrains = M28Team.tTeamData[iTeam][M28Team.subreftoFriendlyActiveM28Brains]
+    if M28Utilities.IsTableEmpty(tTeamBrains) then return end
+
+    --Group all team T3+ shields by LZ + by template membership. tByLZ[lzKey] = {iPlat, iLZ, tCluster, tTemplates[tplKey]}
+    local tByLZ = {}
+    for iB, oBrain in tTeamBrains do
+        if not(oBrain.M28IsDefeated) then
+            local toShields = oBrain:GetListOfUnits(M28UnitInfo.refCategoryFixedShield - categories.TECH1 - categories.TECH2, false, true)
+            if M28Utilities.IsTableEmpty(toShields) == false then
+                for iSh, oShield in toShields do
+                    if M28UnitInfo.IsUnitValid(oShield) and oShield:GetFractionComplete() == 1 then
+                        local iPlat, iLZ = M28Map.GetPlateauAndLandZoneReferenceFromPosition(oShield:GetPosition(), true, oShield)
+                        if iPlat and iLZ then
+                            local sLZKey = iPlat..'-'..iLZ
+                            if not(tByLZ[sLZKey]) then tByLZ[sLZKey] = {iPlat=iPlat, iLZ=iLZ, tCluster={}, tTemplates={}} end
+                            --Two mechanisms can mark a shield as protecting a game-ender:
+                            --  (a) reftArtiTemplateRefs - formal GE-Template membership (tLZTeamData[reftActiveGameEnderTemplates][iTemplateRef])
+                            --  (b) refoGameEnderBeingShielded - special-assigned via AssignShieldToGameEnder (per-unit, without formal template)
+                            --Both deserve the same Template priority for exp upgrades. For (b) we group by the game-ender's EntityId so each protected GE gets its own pseudo-template bucket.
+                            local sTplKey
+                            if oShield[reftArtiTemplateRefs] then
+                                local tRefs = oShield[reftArtiTemplateRefs]
+                                sTplKey = 't-'..(tRefs[1] or 'x')..'-'..(tRefs[2] or 'x')..'-'..(tRefs[3] or 'x')
+                            elseif oShield[refoGameEnderBeingShielded] and M28UnitInfo.IsUnitValid(oShield[refoGameEnderBeingShielded]) then
+                                sTplKey = 'ge-'..(oShield[refoGameEnderBeingShielded].EntityId or 'x')
+                            end
+                            if sTplKey then
+                                if not(tByLZ[sLZKey].tTemplates[sTplKey]) then tByLZ[sLZKey].tTemplates[sTplKey] = {} end
+                                table.insert(tByLZ[sLZKey].tTemplates[sTplKey], oShield)
+                            else
+                                table.insert(tByLZ[sLZKey].tCluster, oShield)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    --Stats helper (closure - inline since we use it twice)
+    local function GroupStats(tGroupShields)
+        local iT, iE, iU = 0, 0, 0
+        for iSh, oSh in tGroupShields do
+            iT = iT + 1
+            if (oSh:GetBlueprint().Defense.Shield.ShieldMaxHealth or 0) >= iExperimentalShieldHealthValue then iE = iE + 1 end
+            if oSh:IsUnitState('Upgrading') then iU = iU + 1 end
+        end
+        return iT, iE, iU
+    end
+
+    --Aggregate global stats + build prioritized candidate list
+    local iGlobalT3Plus = 0
+    local iGlobalExp = 0
+    local iGlobalUpgrading = 0
+    local tCandidates = {}
+    local PRIO_TPL_1ST, PRIO_LZ_1ST, PRIO_TPL_2ND, PRIO_LZ_2ND = 1, 2, 3, 4
+
+    for sLZKey, lzData in tByLZ do
+        if M28Utilities.IsTableEmpty(lzData.tCluster) == false then
+            local iT, iE, iU = GroupStats(lzData.tCluster)
+            iGlobalT3Plus = iGlobalT3Plus + iT
+            iGlobalExp = iGlobalExp + iE
+            iGlobalUpgrading = iGlobalUpgrading + iU
+            local iEffExp = iE + iU
+            if iEffExp == 0 then
+                table.insert(tCandidates, {priority=PRIO_LZ_1ST, shields=lzData.tCluster})
+            elseif iEffExp == 1 then
+                table.insert(tCandidates, {priority=PRIO_LZ_2ND, shields=lzData.tCluster})
+            end
+        end
+        for sTplKey, tplShields in lzData.tTemplates do
+            local iT, iE, iU = GroupStats(tplShields)
+            iGlobalT3Plus = iGlobalT3Plus + iT
+            iGlobalExp = iGlobalExp + iE
+            iGlobalUpgrading = iGlobalUpgrading + iU
+            local iEffExp = iE + iU
+            if iEffExp == 0 then
+                table.insert(tCandidates, {priority=PRIO_TPL_1ST, shields=tplShields})
+            elseif iEffExp == 1 then
+                table.insert(tCandidates, {priority=PRIO_TPL_2ND, shields=tplShields})
+            end
+        end
+    end
+
+    --Determine ratio mode based on enemy threat. Default 2:1 (2 T3 per 1 Exp). Under heavy threat flip to 1:2 (1 T3 per 2 Exp) so the team hardens up faster. Triggers: refiEnemyT3ArtiCount >= 3 (weights exp arti as 3, so catches '1 T4 arti' OR '3 T3 artys'), or any T4/EXPERIMENTAL nuke launcher spotted (vanilla T3 SML alone does NOT trip threat mode).
+    local iT3ArtiCount = M28Team.tTeamData[iTeam][M28Team.refiEnemyT3ArtiCount] or 0
+    local bHasT4Nuke = false
+    if not(M28Utilities.IsTableEmpty(M28Team.tTeamData[iTeam][M28Team.reftEnemyNukeLaunchers])) then
+        for iNuke, oNuke in M28Team.tTeamData[iTeam][M28Team.reftEnemyNukeLaunchers] do
+            if M28UnitInfo.IsUnitValid(oNuke) and EntityCategoryContains(categories.EXPERIMENTAL, oNuke.UnitId) then
+                bHasT4Nuke = true
+                break
+            end
+        end
+    end
+    local bUnderHeavyThreat = (iT3ArtiCount >= 3) or bHasT4Nuke
+
+    --Ratio gate (post-upgrade ratio must hold):
+    --  2:1 normal: (T-1)/(E+1) >= 2   <=>  T >= 2E + 3
+    --  1:2 threat: (T-1)/(E+1) >= 0.5 <=>  2T >= E + 3
+    local iGlobalExpEffective = iGlobalExp + iGlobalUpgrading
+    local iGlobalPureT3Effective = iGlobalT3Plus - iGlobalExpEffective
+    local bRatioMet
+    if bUnderHeavyThreat then
+        bRatioMet = (2 * iGlobalPureT3Effective >= iGlobalExpEffective + 3)
+    else
+        bRatioMet = (iGlobalPureT3Effective >= 2 * iGlobalExpEffective + 3)
+    end
+    if not(bRatioMet) then return end
+    if M28Utilities.IsTableEmpty(tCandidates) then return end
+
+    --Sort by priority (lower number first = higher priority)
+    table.sort(tCandidates, function(a, b) return a.priority < b.priority end)
+
+    --Issue the upgrade on the first eligible shield in the highest-priority candidate group
+    for iC, cand in tCandidates do
+        for iSh, oShield in cand.shields do
+            if M28UnitInfo.IsUnitValid(oShield) and not(oShield:IsUnitState('Upgrading')) and not(oShield:IsUnitState('BeingUpgraded')) then
+                local oShBrain = oShield:GetAIBrain()
+                if oShBrain[M28Overseer.refbCanBuildExperimentalShields] and oShBrain[M28Overseer.refiExperimentalShieldCategory] then
+                    local sUpgradesTo = oShield:GetBlueprint().General.UpgradesTo
+                    if sUpgradesTo and sUpgradesTo ~= '' and EntityCategoryContains(oShBrain[M28Overseer.refiExperimentalShieldCategory], sUpgradesTo) then
+                        M28Economy.UpgradeUnit(oShield, true)
+                        return
+                    end
+                end
+            end
+        end
+    end
 end
 
 function UpgradeShieldsCoveringSMD(iTeam)

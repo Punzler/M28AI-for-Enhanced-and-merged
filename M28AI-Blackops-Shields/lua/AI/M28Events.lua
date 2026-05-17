@@ -2872,6 +2872,8 @@ function OnConstructed(oEngineer, oJustBuilt)
                                     if oJustBuilt:GetBlueprint().Defense.Shield.ShieldMaxHealth >= M28Building.iExperimentalShieldHealthValue then
                                         tLZTeamData[M28Map.subrefiExperimentalShieldConstructedCount] = (tLZTeamData[M28Map.subrefiExperimentalShieldConstructedCount] or 0) + 1
                                     end
+                                    --M28AI-Blackops+Shields fork: shield-completion triggers the global T3->exp upgrade decision. The function aggregates T3+/Exp counts across the entire team (all LZ-clusters + all GE-templates), applies the global 2:1 ratio, then issues one upgrade on the highest-priority candidate (GE-template 1st > LZ 1st > GE-template 2nd > LZ 2nd, cap at 2 per slot). See M28Building.ConsiderGlobalT3ToExpUpgrade for details.
+                                    ForkThread(M28Building.ConsiderGlobalT3ToExpUpgrade, oJustBuilt:GetAIBrain())
                                 end
                             end
                         elseif EntityCategoryContains(M28UnitInfo.refCategoryExperimentalLevel, oJustBuilt.UnitId) then

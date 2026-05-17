@@ -55,7 +55,27 @@ Three error flavors all flowed into the same `else`-branch:
 - `CanBuild` fails → Warning (`ErrorHandler(msg, true)`) instead of Error, so it surfaces once then auto-throttles
 - real bug → Error as before
 
-**Result (game_27069683.log):** 16 `M28ERROR` → 0. 5 throttled `M28Warning` lines for support-factory upgrades (`zrb9501→zrb9601`, `zsb9502→zsb9602`) — a separate edge case in M28's `GetUnitUpgradeBlueprint` support-factory mapping, surfaced cleanly by Branch 3 but not addressed here.
+**Result (game_27069683.log):** 16 `M28ERROR` → 0. 5 throttled `M28Warning` lines remain — see below, working as designed.
+
+### 1b. ✅ Support-factory `CanBuild` warnings — investigated, working as designed (2026-05-16)
+
+The five remaining `M28Warning` lines after Task #1 (`zrb9501→zrb9601`, `zsb9502→zsb9602` etc.) come from Branch 3 of the Task #1 fix and are *correct behaviour*, not a bug to fix.
+
+**FAF naming quick-ref (we kept confusing ourselves):**
+- `urb0101` = T1 land factory (the only "T1" — starting tier)
+- `urb0201` / `zrb9501` = T2 land factory (regular / support variant); both have BP `Categories.TECH2`
+- `urb0301` / `zrb9601` = T3 land factory (regular / support variant); both have BP `Categories.TECH3`
+- There is no "T1 support factory" — the support chain starts at T2
+
+So `zrb9501 → zrb9601` is a **T2 support → T3 support** upgrade, BP TECH2 → BP TECH3. Requires the team to have an active T3 HQ (the equivalent of regular factory T2→T3 needing a T3 HQ to allow self-upgrade).
+
+**Source-of-truth checks (FAF GitHub):** all four factions' T2 support factory BPs declare `UpgradesTo` to the T3 variant and have a matching `BuildableCategory` entry (`"BUILTBYTIER2SUPPORTFACTORY <FACTION> STRUCTURE <DOMAIN>"`) that *should* let CanBuild succeed once the HQ-tech condition is met. Verified for `zrb9501`/`zab9501`/`zeb9501`/`zsb9502` — pattern is identical across factions, no mod hooks the BPs (checked BlackOpsFAF-Merged, BlackOpsFAF-ACUs-Enhanced, Shields Enhanced, Total Mayhem, Savers Unitspack).
+
+**Why only Cybran + Seraphim warnings show in the test log:** likely sampling, not a structural asymmetry. In the test game those brains happened to reach `GetAnyMexOrFactoryToUpgrade` with a T2 support factory while their team still lacked a T3 HQ at that moment (engineer present but HQ not yet built or destroyed).
+
+**Caller chain:** [M28Team.lua:3934](M28AI-Blackops-Shields/lua/AI/M28Team.lua#L3934) `ConsiderNormalUpgrades` → [M28Team.lua:3608](M28AI-Blackops-Shields/lua/AI/M28Team.lua#L3608) `GetAnyMexOrFactoryToUpgrade` (backup logic) → `UpgradeUnit`. The filter at Z.3593 (`refCategoryLandFactory - categories.TECH3`) intentionally pulls in support factories for upgrade consideration.
+
+**Why no fix:** the system is self-healing. M28 polls for upgrades, engine refuses while team lacks T3 HQ, M28 retries on next sweep, eventually succeeds once T3 HQ stands. Branch 3 throttles the noise (5 lines / 27-min match). Filtering `SUPPORTFACTORY` out at the caller would prevent legitimate upgrades when conditions ARE met; adding a HQ-tech precondition is more code for no functional improvement.
 
 ### 2. Large-shield generic support
 

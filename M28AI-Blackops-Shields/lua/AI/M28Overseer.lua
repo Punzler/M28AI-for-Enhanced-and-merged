@@ -71,6 +71,8 @@ refbBuiltLongRangeLandUnit = 'M28BultLRU' -- true if we have constructed a long 
 refbCanBuildExperimentalShields = 'M28BuldExpSh'
 refiExperimentalShieldCategory = 'M28ExpShC' --Includes the cheapest 'powerful' shield (so we dont build super-expensive ones that cost as much as a game ender, but also still build one tough enough to justify turtling logic)
 reftbExperimentalShieldsConsidered = 'M28ExpShS' --[x] is the blueprint, returns true if we have already included in refiExperimentalShieldCategory
+refiLargeExperimentalShieldCategory = 'M28LgExpShC' --M28AI-Blackops+Shields fork: separate bucket for oversized experimental shields (above the iMaxShieldCost cap in M28Building.AssessT3EngineerConstructionOptions). Used to exclude Large variants (uab9401/ueb9401/urb9407/xsb9401) from single-unit-coverage contexts in ActiveShieldMonitor that previously used a blanket `- categories.EXPERIMENTAL` filter. Intended also for a separate endgame Large-shield build path.
+reftbLargeExperimentalShieldsConsidered = 'M28LgExpShS' --[x] is the blueprint, returns true if already included in refiLargeExperimentalShieldCategory
 --Brain style variables to affect behaviour - set to true if to apply to the brain
 refbPrioritiseLand = 'M28PersLand'
 refbPrioritiseAir = 'M28PersAir'

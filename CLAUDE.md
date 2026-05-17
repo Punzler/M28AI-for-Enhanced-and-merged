@@ -6,7 +6,7 @@ A fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) (v297) by Punzle
 tuned for play alongside Shields Enhanced and BlackOpsFAF-Merged in FAF
 (Forged Alliance Forever).
 
-The user (Punzler / e-kuendig) is the author of **Shields Enhanced** and
+The user (Punzler) is the author of **Shields Enhanced** and
 modifies M28AI directly to support typical mod experimental shields in
 M28's engineer-strategy chain.
 

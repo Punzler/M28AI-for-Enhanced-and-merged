@@ -10,6 +10,7 @@ Fork-specific changes on top, vanilla baseline `M28AI v297` (upstream state 2026
 
 ### Fixed
 - **GE templates now form correctly with mod Small shields.** The vanilla gate in `DecideOnExperimentalToBuild` (M28Engineer.lua line 4108) was skipping the template-conversion branch whenever `refbCanBuildExperimentalShields = true` (under the assumption: exp-shields = T4-sized = template not needed). That assumption breaks with mod Small shields (50–63k HP, smaller radius) — game-enders ended up with only 1–2 lone shields. Removing the gate makes the action conversion (21 → 75) fire and templates get created.
+- **Cluster path no longer accidentally builds Large exp shields.** Vanilla M28's tech-level expansion at `GetCategoryToBuildOrAssistFromAction` (M28Engineer.lua line 5248) widens `FixedShield * TECH3` to `FixedShield * (TECH3 OR EXPERIMENTAL)` when `iMinTechLevel == 3`. With Shields Enhanced installed this matches Large variants (`uab9401`/`ueb9401`/`urb9407`/`xsb9401`, all EXPERIMENTAL), causing M28 to build a Large shield ~1-3× per match without going through Phase A's controlled upgrade trigger. The fix subtracts `refiLargeExperimentalShieldCategory` right after the expansion. A deliberate endgame Large-build trigger is tracked as Task #3 in CLAUDE.md.
 
 ### Removed
 - Temporary diagnostic `LOG` markers (`M28-BLACKOPS-DEBUG-GAMEENDER-*`, `GE-MGR`, `GE-ASSIGN`, `GE-PICK`, `KILL path-6825/6873`, `GE call-1st-wave/2nd-wave`) added during investigation.

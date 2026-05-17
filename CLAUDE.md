@@ -99,23 +99,34 @@ if iCategoryWanted then --M28AI-Blackops+Shields fork: removed vanilla gate on r
 
 **Verified in-game:** user confirmed templates now form correctly and shield clusters appear around game-enders.
 
-### 2. Large-shield generic support
+### 1d. ✅ Cluster path occasionally built Large exp shields (DONE 2026-05-17)
 
-Currently the cost-cap (25000) keeps Large variants
-(`uab9401`/`ueb9401`/`urb9407`/`xsb9401`) out of M28's build pool. User
-wants these eventually buildable by M28 too, **but** without corrupting
-M28's prebuild/planning state — Large shields have 5x5 footprint + 8x8
-build skirt, which doesn't fit M28's stock-T3-sized template slots and
-caused thousands of placement-fail retries in earlier experiments.
+**Symptom:** test log `game_27076350.log` showed 3 Large exp shields completed (`uab94011`, `urb94071`, `urb94073`) with `scope=cluster` — built outside any GE-template or special-assignment context. Phase A's intent was to never build Large via automatic paths, only via a future dedicated trigger.
 
-Open design questions (from
-`C:\Users\etien\.claude\plans\how-would-i-go-shimmying-cookie.md`):
-- How M28 caches build-locations for the exp-shield category and whether
-  multiple sizes in the same category collide
-- Whether `refiExperimentalShieldCategory` can hold multiple size classes
-  or needs separate brain-flags for Small vs Large
-- Whether splitting cost-cap by tier is the right approach, or if a
-  separate Large-shield brain-flag is needed
+**Root cause:** vanilla M28 expansion at [M28Engineer.lua:5248](M28AI-Blackops-Shields/lua/AI/M28Engineer.lua#L5248) in `GetCategoryToBuildOrAssistFromAction`:
+
+```lua
+if iMinTechLevel == 3 then iCategoryToBuild = iCategoryToBuild * categories.TECH3 + iCategoryToBuild*categories.EXPERIMENTAL
+```
+
+For shield contexts where `iCategoryToBuild = M28UnitInfo.refCategoryFixedShield * categories.TECH3` (set at Z.5223 cluster path), this expands by category-distributivity to `SHIELD * STRUCTURE * (TECH3 OR EXPERIMENTAL)` — which matches all Large mod variants (`uab9401`/`ueb9401`/`urb9407`/`xsb9401`, all tagged `EXPERIMENTAL + TECH4 + SIZE12`). Cluster builds picked them ~1-3× per match.
+
+**Fix:** subtract `refiLargeExperimentalShieldCategory` from `iCategoryToBuild` right after the expansion. Keeps Small mod variants pickable (still useful redundancy in case the Phase A upgrade-trigger misses them) but eliminates Large from the cluster path.
+
+### 2. Endgame dedicated Large-shield build trigger (Task #3 in spirit)
+
+After 1d, Large variants (`uab9401`/`ueb9401`/`urb9407`/`xsb9401`) are out of every automatic build path. They live in `aiBrain[refiLargeExperimentalShieldCategory]` purely as a subtractable bucket.
+
+The user wants Large *deliberately* buildable in endgame conditions (Paragon-eco, very high mass income, late-game threat). Design space:
+
+- **Trigger candidate:** new function `ConsiderGlobalSmallToLargeUpgrade(aiBrain)` parallel to existing `ConsiderGlobalT3ToExpUpgrade`, fired on shield completion. Promotes Small Exp → Large Exp when (a) brain has built Paragon, (b) mass income ≥150, or (c) under heavy threat mode AND Small cluster cap already filled.
+- **Catch:** Small Exp variants (UEB9301 etc.) have no `UpgradesTo` field — so promotion is *direct construction*, not in-place upgrade. Need an engineer-assignment path, not `M28Economy.UpgradeUnit`.
+- **Footprint constraint (carried over from earlier experiments):** Large shields have 5×5 footprint + 8×8 build skirt, which doesn't fit M28's stock-T3-sized template slots. Earlier attempts to plot Large into normal template positions caused thousands of placement-fail retries. A dedicated trigger must either (a) use the dedicated `subrefLargeShieldLocations` slots that GE templates already allocate (`bHaveLargeShields` branch at [M28Engineer.lua:9426-9433](M28AI-Blackops-Shields/lua/AI/M28Engineer.lua#L9426-L9433)), or (b) issue raw build orders at hand-picked midpoints with no template binding.
+
+Open design questions (from `C:\Users\etien\.claude\plans\how-would-i-go-shimmying-cookie.md`):
+- How M28 caches build-locations for the exp-shield category and whether multiple sizes in the same category collide
+- Whether `refiExperimentalShieldCategory` can hold multiple size classes or needs separate brain-flags for Small vs Large
+- Whether splitting cost-cap by tier is the right approach, or if a separate Large-shield brain-flag is needed
 
 ## Workflow
 

@@ -5245,7 +5245,12 @@ function GetCategoryToBuildOrAssistFromAction(iActionToAssign, iMinTechLevel, ai
             end
         else
             if iMinTechLevel > 1 then
-                if iMinTechLevel == 3 then iCategoryToBuild = iCategoryToBuild * categories.TECH3 + iCategoryToBuild*categories.EXPERIMENTAL
+                if iMinTechLevel == 3 then
+                    iCategoryToBuild = iCategoryToBuild * categories.TECH3 + iCategoryToBuild*categories.EXPERIMENTAL
+                    --M28AI-Blackops+Shields fork: the EXPERIMENTAL expansion above is category-distributive: (Shield*TECH3) + (Shield*EXPERIMENTAL) = Shield * (TECH3 OR EXPERIMENTAL). For shield categories that lets Large mod variants (uab9401/ueb9401/urb9407/xsb9401) slip through the cluster build path, which then build them as plain "cluster" shields bypassing Phase A's controlled upgrade trigger. Subtract refiLargeExperimentalShieldCategory to keep Large out of this path - a deliberate Large-build trigger will be added separately (CLAUDE.md Task #3).
+                    if aiBrain[M28Overseer.refiLargeExperimentalShieldCategory] then
+                        iCategoryToBuild = iCategoryToBuild - aiBrain[M28Overseer.refiLargeExperimentalShieldCategory]
+                    end
                 else iCategoryToBuild = iCategoryToBuild - categories.TECH1
                 end
             end

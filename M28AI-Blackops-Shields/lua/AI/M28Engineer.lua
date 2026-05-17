@@ -4105,7 +4105,7 @@ function DecideOnExperimentalToBuild(iActionToAssign, aiBrain, tbEngineersOfFact
 
 
                 --Check if we want to switch to using a gameender template
-                if iCategoryWanted and not(aiBrain[M28Overseer.refbCanBuildExperimentalShields]) then
+                if iCategoryWanted then --M28AI-Blackops+Shields fork: removed vanilla gate on refbCanBuildExperimentalShields. Vanilla assumed "exp-shields = T4-sized = template not needed"; with mod Small shields (Shields Enhanced 50-63k HP, smaller radius) that assumption breaks - game-enders still need the template cluster.
                     if M28Utilities.DoesCategoryContainCategory(iCategoryWanted, iGameEnderTemplateCategories) then
                         --Do we have the eco to support this many shields? and have we built a decent number of experimentals if using LOUD mod
 
@@ -6434,7 +6434,14 @@ function ActiveShieldMonitor(oUnitToProtect, tLZTeamData, iTeam)
         if oUnitToProtect[M28Building.refoNearbyFactoryOfFaction] then
             iOptionalFactionRequired = M28UnitInfo.GetUnitFaction(oUnitToProtect[M28Building.refoNearbyFactoryOfFaction])
         end
-        if not(iOptionalFactionRequired) then iShieldCategoryToBuild = M28UnitInfo.refCategoryFixedShield
+        if not(iOptionalFactionRequired) then
+            --M28AI-Blackops+Shields fork: see Aeon/UEF branches below - exclude Large exp shields from single-unit coverage. Without this an engineer of any faction may pick uab9401/ueb9401/urb9407/xsb9401 via GetMostExpensiveBlueprintOfCategory because they are the most expensive shield BP of their respective faction.
+            iShieldCategoryToBuild = M28UnitInfo.refCategoryFixedShield
+            if oUnitToProtect:GetAIBrain()[M28Overseer.refiLargeExperimentalShieldCategory] then
+                iShieldCategoryToBuild = iShieldCategoryToBuild - oUnitToProtect:GetAIBrain()[M28Overseer.refiLargeExperimentalShieldCategory]
+            else
+                iShieldCategoryToBuild = iShieldCategoryToBuild - categories.EXPERIMENTAL
+            end
         else
             if iOptionalFactionRequired == M28UnitInfo.refFactionSeraphim then
                 --Does enemy have mavor? if so then want T3 shields not T2
@@ -6449,7 +6456,13 @@ function ActiveShieldMonitor(oUnitToProtect, tLZTeamData, iTeam)
                     end
                 end
                 if bEnemyHasMavorOrCloseToUnitCap then
+                    --M28AI-Blackops+Shields fork: exclude Large exp shields (xsb9401) so unit-coverage doesnt pick Mavor-tier; matches the Aeon/UEF branch pattern. T2-only branch below stays unchanged - TECH2*SERAPHIM already excludes Large (TECH4).
                     iShieldCategoryToBuild = M28UnitInfo.refCategoryFixedShield * categories.SERAPHIM
+                    if oUnitToProtect:GetAIBrain()[M28Overseer.refiLargeExperimentalShieldCategory] then
+                        iShieldCategoryToBuild = iShieldCategoryToBuild - oUnitToProtect:GetAIBrain()[M28Overseer.refiLargeExperimentalShieldCategory]
+                    else
+                        iShieldCategoryToBuild = iShieldCategoryToBuild - categories.EXPERIMENTAL
+                    end
                 else
                     --If go for T2 shielding then will be quicker to build and cheaper, and still cover the unit provided the shield can absorb a single shot
                     iShieldCategoryToBuild = M28UnitInfo.refCategoryFixedShield * categories.TECH2 * categories.SERAPHIM
@@ -6474,7 +6487,13 @@ function ActiveShieldMonitor(oUnitToProtect, tLZTeamData, iTeam)
                 end
                 iEngineerFactionRequired = iEngineerFactionRequired * categories.UEF
             else
+                --M28AI-Blackops+Shields fork: Cybran (and any future faction) fall through to here. Engineer-specific GetBlueprintThatCanBuildOfCategory later narrows the category to the engineers own faction, so a Cybran engineer picks the most expensive Cybran shield = urb9407 (Large). Subtract refiLargeExperimentalShieldCategory to keep Large out of single-unit coverage; matches the Aeon/UEF/Seraphim branches above.
                 iShieldCategoryToBuild = M28UnitInfo.refCategoryFixedShield
+                if oUnitToProtect:GetAIBrain()[M28Overseer.refiLargeExperimentalShieldCategory] then
+                    iShieldCategoryToBuild = iShieldCategoryToBuild - oUnitToProtect:GetAIBrain()[M28Overseer.refiLargeExperimentalShieldCategory]
+                else
+                    iShieldCategoryToBuild = iShieldCategoryToBuild - categories.EXPERIMENTAL
+                end
             end
         end
         local sLikelyShieldBlueprint = M28Factory.GetMostExpensiveBlueprintOfCategory(iShieldCategoryToBuild)

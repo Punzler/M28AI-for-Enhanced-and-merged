@@ -77,6 +77,28 @@ So `zrb9501 → zrb9601` is a **T2 support → T3 support** upgrade, BP TECH2 �
 
 **Why no fix:** the system is self-healing. M28 polls for upgrades, engine refuses while team lacks T3 HQ, M28 retries on next sweep, eventually succeeds once T3 HQ stands. Branch 3 throttles the noise (5 lines / 27-min match). Filtering `SUPPORTFACTORY` out at the caller would prevent legitimate upgrades when conditions ARE met; adding a HQ-tech precondition is more code for no functional improvement.
 
+### 1c. ✅ GE templates never formed with mod Small shields (DONE 2026-05-17)
+
+**Symptom:** in multiple test games the user observed Mavor/Czar/Paragon being built with only 1–2 lone shields around them instead of the structured shield clusters that GE templates normally produce. Test log `game_27075956.log` confirmed: all 7 built game-enders (1 Czar, 6 Mavors) had `engineerAction=21` (`refActionBuildExperimental`) instead of `=75` (`refActionManageGameEnderTemplate`) — no template was ever created.
+
+**Root cause:** vanilla gate at [M28Engineer.lua:4108](M28AI-Blackops-Shields/lua/AI/M28Engineer.lua#L4108) in `DecideOnExperimentalToBuild`:
+
+```lua
+if iCategoryWanted and not(aiBrain[M28Overseer.refbCanBuildExperimentalShields]) then
+```
+
+Vanilla assumption: *"if the brain can build exp-shields, they're T4-sized → `ActiveShieldMonitor` single-unit coverage is enough, no GE template needed."* Holds for vanilla M28 (T4 = ~600 radius). Does **not** hold for Shields Enhanced Small variants (50–63k HP, much smaller radius).
+
+Phase A (commit `699f8ac1`) + threshold lowering (commit `22ce5776`) flipped `refbCanBuildExperimentalShields = true` for mod setups → the gate becomes `not(true)=false` → the entire block Z.4108–4267, including the template conversion at Z.4171 (`iCategoryWanted = refActionManageGameEnderTemplate`), is skipped → the action conversion at Z.10071 never fires → the engineer builds the game-ender raw under action 21, `AssignEngineerToGameEnderTemplate` is never called, no template is created.
+
+**Fix:** gate removal at Z.4108 — single-line change:
+
+```lua
+if iCategoryWanted then --M28AI-Blackops+Shields fork: removed vanilla gate on refbCanBuildExperimentalShields …
+```
+
+**Verified in-game:** user confirmed templates now form correctly and shield clusters appear around game-enders.
+
 ### 2. Large-shield generic support
 
 Currently the cost-cap (25000) keeps Large variants

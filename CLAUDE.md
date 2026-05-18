@@ -138,6 +138,28 @@ Engineer pick: this brain's free T3 engineers (refiAssignedAction nil/0) within 
 
 **Result (game_27080560):** trigger fires, 1 Large built, no `ConsiderLargeShieldBuild`-related errors in log. Per-brain cap tiers ≥2 not exhaustively tested due to enemy GE-count not reaching threshold in test session, but cap logic is symmetric (same code path, different comparison values).
 
+### 3. ✅ ASF must ignore enemy satellites (DONE 2026-05-18)
+
+**Symptom:** ASF were observed flying directly *under* enemy Novax satellites without engaging them, wasting ASF time and exposing them to enemy AirAA along the path.
+
+**Root cause:** M28's generic AirAA targeting in `TargetUnitWithAirAA` ([M28Air.lua:3344](M28AI-Blackops-Shields/lua/AI/M28Air.lua#L3344)) was never designed for high-altitude satellites:
+- Ground/near-ground attack-order path skipped (satellite is high)
+- Intercept-prediction issues a `MoveOrder` to the satellite's 3D position; ASF cruise at their own altitude → fly under
+- Close-range fallback only issues an attack order if target is Czar/T3-bomber/Exp-bomber/Transport/Gunship — Novax matches none
+- Result: ASF were given move-orders to the Novax's XY, no attack-order ever issued
+
+**Design decision:** in this fork, anti-satellite duty belongs to dedicated ground structures (Shields Enhanced / BlackOps anti-sat), not air superiority fighters. ASF should never even consider satellites as targets.
+
+**Fix:** single-line filter at the entry of `AssignAirAATargets` ([M28Air.lua:3474](M28AI-Blackops-Shields/lua/AI/M28Air.lua#L3474)):
+
+```lua
+tEnemyTargets = EntityCategoryFilterDown(categories.ALLUNITS - M28UnitInfo.refCategorySatellite, tEnemyTargets)
+```
+
+Catches all 8 call-sites of `AssignAirAATargets` in one place. Threat statistics (`refiEnemyNovaxCount`, `refiEnemyAirAAThreat`) intentionally left untouched — those still drive shield-building, ACU-run, engineer-priority logic.
+
+**Result:** user verified in-game — ASF no longer fly toward satellites.
+
 ## Workflow
 
 ### Code lives in two places

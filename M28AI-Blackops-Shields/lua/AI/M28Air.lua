@@ -3471,6 +3471,9 @@ function AssignAirAATargets(tAvailableAirAA, tEnemyTargets, iTeam, iAirSubteam, 
     end
     --local bDontCheckPlayableArea = not(M28Map.bIsCampaignMap) --Can have issues with air units not receiving orders which might be caused by air units going outside the playable area
 
+    --M28AI-Blackops+Shields fork: ASF should never engage satellites — only dedicated anti-satellite structures should target them.
+    tEnemyTargets = EntityCategoryFilterDown(categories.ALLUNITS - M28UnitInfo.refCategorySatellite, tEnemyTargets)
+
     --local iAvailableAirSize = table.getn(tAvailableAirAA)
     local iEnemyTargetSize = table.getn(tEnemyTargets)
     local iClosestUnitDist, oClosestUnit, iCurDist, iCurValueAssigned, iThreatWanted, iClosestAARef

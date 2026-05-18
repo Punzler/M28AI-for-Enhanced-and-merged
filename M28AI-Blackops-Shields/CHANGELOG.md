@@ -13,6 +13,8 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 - Game-enders are now built inside proper shield clusters again instead of with only 1-2 lone shields next to them.
 - Large exp shields are no longer built by accident through the normal cluster path; they only appear from the endgame trigger above.
 - Game-ender templates now reclaim adjacent buildings whose skirts overlap a template slot instead of getting stuck and spamming "template location blocked" warnings. M28 only reclaims a neighbour if it actually skirt-overlaps the slot, so unrelated buildings are left alone.
+- Limit each AI brain to building at most one T3 Advanced Air Staging Facility.
+- ASF no longer fly under enemy Novax satellites trying to engage them. Satellites are now left to dedicated anti-satellite defences.
 
 ---
 

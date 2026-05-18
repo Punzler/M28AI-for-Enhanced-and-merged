@@ -57,6 +57,8 @@ Three error flavors all flowed into the same `else`-branch:
 
 **Result (game_27069683.log):** 16 `M28ERROR` → 0. 5 throttled `M28Warning` lines remain — see below, working as designed.
 
+**Follow-up (2026-05-18):** Branch 2 was originally written assuming the only `bUpdateUpgradeTracker=false` caller was the race-handler ForkThread at Z.157. That was wrong — `ConsiderHydroUpgradeLoop` at [M28Economy.lua:882](M28AI-Blackops-Shields/lua/AI/M28Economy.lua#L882) passes `false` and `UpgradeShieldsCoveringSMD` at [M28Building.lua:6951](M28AI-Blackops-Shields/lua/AI/M28Building.lua#L6951) passes nil. Both were silently no-op'd by Branch 2, so BlackOps hydros (BEB1202→BEB1302 etc.) and SMD-covering T2 shields were never upgraded automatically. Now fixed at the caller sites (both pass `true` explicitly), so Branch 2 only covers the legitimate race-handler retry. Verified against the BlackOpsFAF-Merged `hook/mods/M28AI/lua/AI/M28Economy.lua` hook, which addressed the same bug from a different angle (forcing `bUpdateUpgradeTracker=true` at the top of `UpgradeUnit`) — that hook is now dead code since the fork-rewrite renamed the mount point, and we don't need it because the caller-site fix is narrower (keeps the race-handler explicitly silent, avoids the BeingUpgraded+FractionComplete=1 endless-recursion edge case).
+
 ### 1b. ✅ Support-factory `CanBuild` warnings — investigated, working as designed (2026-05-16)
 
 The five remaining `M28Warning` lines after Task #1 (`zrb9501→zrb9601`, `zsb9502→zsb9602` etc.) come from Branch 3 of the Task #1 fix and are *correct behaviour*, not a bug to fix.
@@ -177,6 +179,12 @@ Catches all 8 call-sites of `AssignAirAATargets` in one place. Threat statistics
 - [M28Factory.lua:4537](M28AI-Blackops-Shields/lua/AI/M28Factory.lua#L4537) — T3 naval factory unstuck-cleanup skips HYDROCARBON.
 
 **Trade-off:** if *all* viable GE-template slots are blocked by hydros, the template isn't built at all — user explicitly accepted this ("Hydros raus aus allen Kill-Pfaden"). Random T1/T2 PD / power / walls remain in the cap-kill pool as before.
+
+### 5. ❌ PD/Reactive-arti edge placement (ATTEMPTED 2026-05-18, REVERTED)
+
+Attempted to relocate PD and reactive T2-arti from base midpoint to the zone edge facing the enemy, in frontline base zones only. Multi-layer filter + override + debug instrumentation, fully reverted after 7 test iterations because the M28 build-search undoes the target-position shift and several build paths bypass the filter entirely. Workspace + FAF live folder back at the pre-attempt state.
+
+**Do not start from scratch if revisiting** — read [M28AI-Blackops-Shields/HANDOVER-pd-edge-placement.md](M28AI-Blackops-Shields/HANDOVER-pd-edge-placement.md) first. It documents what was tried, what failed and why (with empirical numbers from test logs), and concrete recommendations for a different architectural approach (`tOptionalLocationToBuildAwayFrom` + `iOptionalMaxDistanceFromTargetLocation` on `GetBestBuildLocationForTarget` instead of shifting the target position).
 
 ## Workflow
 

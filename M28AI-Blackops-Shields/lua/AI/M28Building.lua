@@ -6948,7 +6948,7 @@ function UpgradeShieldsCoveringSMD(iTeam)
                                 if EntityCategoryContains(categories.TECH2, oShield.UnitId) and oShield:GetBlueprint().General.UpgradesTo then
                                     if not(oShield:IsUnitState('Upgrading')) then --Will recheck this and similar in the logic to upgrade unit
                                         toUpgradingShieldsByEntityId[oShield.EntityId] = true
-                                        M28Economy.UpgradeUnit(oShield)
+                                        M28Economy.UpgradeUnit(oShield, true) --M28AI-Blackops+Shields fork: vanilla omitted the second arg (nil), which made the upgrade silently no-op so SMD shields stayed at T2 against T3 arti / Novax+SML.
                                     end
                                 end
                             end

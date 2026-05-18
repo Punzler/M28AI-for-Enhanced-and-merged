@@ -22,6 +22,7 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 - M28's own Novax satellites no longer fly into enemy AntiSat-SMD range. They prefer safe targets; if only SMD-covered high-value targets exist, the satellite patrols along the SMD boundary and waits for an opening (SMD destroyed or target moves out).
 - Mobile anti-air no longer chases enemy satellites it cannot actually shoot. Satellites are skipped when picking the closest enemy air unit to advance toward.
 - Rare stuck-Novax-centre fix: if a centre finishes building but its satellite never spawns due to engine state desync, M28 now detects the stuck state and re-issues the satellite build.
+- Modded BlackOps hydrocarbon plants (T1 → T2 → T3) are now upgraded automatically again. The same fix re-enables T2 → T3 shield upgrades on SMDs when the enemy fields T3 artillery or Novax+SML.
 
 ---
 

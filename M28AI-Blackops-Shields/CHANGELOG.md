@@ -8,6 +8,7 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 
 ### Added
 - Endgame Large experimental shields. M28 now deliberately builds up to 3 Large exp shields per AI when the enemy fields multiple game-enders or T3 artillery, prioritising coverage of its own game-enders first, then highest-value base areas. Skipped while the team is in a power stall so the 2.2M-energy build does not stall the wider economy.
+- M28 now builds SMDs against enemy satellite control centres (Novax / Artemis), treating them like nuke launchers. Combined with the BlackOps AntiSat-modified SMDs, this gives a real defensive answer to enemy satellites.
 
 ### Fixed
 - Game-ender shields no longer flicker on and off when nothing is shooting at them. M28 only rotates shields once one of them has actually taken damage; otherwise all shields stay up.
@@ -18,6 +19,9 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 - ASF no longer fly under enemy Novax satellites trying to engage them. Satellites are now left to dedicated anti-satellite defences.
 - T1 mass storage at mass extractors (the adjacency-bonus speichers) is no longer self-destructed when M28 approaches the unit cap.
 - Hydrocarbon plants (including modded T2/T3 BlackOps hydros) are no longer self-destructed under any circumstance: not under unit-cap pressure, not when placing a game-ender template or shield, and not when unsticking a T3 naval factory. If a hydro blocks a template slot, M28 picks a different slot instead.
+- M28's own Novax satellites no longer fly into enemy AntiSat-SMD range. They prefer safe targets; if only SMD-covered high-value targets exist, the satellite patrols along the SMD boundary and waits for an opening (SMD destroyed or target moves out).
+- Mobile anti-air no longer chases enemy satellites it cannot actually shoot. Satellites are skipped when picking the closest enemy air unit to advance toward.
+- Rare stuck-Novax-centre fix: if a centre finishes building but its satellite never spawns due to engine state desync, M28 now detects the stuck state and re-issues the satellite build.
 
 ---
 

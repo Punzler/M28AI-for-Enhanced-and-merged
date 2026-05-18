@@ -3324,15 +3324,18 @@ function ManageMAAInLandZone(tLZData, tLZTeamData, iTeam, iPlateau, iLandZone, t
             local oNearestEnemyToMidpoint
             local iClosestDist = 100000
             local iCurDist
-            --Get closest enemy air unit
+            --Get closest enemy air unit (M28AI-Blackops+Shields fork: skip satellites — MAA cannot reach high-altitude satellites; sending MAA there wastes them.)
             for iUnit, oUnit in tLZTeamData[M28Map.reftLZEnemyAirUnits] do
-                iCurDist = M28Utilities.GetDistanceBetweenPositions(tLZData[M28Map.subrefMidpoint], oUnit[M28UnitInfo.reftLastKnownPositionByTeam][iTeam])
-                if iCurDist < iClosestDist then
-                    iClosestDist = iCurDist
-                    oNearestEnemyToMidpoint = oUnit
+                if not(EntityCategoryContains(M28UnitInfo.refCategorySatellite, oUnit.UnitId)) then
+                    iCurDist = M28Utilities.GetDistanceBetweenPositions(tLZData[M28Map.subrefMidpoint], oUnit[M28UnitInfo.reftLastKnownPositionByTeam][iTeam])
+                    if iCurDist < iClosestDist then
+                        iClosestDist = iCurDist
+                        oNearestEnemyToMidpoint = oUnit
+                    end
                 end
             end
 
+            if oNearestEnemyToMidpoint then
             --Move towards the air unit
             local tOrderPosition = oNearestEnemyToMidpoint:GetPosition()
             if bDebugMessages == true then
@@ -3355,6 +3358,7 @@ function ManageMAAInLandZone(tLZData, tLZTeamData, iTeam, iPlateau, iLandZone, t
                 --end
             end
             if bDebugMessages == true then LOG(sFunctionRef..': Will do reprs of orders of the first unit in tMAAToAdvance, '..tMAAToAdvance[1].UnitId..M28UnitInfo.GetUnitLifetimeCount(tMAAToAdvance[1])..': '..reprs(tMAAToAdvance[1][M28Orders.reftiLastOrders])) end
+            end --M28AI-Blackops+Shields fork: close the `if oNearestEnemyToMidpoint then` guard added above.
 
         else
             --Enemy doesnt have any air units, so consider if there are other land zones we want to support with MAA

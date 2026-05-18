@@ -2500,6 +2500,8 @@ function OnConstructed(oEngineer, oJustBuilt)
 
                         if EntityCategoryContains(M28UnitInfo.refCategoryNovaxCentre, oJustBuilt.UnitId) then
                             ForkThread(M28Air.DelayedNovaxUnloadCheck, oJustBuilt)
+                            --M28AI-Blackops+Shields fork: watchdog for engine-side state desync where a Novax Centre never spawns its satellite.
+                            ForkThread(M28Air.NovaxSatelliteWatchdog, oJustBuilt)
                         elseif EntityCategoryContains(M28UnitInfo.refCategoryNovaxCentre, oEngineer.UnitId) and oEngineer:GetAIBrain().M28AI then
                             ForkThread(M28Air.DelayedNovaxUnloadCheck, oEngineer)
                         end

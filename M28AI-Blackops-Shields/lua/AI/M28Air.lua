@@ -11576,6 +11576,7 @@ function NovaxCoreTargetLoop(aiBrain, oNovax, bCalledFromUnitDeath)
 
             local iEffectiveRange = math.max(20, oNovax:GetBlueprint().Weapon[1].MaxRadius) + 10
             local oTarget
+            local oHoverAnchor
 
             local iOrderType
             local refiLastIssuedOrderType = 'M28NovaxLastOrderType'
@@ -11583,8 +11584,42 @@ function NovaxCoreTargetLoop(aiBrain, oNovax, bCalledFromUnitDeath)
             local reftLastIssuedOrderLocation = 'M28NovaxLastOrderLocation'
             local refOrderAttack = 1
             local refOrderMove = 2
-            oTarget = GetNovaxTarget(aiBrain, oNovax)
-            oNovax[refoNovaxLastTarget] = oTarget
+
+            --M28AI-Blackops+Shields fork: Initial-Retreat-Check. Before evaluating targets, verify the sat is not already inside an enemy AntiSat danger zone (e.g. SMD just finished). If so, clear commands and retreat to the boundary on a line outward through the sat. Subsequent target-evaluation in this cycle is skipped — next cycle re-evaluates.
+            local tEnemyAntiSatSMDs = {}
+            if M28Utilities.IsTableEmpty(M28Team.tTeamData[aiBrain.M28Team][M28Team.reftEnemySMD]) == false then
+                for _, oSMD in M28Team.tTeamData[aiBrain.M28Team][M28Team.reftEnemySMD] do
+                    if M28UnitInfo.IsUnitValid(oSMD) and oSMD:GetFractionComplete() >= 1 then
+                        table.insert(tEnemyAntiSatSMDs, oSMD)
+                    end
+                end
+            end
+            local iSafeBoundary = 90
+            if M28Utilities.IsTableEmpty(tEnemyAntiSatSMDs) == false then
+                local tSatPos = oNovax:GetPosition()
+                local oNearestThreatSMD
+                local iNearestThreatDist = 999999
+                for _, oSMD in tEnemyAntiSatSMDs do
+                    local iDist = M28Utilities.GetDistanceBetweenPositions(tSatPos, oSMD:GetPosition())
+                    if iDist < iNearestThreatDist then
+                        iNearestThreatDist = iDist
+                        oNearestThreatSMD = oSMD
+                    end
+                end
+                if oNearestThreatSMD and iNearestThreatDist <= iSafeBoundary then
+                    local tSMDPos = oNearestThreatSMD:GetPosition()
+                    local iAngleSMDToSat = M28Utilities.GetAngleFromAToB(tSMDPos, tSatPos)
+                    local tRetreatPos = M28Utilities.MoveInDirection(tSMDPos, iAngleSMDToSat, iSafeBoundary, true)
+                    if bDebugMessages == true then LOG(sFunctionRef..': Sat inside enemy AntiSat range (dist='..iNearestThreatDist..'); retreating to '..repru(tRetreatPos)) end
+                    IssueClearCommands({oNovax})
+                    M28Orders.IssueTrackedMove(oNovax, tRetreatPos, 8, false, 'NVRet', false)
+                    M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+                    return
+                end
+            end
+
+            oTarget, oHoverAnchor = GetNovaxTarget(aiBrain, oNovax)
+            oNovax[refoNovaxLastTarget] = oTarget or oHoverAnchor
             if oTarget then
                 if bDebugMessages == true then
                     LOG(sFunctionRef .. ': GameTime='..GetGameTimeSeconds()..'; Have a target ' .. oTarget.UnitId .. M28UnitInfo.GetUnitLifetimeCount(oTarget) .. '; will decide whether to attack or move to it; Distance to target=' .. M28Utilities.GetDistanceBetweenPositions(oTarget:GetPosition(), oNovax:GetPosition()))
@@ -11599,6 +11634,31 @@ function NovaxCoreTargetLoop(aiBrain, oNovax, bCalledFromUnitDeath)
                     M28Orders.IssueTrackedMove(oNovax, oTarget:GetPosition(), 8, false, 'NVMv', false)
                 else
                     M28Orders.IssueTrackedAttack(oNovax, oTarget, false, 'NVAtc', false)
+                end
+            elseif oHoverAnchor then
+                --M28AI-Blackops+Shields fork: no safely-attackable target, but a high-value covered target exists. Patrol the sat along an arc on the iSafeBoundary circle around the nearest SMD, centered toward the hover anchor. Each cycle picks the further of two waypoints (±iPatrolArcHalf degrees from the SMD→anchor angle) so the sat oscillates back and forth. Aggressive-move lets the sat auto-engage any target that drifts into laser range during patrol.
+                local oNearestSMDtoHover
+                local iNearestDistToHover = 999999
+                for _, oSMD in tEnemyAntiSatSMDs do
+                    local iDist = M28Utilities.GetDistanceBetweenPositions(oSMD:GetPosition(), oHoverAnchor:GetPosition())
+                    if iDist < iNearestDistToHover then
+                        iNearestDistToHover = iDist
+                        oNearestSMDtoHover = oSMD
+                    end
+                end
+                if oNearestSMDtoHover then
+                    local tSMDPos = oNearestSMDtoHover:GetPosition()
+                    local iAngleSMDToHover = M28Utilities.GetAngleFromAToB(tSMDPos, oHoverAnchor:GetPosition())
+                    local iPatrolArcHalf = 30
+                    local tPatrolA = M28Utilities.MoveInDirection(tSMDPos, iAngleSMDToHover - iPatrolArcHalf, iSafeBoundary, true)
+                    local tPatrolB = M28Utilities.MoveInDirection(tSMDPos, iAngleSMDToHover + iPatrolArcHalf, iSafeBoundary, true)
+                    local tSatPos = oNovax:GetPosition()
+                    local iDistToA = M28Utilities.GetDistanceBetweenPositions(tSatPos, tPatrolA)
+                    local iDistToB = M28Utilities.GetDistanceBetweenPositions(tSatPos, tPatrolB)
+                    local tNextWaypoint
+                    if iDistToA > iDistToB then tNextWaypoint = tPatrolA else tNextWaypoint = tPatrolB end
+                    if bDebugMessages == true then LOG(sFunctionRef..': Hover-patrol near '..oHoverAnchor.UnitId..M28UnitInfo.GetUnitLifetimeCount(oHoverAnchor)..'; iDistToA='..iDistToA..'; iDistToB='..iDistToB..'; moving to '..repru(tNextWaypoint)) end
+                    M28Orders.IssueTrackedAggressiveMove(oNovax, tNextWaypoint, 8, false, 'NVHvr', false)
                 end
             else
                 if bDebugMessages == true then LOG(sFunctionRef .. ': No target so move to enemy base') end
@@ -11676,6 +11736,30 @@ function GetNovaxTarget(aiBrain, oNovax)
         tStartLZOrWZData =  M28Map.tAllPlateaus[iStartPlateauOrZero][M28Map.subrefPlateauLandZones][iStartLandOrWaterZone]
         tStartLZOrWZTeamData = tStartLZOrWZData[M28Map.subrefLZTeamData][iTeam]
     end
+
+    --M28AI-Blackops+Shields fork: hard SMD-AntiSat filter. BlackOps modifies all T3 SMDs with an AntiSat weapon (MaxRadius=90). Build a team-wide list of completed enemy SMDs and treat any candidate target within 100 ogrids (90 AntiSat + 10 buffer) as "covered" — sat must never fly there to attack. Covered high-value targets become hover anchors instead.
+    local tEnemyAntiSatSMDs = {}
+    if M28Utilities.IsTableEmpty(M28Team.tTeamData[iTeam][M28Team.reftEnemySMD]) == false then
+        for _, oSMD in M28Team.tTeamData[iTeam][M28Team.reftEnemySMD] do
+            if M28UnitInfo.IsUnitValid(oSMD) and oSMD:GetFractionComplete() >= 1 then
+                table.insert(tEnemyAntiSatSMDs, oSMD)
+            end
+        end
+    end
+    local bHaveEnemyAntiSatSMDs = not(M28Utilities.IsTableEmpty(tEnemyAntiSatSMDs))
+    local iAntiSatDangerDist = 100
+    local function IsPositionInAntiSatRange(tPos)
+        if not(bHaveEnemyAntiSatSMDs) then return false end
+        for _, oSMD in tEnemyAntiSatSMDs do
+            if M28Utilities.GetDistanceBetweenPositions(tPos, oSMD:GetPosition()) <= iAntiSatDangerDist then
+                return true
+            end
+        end
+        return false
+    end
+    --Hover-anchor tracker: highest-value SMD-covered target seen across the main value loop. Used only when no safe oTarget exists.
+    local oHoverAnchor
+    local iBestHoverValue = 0
 
     --Get list of significant enemy shielding (will ignore targets under these shields)
     local iMediumSearchRange = 53 --Omni range is 60, so getunitsaroundpoint baed on this range should be fine; means we wont pickup all nearby enemy shields, but should still do ok
@@ -11966,9 +12050,18 @@ function GetNovaxTarget(aiBrain, oNovax)
                     end
                     if bDebugMessages == true then LOG(sFunctionRef .. ' Unit ' .. oUnit.UnitId .. M28UnitInfo.GetUnitLifetimeCount(oUnit) .. ' iCurValue=' .. iCurValue .. '; iTimeToTarget=' .. iTimeToTarget .. '; iTimeToKillTarget=' .. iTimeToKillTarget .. '; iCurShield=' .. iCurShield .. '; iMaxShield=' .. iMaxShield .. '; iCurDPSMod=' .. iCurDPSMod..'; Cur health='..oUnit:GetHealth()) end
                     if iCurValue > iBestTargetValue then
-                        if bDebugMessages == true then LOG(sFunctionRef .. ': Have a new best target, iBestTargetValue=' .. iBestTargetValue .. '; Target=' .. oUnit.UnitId .. M28UnitInfo.GetUnitLifetimeCount(oUnit)) end
-                        iBestTargetValue = iCurValue
-                        oTarget = oUnit
+                        --M28AI-Blackops+Shields fork: hard SMD-filter — covered targets are tracked as hover anchors, not picked as attack targets.
+                        if bHaveEnemyAntiSatSMDs and IsPositionInAntiSatRange(oUnit:GetPosition()) then
+                            if iCurValue > iBestHoverValue then
+                                iBestHoverValue = iCurValue
+                                oHoverAnchor = oUnit
+                                if bDebugMessages == true then LOG(sFunctionRef..': Target '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..' is in enemy AntiSat range; recording as hover anchor with value '..iCurValue) end
+                            end
+                        else
+                            if bDebugMessages == true then LOG(sFunctionRef .. ': Have a new best target, iBestTargetValue=' .. iBestTargetValue .. '; Target=' .. oUnit.UnitId .. M28UnitInfo.GetUnitLifetimeCount(oUnit)) end
+                            iBestTargetValue = iCurValue
+                            oTarget = oUnit
+                        end
                     elseif not(oTarget) and iCurValue > iBestValueWithNoThreshold then
                         iBestValueWithNoThreshold = iCurValue
                         oBestTargetWithNoThreshold = oUnit
@@ -12205,8 +12298,14 @@ function GetNovaxTarget(aiBrain, oNovax)
             oTarget = oBestTargetWithNoThreshold
         end
     end
+    --M28AI-Blackops+Shields fork: safety post-filter for fallback paths (further-away mexes, naval, mobile land) that bypass the main value-loop's hard filter. If the final oTarget sits in enemy AntiSat range, promote it to hover anchor instead.
+    if bHaveEnemyAntiSatSMDs and oTarget and IsPositionInAntiSatRange(oTarget:GetPosition()) then
+        if bDebugMessages == true then LOG(sFunctionRef..': Final oTarget '..oTarget.UnitId..M28UnitInfo.GetUnitLifetimeCount(oTarget)..' is in enemy AntiSat range; promoting to hover anchor') end
+        if not(oHoverAnchor) then oHoverAnchor = oTarget end
+        oTarget = nil
+    end
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
-    return oTarget
+    return oTarget, oHoverAnchor
 end
 
 function ManageExperimentalBomber(iTeam, iAirSubteam)
@@ -13292,6 +13391,30 @@ function DelayedNovaxUnloadCheck(oUnit)
         end
     end
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+end
+
+function NovaxSatelliteWatchdog(oCentre)
+    --M28AI-Blackops+Shields fork: watchdog for the engine-side desync where a vanilla Novax Centre (xeb2402) finishes construction but its OpenState/Extend() never runs CreateUnitHPR('XEA0002', ...), leaving the Centre stuck in 'Building' with empty queue and zero progress and no satellite. Observed once in game_27045480.log. Polls every 15s; if it detects the stuck condition, force-issues a build of xea0002 to unblock.
+    local bDebugMessages = false if M28Profiler.bGlobalDebugOverride == true then   bDebugMessages = true end
+    local sFunctionRef = 'NovaxSatelliteWatchdog'
+    M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
+    M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+    WaitSeconds(5)
+    while M28UnitInfo.IsUnitValid(oCentre) do
+        M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
+        if not(oCentre.Satellite and M28UnitInfo.IsUnitValid(oCentre.Satellite)) then
+            local sState = M28UnitInfo.GetUnitState(oCentre)
+            local bQueueEmpty = M28Utilities.IsTableEmpty(oCentre:GetCommandQueue())
+            local iProgress = oCentre:GetWorkProgress() or 0
+            if bQueueEmpty and iProgress == 0 and (sState == 'Idle' or sState == 'Building') then
+                if bDebugMessages == true then LOG(sFunctionRef..': Novax Centre stuck without satellite, force-issuing xea0002 build, Centre='..oCentre.UnitId..M28UnitInfo.GetUnitLifetimeCount(oCentre)) end
+                IssueClearCommands({oCentre})
+                IssueBuildFactory({oCentre}, 'xea0002', 1)
+            end
+        end
+        M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+        WaitSeconds(15)
+    end
 end
 
 function DetachSatellite(oNovaxSatellite, iOptionalDelayInSeconds)

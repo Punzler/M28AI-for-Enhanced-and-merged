@@ -5029,8 +5029,9 @@ function MonitorShieldsForCycling(tTableRef, iTeam, iLandZone, iTemplateRef, tLZ
 
     if not(tTableRef[M28Map.subrefGEbActiveShieldMonitor]) and bShieldsCanDischarge then
         tTableRef[M28Map.subrefGEbActiveShieldMonitor] = true
-        local oLowestHealthActiveShield, oHighestHealthActiveShield, iCompletedShieldCount, iCurHealth, iMaxHealth, iLowestHealth, iHighestHealth, iLongestRechargeTime
+        local oLowestHealthActiveShield, oHighestHealthActiveShield, iCompletedShieldCount, iCurHealth, iMaxHealth, iLowestHealth, iLowestHealthMaxHealth, iHighestHealth, iLongestRechargeTime
         local iSecondsBetweenShieldCycles = 1 --will change
+        local iDischargeHealthThreshold = 0.85 --M28AI-Blackops+Shields fork: only cycle if lowest-HP shield is below this fraction of max HP; otherwise no damage is being taken so cycling just wastes shield uptime
         local M28Config = import('/mods/M28AI-Blackops-Shields/lua/M28Config.lua')
         local bUpdateName = M28Config.M28ShowUnitNames
         local iCurShieldRadius, iShieldWithHealth
@@ -5053,6 +5054,7 @@ function MonitorShieldsForCycling(tTableRef, iTeam, iLandZone, iTemplateRef, tLZ
         while M28Conditions.IsTableOfUnitsStillValid(tTableRef[M28Map.subrefGEShieldUnits]) do
             --Get the highest and lowest health active shields
             iLowestHealth = 1000000
+            iLowestHealthMaxHealth = nil
             iHighestHealth = 0
             oLowestHealthActiveShield = nil
             oHighestHealthActiveShield = nil
@@ -5121,10 +5123,12 @@ function MonitorShieldsForCycling(tTableRef, iTeam, iLandZone, iTemplateRef, tLZ
                             iShieldWithHealth = iShieldWithHealth + 1
                             if iCurHealth < iLowestHealth then
                                 iLowestHealth = iCurHealth
+                                iLowestHealthMaxHealth = iMaxHealth
                                 oLowestHealthActiveShield = oShield
                             elseif iCurHealth == iLowestHealth then
                                 if not(oLowestHealthActiveShield) then
                                     iLowestHealth = iCurHealth
+                                    iLowestHealthMaxHealth = iMaxHealth
                                     oLowestHealthActiveShield = oShield
                                 else
                                     --Want to discharge the shield furthest from the midpoint if they both have equal health
@@ -5132,6 +5136,7 @@ function MonitorShieldsForCycling(tTableRef, iTeam, iLandZone, iTemplateRef, tLZ
                                     iCurDistToArtiMidpoint = M28Utilities.GetDistanceBetweenPositions(oShield:GetPosition(), tArtiMidpoint)
                                     if iCurDistToArtiMidpoint > iLowestHealthDistToArtiMidpoint then
                                         iLowestHealthDistToArtiMidpoint = iCurDistToArtiMidpoint
+                                        iLowestHealthMaxHealth = iMaxHealth
                                         oLowestHealthActiveShield = oShield
                                     end
                                 end
@@ -5183,7 +5188,11 @@ function MonitorShieldsForCycling(tTableRef, iTeam, iLandZone, iTemplateRef, tLZ
                         --Redundancy - should be impossible to get here
                         iSecondsBetweenShieldCycles = 10
                     end
-                    if iShieldWithHealth <= 3 and iTimeOfLastDischarge and GetGameTimeSeconds() - iTimeOfLastDischarge + 0.5 < iSecondsBetweenShieldCycles then
+                    if iLowestHealthMaxHealth and iLowestHealthMaxHealth > 0 and iLowestHealth >= iLowestHealthMaxHealth * iDischargeHealthThreshold then
+                        --M28AI-Blackops+Shields fork: skip cycling when lowest-HP shield is still healthy (no recent damage). Re-poll cheaply.
+                        if bDebugMessages == true then LOG(sFunctionRef..': Lowest-HP shield still healthy ('..iLowestHealth..'/'..iLowestHealthMaxHealth..' >= '..(iDischargeHealthThreshold*100)..'%), skipping discharge') end
+                        iSecondsBetweenShieldCycles = 1
+                    elseif iShieldWithHealth <= 3 and iTimeOfLastDischarge and GetGameTimeSeconds() - iTimeOfLastDischarge + 0.5 < iSecondsBetweenShieldCycles then
                         if bDebugMessages == true then LOG(sFunctionRef..': It hasnt been long enoug hsince our last discharge so will wait before discharing even if we have multiple shields active') end
                         iSecondsBetweenShieldCycles = 0.5
                     else

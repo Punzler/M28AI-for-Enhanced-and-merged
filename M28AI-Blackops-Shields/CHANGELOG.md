@@ -10,6 +10,7 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 - Endgame Large experimental shields. M28 now deliberately builds up to 3 Large exp shields per AI when the enemy fields multiple game-enders or T3 artillery, prioritising coverage of its own game-enders first, then highest-value base areas. Skipped while the team is in a power stall so the 2.2M-energy build does not stall the wider economy.
 
 ### Fixed
+- Game-ender shields no longer flicker on and off when nothing is shooting at them. M28 only rotates shields once one of them has actually taken damage; otherwise all shields stay up.
 - Game-enders are now built inside proper shield clusters again instead of with only 1-2 lone shields next to them.
 - Large exp shields are no longer built by accident through the normal cluster path; they only appear from the endgame trigger above.
 - Game-ender templates now reclaim adjacent buildings whose skirts overlap a template slot instead of getting stuck and spamming "template location blocked" warnings. M28 only reclaims a neighbour if it actually skirt-overlaps the slot, so unrelated buildings are left alone.

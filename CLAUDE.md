@@ -160,6 +160,24 @@ Catches all 8 call-sites of `AssignAirAATargets` in one place. Threat statistics
 
 **Result:** user verified in-game — ASF no longer fly toward satellites.
 
+### 4. ✅ Protect hydros and T1 mass storage from M28 self-destruct (DONE 2026-05-18)
+
+**Symptom:** in lategame near unit cap, user observed M28 ctrl-K'ing T1 mass storage adjacent to its own mass extractors (losing the adjacency-bonus speichers), and also losing modded T3 BlackOps hydros (`BEB1302`/`BAB1302`/`BRB1302`/`BSB1302`) that were nowhere near unit cap pressure.
+
+**Root cause:** two unrelated code paths, both unaware that hydros are high-value:
+
+1. **CheckUnitCap categories** ([M28Overseer.lua:851-853](M28AI-Blackops-Shields/lua/AI/M28Overseer.lua#L851-L853)): Tier 0 (`categories.TECH1 - …`) catches all T1 structures *including* T1 mass storage and T1 hydros (only T1 mex is excluded). Tier -2 (`refCategoryStructure * TECH1 + refCategoryStructure * TECH2 - refCategoryMex - …`) catches T1+T2 structures including T2 hydros (BlackOps `BEB1202` etc., TECH2 STRUCTURE). T3 BlackOps hydros are TECH3 STRUCTURE and *don't* match here — they were being killed elsewhere.
+2. **GE-template / shield placement and naval-factory unstuck cleanup** in `M28Engineer.lua` and `M28Factory.lua`: when a M28 brain places a game-ender artillery / shield / shieldMD slot and a building sits in that slot, M28 picks the lowest-mass-cost blocker combo across slots (cap 150 000) and either reclaims or ctrl-K's them. T3 hydros at 3000 mass fall well under that. Same for the AssistShield blocking-buildings sweep (cap 5000 mass × fraction complete) and the T3 naval factory unstuck-cleanup.
+
+**Fix:** five-site patch — hydros are now excluded from every M28-initiated self-destruct path, and T1 mass storage is excluded from CheckUnitCap:
+
+- [M28Overseer.lua:851-853](M28AI-Blackops-Shields/lua/AI/M28Overseer.lua#L851-L853) — Tier 0 + Tier -2 now subtract `categories.HYDROCARBON` and `M28UnitInfo.refCategoryMassStorage` (T1).
+- [M28Engineer.lua:6741](M28AI-Blackops-Shields/lua/AI/M28Engineer.lua#L6741) — AssistShield blocking-building sweep skips HYDROCARBON.
+- [M28Engineer.lua:7398-7405](M28AI-Blackops-Shields/lua/AI/M28Engineer.lua#L7398-L7405) (GE-Arti), [M28Engineer.lua:8017-8024](M28AI-Blackops-Shields/lua/AI/M28Engineer.lua#L8017-L8024) (GE-Shield), [M28Engineer.lua:8308-8316](M28AI-Blackops-Shields/lua/AI/M28Engineer.lua#L8308-L8316) (GE-ShieldMD) — if a hydro overlaps a candidate slot, `tUnitsToConsiderReclaiming = nil; break` aborts the slot so M28 looks for another one rather than reclaiming/ctrl-K'ing the hydro.
+- [M28Factory.lua:4537](M28AI-Blackops-Shields/lua/AI/M28Factory.lua#L4537) — T3 naval factory unstuck-cleanup skips HYDROCARBON.
+
+**Trade-off:** if *all* viable GE-template slots are blocked by hydros, the template isn't built at all — user explicitly accepted this ("Hydros raus aus allen Kill-Pfaden"). Random T1/T2 PD / power / walls remain in the cap-kill pool as before.
+
 ## Workflow
 
 ### Code lives in two places

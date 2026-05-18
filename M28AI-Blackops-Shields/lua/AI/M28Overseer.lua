@@ -848,9 +848,10 @@ function CheckUnitCap(aiBrain)
             end
             local tUnitsToDestroy
             local tiCategoryToDestroy = {
-                [-2] = M28UnitInfo.refCategoryAllAir * categories.TECH3 + M28UnitInfo.refCategoryStructure * categories.TECH1 + M28UnitInfo.refCategoryStructure * categories.TECH2 - M28UnitInfo.refCategoryMex - categories.EXPERIMENTAL - categories.COMMAND,
+                --M28AI-Blackops+Shields fork: exclude HYDROCARBON (any tier, incl. modded T2/T3 BlackOps hydros) and T1 MASSSTORAGE (adjacency at mex) so cap-pressure never ctrl-Ks them.
+                [-2] = M28UnitInfo.refCategoryAllAir * categories.TECH3 + M28UnitInfo.refCategoryStructure * categories.TECH1 + M28UnitInfo.refCategoryStructure * categories.TECH2 - M28UnitInfo.refCategoryMex - categories.EXPERIMENTAL - categories.COMMAND - categories.HYDROCARBON - M28UnitInfo.refCategoryMassStorage,
                 [-1] = M28UnitInfo.refCategoryMobileLand + categories.NAVAL * categories.MOBILE - categories.EXPERIMENTAL - categories.COMMAND - categories.SUBCOMMANDER,
-                [0] = categories.TECH1 - categories.COMMAND - M28UnitInfo.refCategoryAirStaging - M28UnitInfo.refCategoryT1Mex + M28UnitInfo.refCategoryAllAir * categories.TECH2 - M28UnitInfo.refCategoryTransport * categories.TECH2 - M28UnitInfo.refCategoryTorpBomber * categories.TECH2 -M28UnitInfo.refCategoryAllHQFactories + categories.TECH2 * M28UnitInfo.refCategoryMobileLandShield - categories.INSIGNIFICANTUNIT,
+                [0] = categories.TECH1 - categories.COMMAND - M28UnitInfo.refCategoryAirStaging - M28UnitInfo.refCategoryT1Mex + M28UnitInfo.refCategoryAllAir * categories.TECH2 - M28UnitInfo.refCategoryTransport * categories.TECH2 - M28UnitInfo.refCategoryTorpBomber * categories.TECH2 -M28UnitInfo.refCategoryAllHQFactories + categories.TECH2 * M28UnitInfo.refCategoryMobileLandShield - categories.INSIGNIFICANTUNIT - categories.HYDROCARBON - M28UnitInfo.refCategoryMassStorage,
                 [1] = M28UnitInfo.refCategoryAllAir * categories.TECH1 + categories.NAVAL * categories.MOBILE * categories.TECH1 - categories.INSIGNIFICANTUNIT,
                 [2] = M28UnitInfo.refCategoryMobileLand * categories.TECH2 - categories.COMMAND - M28UnitInfo.refCategoryMobileLandShield - M28UnitInfo.refCategoryMAA + M28UnitInfo.refCategoryAirScout * categories.TECH1 + M28UnitInfo.refCategoryAirAA * categories.TECH1 - categories.INSIGNIFICANTUNIT,
                 [3] = M28UnitInfo.refCategoryMobileLand * categories.TECH1 - categories.COMMAND - categories.INSIGNIFICANTUNIT,

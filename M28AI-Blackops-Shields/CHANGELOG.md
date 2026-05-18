@@ -15,6 +15,8 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 - Game-ender templates now reclaim adjacent buildings whose skirts overlap a template slot instead of getting stuck and spamming "template location blocked" warnings. M28 only reclaims a neighbour if it actually skirt-overlaps the slot, so unrelated buildings are left alone.
 - Limit each AI brain to building at most one T3 Advanced Air Staging Facility.
 - ASF no longer fly under enemy Novax satellites trying to engage them. Satellites are now left to dedicated anti-satellite defences.
+- T1 mass storage at mass extractors (the adjacency-bonus speichers) is no longer self-destructed when M28 approaches the unit cap.
+- Hydrocarbon plants (including modded T2/T3 BlackOps hydros) are no longer self-destructed under any circumstance: not under unit-cap pressure, not when placing a game-ender template or shield, and not when unsticking a T3 naval factory. If a hydro blocks a template slot, M28 picks a different slot instead.
 
 ---
 

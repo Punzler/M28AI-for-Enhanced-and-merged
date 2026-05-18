@@ -4532,7 +4532,7 @@ function DelayedCheckIfFactoryBuildingAndRetry(oFactory)
                             if M28Utilities.IsTableEmpty(tBlockingBuildings) == false then
                                 if bDebugMessages == true then M28Utilities.DrawRectangle(rBuildArea) end
                                 for iBuilding, oBuilding in tBlockingBuildings do
-                                    if oBuilding:GetAIBrain().M28AI then
+                                    if oBuilding:GetAIBrain().M28AI and not(EntityCategoryContains(categories.HYDROCARBON, oBuilding.UnitId)) then --M28AI-Blackops+Shields fork: never ctrl-K hydros (high value, esp. modded T2/T3 BlackOps).
                                         if bDebugMessages == true then LOG(sFunctionRef..'; Will self destruct oBuilding='..oBuilding.UnitId..M28UnitInfo.GetUnitLifetimeCount(oBuilding)) end
                                         M28Orders.IssueTrackedKillUnit(oBuilding)
                                     end

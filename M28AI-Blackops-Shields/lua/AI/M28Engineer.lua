@@ -6731,7 +6731,7 @@ function ActiveShieldMonitor(oUnitToProtect, tLZTeamData, iTeam)
                                         end
                                         if not(bNearbyShield) then
                                             for iBuilding, oBuilding in tBuildingsNearby do
-                                                if oBuilding:GetAIBrain().M28AI and oBuilding:GetAIBrain().M28Team == aiBrain.M28Team then
+                                                if oBuilding:GetAIBrain().M28AI and oBuilding:GetAIBrain().M28Team == aiBrain.M28Team and not(EntityCategoryContains(categories.HYDROCARBON, oBuilding.UnitId)) then --M28AI-Blackops+Shields fork: never ctrl-K hydros (high value, esp. modded T2/T3 BlackOps).
                                                     if M28UnitInfo.GetUnitMassCost(oBuilding[M28UnitInfo.refiUnitMassCost]) * oBuilding:GetFractionComplete() <= 5000 then
                                                         --Check the building position and size means it is actually a blocking building
                                                         if oBuilding:GetPosition()[1] >= rShieldAreaRect[1] and oBuilding:GetPosition()[1] <= rShieldAreaRect[3] and oBuilding:GetPosition()[3] >= rShieldAreaRect[2] and oBuilding:GetPosition()[3] <= rShieldAreaRect[2] and (not(oBuilding[M28UnitInfo.refbCampaignTriggerAdded]) or not(M28Map.bIsCampaignMap)) then
@@ -7394,6 +7394,12 @@ function GETemplateStartBuildingArtiOrGameEnder(tAvailableEngineers, tAvailableT
                                 else
                                     --M28AI-Blackops+Shields fork: with the widened search rect we may catch neighbour buildings whose skirts do not actually overlap this slot. Filter them out to avoid spurious reclaim orders.
                                     if IsUnitOverlappingBuildSlot(oUnit, tBuildLocation, sArtiToBuild) then
+                                        --M28AI-Blackops+Shields fork: hydros are high-value (esp. modded T3 BlackOps ~3000 mass) - abort this slot rather than reclaim/ctrl-K the hydro.
+                                        if EntityCategoryContains(categories.HYDROCARBON, oUnit.UnitId) then
+                                            if bDebugMessages == true then LOG(sFunctionRef..': Blocking unit is a hydro - aborting this GE-arti slot to preserve the hydro') end
+                                            tUnitsToConsiderReclaiming = nil
+                                            break
+                                        end
                                         if bDebugMessages == true then LOG(sFunctionRef..': Adding blocking unit to table of units to consider reclaiming') end
                                         table.insert(tUnitsToConsiderReclaiming, oUnit)
                                     elseif bDebugMessages == true then LOG(sFunctionRef..': Unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..' found in widened search rect but does not skirt-overlap the slot, skipping')
@@ -8013,6 +8019,12 @@ function GETemplateStartBuildingShield(tAvailableEngineers, tAvailableT3Engineer
                                     else
                                         --M28AI-Blackops+Shields fork: filter neighbours caught by the widened rect that do not actually skirt-overlap the slot.
                                         if IsUnitOverlappingBuildSlot(oUnit, tBuildLocation, sShieldToBuild) then
+                                            --M28AI-Blackops+Shields fork: hydros are high-value (esp. modded T3 BlackOps ~3000 mass) - abort this slot rather than reclaim/ctrl-K the hydro.
+                                            if EntityCategoryContains(categories.HYDROCARBON, oUnit.UnitId) then
+                                                if bDebugMessages == true then LOG(sFunctionRef..': Blocking unit is a hydro - aborting this GE-shield slot to preserve the hydro') end
+                                                tUnitsToConsiderReclaiming = nil
+                                                break
+                                            end
                                             if bDebugMessages == true then LOG(sFunctionRef..': Will add unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..' to table of units to reclaim') end
                                             table.insert(tUnitsToConsiderReclaiming, oUnit)
                                         elseif bDebugMessages == true then LOG(sFunctionRef..': Unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..' found in widened search rect but does not skirt-overlap the slot, skipping')
@@ -8304,6 +8316,12 @@ function GETemplateConsiderDefences(tAvailableEngineers, tAvailableT3EngineersBy
                                             else
                                                 --M28AI-Blackops+Shields fork: filter neighbours caught by the widened rect that do not actually skirt-overlap the slot.
                                                 if IsUnitOverlappingBuildSlot(oUnit, tSearchLocation, sBPToBuild) then
+                                                    --M28AI-Blackops+Shields fork: hydros are high-value (esp. modded T3 BlackOps ~3000 mass) - abort this slot rather than reclaim/ctrl-K the hydro.
+                                                    if EntityCategoryContains(categories.HYDROCARBON, oUnit.UnitId) then
+                                                        if bDebugMessages == true then LOG(sFunctionRef..': Blocking unit is a hydro - aborting this GE-shield-MD slot to preserve the hydro') end
+                                                        tUnitsToConsiderReclaiming = nil
+                                                        break
+                                                    end
                                                     if bDebugMessages == true then LOG(sFunctionRef..': Will add to table of units to reclaim') end
                                                     table.insert(tUnitsToConsiderReclaiming, oUnit)
                                                 elseif bDebugMessages == true then LOG(sFunctionRef..': Unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..' found in widened search rect but does not skirt-overlap the slot, skipping')
@@ -10400,10 +10418,15 @@ function ConsiderActionToAssign(iActionToAssign, iMinTechWanted, iTotalBuildPowe
                                         M28Utilities.ErrorHandler('Trying to build TMD without a unit or location')
                                     end
                                     if bDebugMessages == true then LOG(sFunctionRef..': Building TMD, sBlueprint='..sBlueprint..'; tBuildLocation='..repru(tBuildLocation)) end
-                                elseif iActionToAssign == refActionBuildAirStaging and (bGetCheapest or not(M28Team.tTeamData[aiBrain.M28Team][M28Team.refiTimeLastNearUnitCap])) then
+                                elseif iActionToAssign == refActionBuildAirStaging then
                                     --Mod support for mods that introduce t3 air staging which is very expensive - want to avoid unless close to unit cap
+                                    --M28AI-Blackops+Shields fork: vanilla gate was (bGetCheapest or not(refiTimeLastNearUnitCap)); the second condition is a sticky timestamp that never clears, so once the team hit unit cap once the T3 filter stayed disabled for the rest of the match. Added a per-brain cap of 1 T3/EXP air staging (built or under construction) — keeps the BlackOps Bx5205 (7200-8640 mass) as a unit-cap relief option but stops M28 from spamming them.
+                                    local bStripT3 = bGetCheapest or not(M28Team.tTeamData[aiBrain.M28Team][M28Team.refiTimeLastNearUnitCap])
+                                    if not(bStripT3) and aiBrain:GetCurrentUnits(M28UnitInfo.refCategoryAirStaging * (categories.TECH3 + categories.EXPERIMENTAL)) >= 1 then bStripT3 = true end
+                                    local iCategoryForAirStaging = iCategoryWanted
+                                    if bStripT3 then iCategoryForAirStaging = iCategoryWanted - categories.TECH3 - categories.EXPERIMENTAL end
                                     --GetBlueprintAndLocationToBuild(aiBrain, oEngineer, iOptionalEngineerAction, iCategoryToBuild,                                         iMaxAreaToSearch, iCatToBuildBy, tAlternativePositionToLookFrom, bNotYetUsedLookForQueuedBuildings, oUnitToBuildBy, iOptionalCategoryForStructureToBuild, bBuildCheapestStructure, tLZData, tLZTeamData, bCalledFromGetBestLocation, sBlueprintOverride)
-                                    sBlueprint, tBuildLocation = GetBlueprintAndLocationToBuild(aiBrain, oFirstEngineer, iActionToAssign, iCategoryWanted - categories.TECH3 - categories.EXPERIMENTAL, iMaxSearchRange, iAdjacencyCategory, nil,                           false,                          nil,                nil,                                bGetCheapest,           tLZOrWZData,  tLZOrWZTeamData)
+                                    sBlueprint, tBuildLocation = GetBlueprintAndLocationToBuild(aiBrain, oFirstEngineer, iActionToAssign, iCategoryForAirStaging,                                  iMaxSearchRange, iAdjacencyCategory, nil,                           false,                          nil,                nil,                                bGetCheapest,           tLZOrWZData,  tLZOrWZTeamData)
                                 elseif vOptionalVariable and iActionToAssign == refActionBuildSpecialObjective then
                                     local iMaxSearchArea = vOptionalVariable[M28Map.subrefiObjLocationSize] --ok with this being nil
                                     sBlueprint, tBuildLocation = GetBlueprintAndLocationToBuild(aiBrain, oFirstEngineer, iActionToAssign, iCategoryWanted, iMaxSearchArea, nil, vOptionalVariable[M28Map.subreftObjLocation], nil, nil, nil, bGetCheapest, tLZOrWZData, tLZOrWZTeamData, nil, nil)

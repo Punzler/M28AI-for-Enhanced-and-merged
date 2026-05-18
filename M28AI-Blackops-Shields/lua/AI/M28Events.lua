@@ -2874,6 +2874,8 @@ function OnConstructed(oEngineer, oJustBuilt)
                                     end
                                     --M28AI-Blackops+Shields fork: shield-completion triggers the global T3->exp upgrade decision. The function aggregates T3+/Exp counts across the entire team (all LZ-clusters + all GE-templates), applies the global 2:1 ratio, then issues one upgrade on the highest-priority candidate (GE-template 1st > LZ 1st > GE-template 2nd > LZ 2nd, cap at 2 per slot). See M28Building.ConsiderGlobalT3ToExpUpgrade for details.
                                     ForkThread(M28Building.ConsiderGlobalT3ToExpUpgrade, oJustBuilt:GetAIBrain())
+                                    --M28AI-Blackops+Shields fork: same hook also evaluates the deliberate endgame Large-shield trigger. Per-brain cap of up to 3 Large exp shields (scaled by enemy GE count) when enemy threat warrants it. See M28Building.ConsiderLargeShieldBuild for spec and placement priority.
+                                    ForkThread(M28Building.ConsiderLargeShieldBuild, oJustBuilt:GetAIBrain())
                                 end
                             end
                         elseif EntityCategoryContains(M28UnitInfo.refCategoryExperimentalLevel, oJustBuilt.UnitId) then

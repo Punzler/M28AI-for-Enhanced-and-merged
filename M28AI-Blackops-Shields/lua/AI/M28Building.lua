@@ -6743,6 +6743,181 @@ function ConsiderGlobalT3ToExpUpgrade(aiBrain)
     end
 end
 
+function GetLargeShieldsForBrain(aiBrain)
+    --M28AI-Blackops+Shields fork: helper for ConsiderLargeShieldBuild. Returns a flat list of this brain's own Large exp shields (built or under-construction). Per-brain rather than team-wide so each AI player gets its own independent cap.
+    local tList = {}
+    if not(aiBrain) or not(aiBrain[M28Overseer.refiLargeExperimentalShieldCategory]) then return tList end
+    local toLarges = aiBrain:GetListOfUnits(aiBrain[M28Overseer.refiLargeExperimentalShieldCategory], false, true)
+    if M28Utilities.IsTableEmpty(toLarges) == false then
+        for _, oLarge in toLarges do
+            if M28UnitInfo.IsUnitValid(oLarge) then
+                table.insert(tList, oLarge)
+            end
+        end
+    end
+    return tList
+end
+
+function IsPositionWithinLargeCoverage(tPos, toExistingLarges, fCoverageMultiplier)
+    --Returns true if tPos lies within (ShieldSize/2 * fCoverageMultiplier) of any Large in the supplied list. Used to skip GEs that are already covered and to avoid double-covering high-value LZs.
+    if M28Utilities.IsTableEmpty(toExistingLarges) then return false end
+    for _, oLarge in toExistingLarges do
+        local iShieldRadius = (oLarge:GetBlueprint().Defense.Shield.ShieldSize or 0) * 0.5
+        if iShieldRadius > 0 then
+            if M28Utilities.GetDistanceBetweenPositions(tPos, oLarge:GetPosition()) < iShieldRadius * fCoverageMultiplier then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+function CountEnemyGEAndT3Arti(iTeam)
+    --Iterates the team's enemy arti+exp-structure tracking table once, classifies each unit as either a game-ender (Mavor/Czar/Yolona/Paragon) or a pure T3 fixed artillery (vanilla T3 Heavy Arti, excluding experimentals). Under-construction units count for both categories - they tip the trigger early so we react before the GE actually fires.
+    local iGE, iT3Arti = 0, 0
+    local tEnemyTable = M28Team.tTeamData[iTeam] and M28Team.tTeamData[iTeam][M28Team.reftEnemyArtiAndExpStructure]
+    if M28Utilities.IsTableEmpty(tEnemyTable) then return 0, 0 end
+    for _, oUnit in tEnemyTable do
+        if M28UnitInfo.IsUnitValid(oUnit) then
+            if EntityCategoryContains(M28UnitInfo.refCategoryGameEnder, oUnit.UnitId) then
+                iGE = iGE + 1
+            elseif EntityCategoryContains(M28UnitInfo.refCategoryFixedT3Arti, oUnit.UnitId) then
+                iT3Arti = iT3Arti + 1
+            end
+        end
+    end
+    return iGE, iT3Arti
+end
+
+function ConsiderLargeShieldBuild(aiBrain)
+    --M28AI-Blackops+Shields fork: deliberate endgame Large-shield trigger, evaluated per-brain.
+    --
+    --Spec:
+    --  - Trigger: enemy team has >=2 game-enders OR >=5 pure T3 fixed artillery (excluding experimentals)
+    --  - Caps (per brain): 1 Large baseline / 2 if enemy GE>=3 / 3 if enemy GE>=4. Hard ceiling 3, never more.
+    --    Each AI player on the team gets its own independent cap, so a team with multiple M28 brains can collectively exceed the per-brain limit.
+    --  - Placement priority: cover this brain's own GEs first (one Large per uncovered GE), then fall back to highest-S-Value LZ midpoint among the brain's accessible LZs.
+    --  - Bypasses GE-template logic (Large's 5x5 footprint + 8x8 skirt does not fit T3-sized template slots which caused thousands of placement-fail retries in earlier experiments). Direct IssueTrackedBuild at a hand-picked position instead.
+    --  - Idempotent: one build per trigger; the next friendly shield-complete re-evaluates.
+    --
+    --Counts are based on live unit queries (no persistent counter needed). The own-brain Large count uses GetListOfUnits and includes under-construction units, so the cap check naturally serializes successive triggers fired by the same brain.
+
+    if not(aiBrain) or not(aiBrain.M28Team) then return end
+    if not(aiBrain[M28Overseer.refiLargeExperimentalShieldCategory]) then return end --no Large bucket = no mod-Large variants known to this brain
+    local iTeam = aiBrain.M28Team
+    if not(M28Team.tTeamData[iTeam]) then return end
+
+    --Step 1: enemy threat counts (team-wide enemy tracking)
+    local iEnemyGE, iEnemyT3Arti = CountEnemyGEAndT3Arti(iTeam)
+    local bTrigger = (iEnemyGE >= 2) or (iEnemyT3Arti >= 5)
+    if not(bTrigger) then return end
+
+    --Step 2: cap from enemy GE count (capped at hard ceiling 3)
+    local iAllowedCap = 1
+    if iEnemyGE >= 4 then iAllowedCap = 3
+    elseif iEnemyGE >= 3 then iAllowedCap = 2 end
+
+    --Step 3: this brain's current Large count (built + under-construction)
+    local toExistingLarges = GetLargeShieldsForBrain(aiBrain)
+    local iCurrentLarge = table.getn(toExistingLarges)
+    if iCurrentLarge >= iAllowedCap then return end
+
+    --Step 4: collect this brain's free T3 engineers paired with the largest-cost BP each can build from the Large bucket. Engineer is "free" if refiAssignedAction is nil or 0 (no active assignment).
+    local tEngineerAndBPCandidates = {}
+    local iLargeCategory = aiBrain[M28Overseer.refiLargeExperimentalShieldCategory]
+    local toT3Engis = aiBrain:GetListOfUnits(M28UnitInfo.refCategoryEngineer * categories.TECH3, false, true)
+    if M28Utilities.IsTableEmpty(toT3Engis) == false then
+        local tLargeBPList = EntityCategoryGetUnitList(iLargeCategory)
+        for _, oEngi in toT3Engis do
+            if M28UnitInfo.IsUnitValid(oEngi) and (not(oEngi[M28Engineer.refiAssignedAction]) or oEngi[M28Engineer.refiAssignedAction] == 0) then
+                local sBestBP, iBestCost = nil, 0
+                for _, sBP in tLargeBPList do
+                    if oEngi:CanBuild(sBP) then
+                        local iCost = (__blueprints[sBP].Economy.BuildCostMass or 0)
+                        if iCost > iBestCost then iBestCost = iCost; sBestBP = sBP end
+                    end
+                end
+                if sBestBP then
+                    table.insert(tEngineerAndBPCandidates, {oEngi=oEngi, sBP=sBestBP})
+                end
+            end
+        end
+    end
+    if M28Utilities.IsTableEmpty(tEngineerAndBPCandidates) then return end
+
+    --Step 5: build candidate-position list. Priority chain:
+    --  5a. For each of this brain's own GEs (built or under-construction) NOT already inside one of this brain's Large coverage radius, try 8 compass-offset positions around the GE midpoint.
+    --  5b. Top-5 LZs by subrefLZSValue (eco-score), only LZ midpoints not yet inside this brain's existing Large coverage.
+    local tCandidatePositions = {}
+    local tOffsets = {{12,0},{-12,0},{0,12},{0,-12},{10,10},{-10,10},{10,-10},{-10,-10}}
+
+    --5a: per-GE offsets (this brain's own GEs only)
+    local toOwnGEs = aiBrain:GetListOfUnits(M28UnitInfo.refCategoryGameEnder, false, true)
+    if M28Utilities.IsTableEmpty(toOwnGEs) == false then
+        for _, oGE in toOwnGEs do
+            if M28UnitInfo.IsUnitValid(oGE) then
+                local tGEPos = oGE:GetPosition()
+                --Skip GEs already inside one of this brain's Large coverage (full radius)
+                if not(IsPositionWithinLargeCoverage(tGEPos, toExistingLarges, 1.0)) then
+                    for _, tOff in tOffsets do
+                        table.insert(tCandidatePositions, {tPos={tGEPos[1] + tOff[1], tGEPos[2], tGEPos[3] + tOff[2]}, sSource='ge-cover'})
+                    end
+                end
+            end
+        end
+    end
+
+    --5b: top-N LZs by S-Value (only consider LZs whose midpoint is NOT yet within 0.7x coverage of an existing Large)
+    local tLZByValue = {}
+    if M28Map.tAllPlateaus then
+        for iPlat, tPlateau in M28Map.tAllPlateaus do
+            if tPlateau[M28Map.subrefPlateauLandZones] then
+                for iLZ, tLZData in tPlateau[M28Map.subrefPlateauLandZones] do
+                    local tLZTeamData = tLZData[M28Map.subrefLZTeamData] and tLZData[M28Map.subrefLZTeamData][iTeam]
+                    if tLZTeamData and tLZData[M28Map.subrefMidpoint] and (tLZTeamData[M28Map.subrefLZSValue] or 0) > 0 then
+                        if not(IsPositionWithinLargeCoverage(tLZData[M28Map.subrefMidpoint], toExistingLarges, 0.7)) then
+                            table.insert(tLZByValue, {iVal=tLZTeamData[M28Map.subrefLZSValue], tPos=tLZData[M28Map.subrefMidpoint], iPlat=iPlat, iLZ=iLZ, tLZTeamData=tLZTeamData})
+                        end
+                    end
+                end
+            end
+        end
+    end
+    table.sort(tLZByValue, function(a, b) return a.iVal > b.iVal end)
+    for iIdx, tEntry in tLZByValue do
+        if iIdx > 5 then break end
+        table.insert(tCandidatePositions, {tPos=tEntry.tPos, sSource='s-value', tLZTeamData=tEntry.tLZTeamData})
+    end
+
+    if M28Utilities.IsTableEmpty(tCandidatePositions) then return end
+
+    --Step 6: try each candidate position with each engineer. First validation wins.
+    --Distance cap: skip engineer-position pairs > 300 ogrids apart (too slow to walk in time).
+    for _, tPosEntry in tCandidatePositions do
+        local tPos = tPosEntry.tPos
+        for _, tEBPair in tEngineerAndBPCandidates do
+            local oEngi, sBP = tEBPair.oEngi, tEBPair.sBP
+            if M28Utilities.GetDistanceBetweenPositions(oEngi:GetPosition(), tPos) <= 300 then
+                if oEngi:GetAIBrain():CanBuildStructureAt(sBP, tPos) then
+                    --For S-Value positions also enforce no overlap with active GE templates in that LZ (use ~5 ogrid radius approximation for Large skirt half-size)
+                    local bClearOfTemplates = true
+                    if tPosEntry.sSource == 's-value' and tPosEntry.tLZTeamData then
+                        local iSegX, iSegZ = M28Map.GetPathingSegmentFromPosition(tPos)
+                        if M28Conditions.WillBlockTemplateLocation(tPosEntry.tLZTeamData, iSegX, iSegZ, 5) then
+                            bClearOfTemplates = false
+                        end
+                    end
+                    if bClearOfTemplates then
+                        M28Engineer.TrackEngineerAction(oEngi, M28Engineer.refActionBuildShield, true, 1, nil, nil, false)
+                        M28Orders.IssueTrackedBuild(oEngi, tPos, sBP, false, 'LgShBld', false)
+                        return
+                    end
+                end
+            end
+        end
+    end
+end
+
 function UpgradeShieldsCoveringSMD(iTeam)
     --Called via fork thread when enemy has t3 arti/novax and SML, so we make sure any t2 shields covering SMD are upgraded to t3 to make it slightly harder to break through
     while M28Team.tTeamData[iTeam][M28Team.subrefbTeamIsStallingEnergy] do

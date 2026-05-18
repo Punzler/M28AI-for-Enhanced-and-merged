@@ -113,20 +113,30 @@ For shield contexts where `iCategoryToBuild = M28UnitInfo.refCategoryFixedShield
 
 **Fix:** subtract `refiLargeExperimentalShieldCategory` from `iCategoryToBuild` right after the expansion. Keeps Small mod variants pickable (still useful redundancy in case the Phase A upgrade-trigger misses them) but eliminates Large from the cluster path.
 
-### 2. Endgame dedicated Large-shield build trigger (Task #3 in spirit)
+### 2. ✅ Endgame dedicated Large-shield build trigger (DONE 2026-05-18)
 
-After 1d, Large variants (`uab9401`/`ueb9401`/`urb9407`/`xsb9401`) are out of every automatic build path. They live in `aiBrain[refiLargeExperimentalShieldCategory]` purely as a subtractable bucket.
+**Implemented as `ConsiderLargeShieldBuild(aiBrain)` in [`M28Building.lua`](M28AI-Blackops-Shields/lua/AI/M28Building.lua), wired into the same shield-completion hook in [`M28Events.lua:2877`](M28AI-Blackops-Shields/lua/AI/M28Events.lua#L2877) as the existing T3→Exp upgrade trigger.**
 
-The user wants Large *deliberately* buildable in endgame conditions (Paragon-eco, very high mass income, late-game threat). Design space:
+**Trigger conditions:** enemy team has ≥2 game-enders (refCategoryGameEnder: Mavor/Czar/Yolona/Paragon, including under-construction) OR ≥5 pure T3 fixed artillery (refCategoryFixedT3Arti, excluding experimentals).
 
-- **Trigger candidate:** new function `ConsiderGlobalSmallToLargeUpgrade(aiBrain)` parallel to existing `ConsiderGlobalT3ToExpUpgrade`, fired on shield completion. Promotes Small Exp → Large Exp when (a) brain has built Paragon, (b) mass income ≥150, or (c) under heavy threat mode AND Small cluster cap already filled.
-- **Catch:** Small Exp variants (UEB9301 etc.) have no `UpgradesTo` field — so promotion is *direct construction*, not in-place upgrade. Need an engineer-assignment path, not `M28Economy.UpgradeUnit`.
-- **Footprint constraint (carried over from earlier experiments):** Large shields have 5×5 footprint + 8×8 build skirt, which doesn't fit M28's stock-T3-sized template slots. Earlier attempts to plot Large into normal template positions caused thousands of placement-fail retries. A dedicated trigger must either (a) use the dedicated `subrefLargeShieldLocations` slots that GE templates already allocate (`bHaveLargeShields` branch at [M28Engineer.lua:9426-9433](M28AI-Blackops-Shields/lua/AI/M28Engineer.lua#L9426-L9433)), or (b) issue raw build orders at hand-picked midpoints with no template binding.
+**Caps (per AI brain — NOT team-wide):**
+| Enemy GE count | Allowed Large per brain |
+|---|---|
+| ≥4 | 3 |
+| ≥3 | 2 |
+| else (only T3-Arti trigger or 2 GE) | 1 |
 
-Open design questions (from `C:\Users\etien\.claude\plans\how-would-i-go-shimmying-cookie.md`):
-- How M28 caches build-locations for the exp-shield category and whether multiple sizes in the same category collide
-- Whether `refiExperimentalShieldCategory` can hold multiple size classes or needs separate brain-flags for Small vs Large
-- Whether splitting cost-cap by tier is the right approach, or if a separate Large-shield brain-flag is needed
+Hard ceiling 3 per brain. In a multi-M28-brain team, each brain runs independently — team total can exceed 3.
+
+**Placement priority** (per-brain only — each brain protects its own assets):
+1. Each of this brain's own GEs not yet covered by this brain's own Large gets a candidate position offset 10–12 ogrids from the GE midpoint (8 compass directions tried, first one that validates `aiBrain:CanBuildStructureAt` wins). Skirt-clear (Large 8×8 skirt + GE ~10×10 skirt → min 9 ogrids apart), well within the ~42 ogrid shield radius for full coverage.
+2. Top-5 LZs by `subrefLZSValue` (M28's eco-score) whose midpoints are not yet inside this brain's Large coverage AND don't overlap an active GE-template via `WillBlockTemplateLocation`.
+
+Engineer pick: this brain's free T3 engineers (refiAssignedAction nil/0) within 300 ogrids of the candidate position, can build at least one BP from the brain's Large bucket. Most-expensive Large BP picked (`GetMostExpensiveBlueprintOfCategory`-equivalent inline).
+
+**Helper functions:** `GetLargeShieldsForBrain(aiBrain)`, `IsPositionWithinLargeCoverage(tPos, toExistingLarges, fMultiplier)`, `CountEnemyGEAndT3Arti(iTeam)` — all in M28Building.lua near `ConsiderLargeShieldBuild`.
+
+**Result (game_27080560):** trigger fires, 1 Large built, no `ConsiderLargeShieldBuild`-related errors in log. Per-brain cap tiers ≥2 not exhaustively tested due to enemy GE-count not reaching threshold in test session, but cap logic is symmetric (same code path, different comparison values).
 
 ## Workflow
 

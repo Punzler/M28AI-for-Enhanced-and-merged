@@ -6,6 +6,11 @@ Fork-specific changes on top, vanilla baseline `M28AI v297` (upstream state 2026
 
 ---
 
+## [Unreleased] — 2026-05-18
+
+### Added
+- **Deliberate endgame Large-shield build trigger.** New per-brain function `ConsiderLargeShieldBuild` in `M28Building.lua`, fired alongside `ConsiderGlobalT3ToExpUpgrade` on every friendly shield-completion. Trigger fires when enemy team has ≥2 game-enders OR ≥5 pure T3 fixed artillery. Cap per AI brain: 1 Large baseline / 2 if enemy GE≥3 / 3 if enemy GE≥4 (hard ceiling 3 per brain). Placement priority: cover this brain's own GEs first via compass-offset positions (~10–12 ogrids out of the GE skirt, well within the ~42 ogrid shield radius), then fall back to the brain's top-5 highest-S-Value LZ midpoints. Bypasses the GE-template logic entirely — direct `IssueTrackedBuild` at a hand-picked position because Large's 5×5 footprint + 8×8 skirt doesn't fit M28's T3-sized template slots. Verified in test game 27080560: trigger fires and Large gets built when conditions are met.
+
 ## [Unreleased] — 2026-05-17
 
 ### Fixed

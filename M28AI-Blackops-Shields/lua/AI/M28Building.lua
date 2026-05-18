@@ -6812,6 +6812,9 @@ function ConsiderLargeShieldBuild(aiBrain)
     local bTrigger = (iEnemyGE >= 2) or (iEnemyT3Arti >= 5)
     if not(bTrigger) then return end
 
+    --Step 1b: power-stall pre-gate. Large costs ~2.2M energy to build - if the team is already stalling, starting another huge build crawls the build rate and ties up an engineer for many minutes while the wider economy collapses. Matches the standard M28 idiom used in ACU upgrades, factory build logic, and the sibling UpgradeShieldsCoveringSMD function in this file. Self-healing: the next friendly shield-complete re-evaluates once the stall clears.
+    if M28Team.tTeamData[iTeam][M28Team.subrefbTeamIsStallingEnergy] then return end
+
     --Step 2: cap from enemy GE count (capped at hard ceiling 3)
     local iAllowedCap = 1
     if iEnemyGE >= 4 then iAllowedCap = 3

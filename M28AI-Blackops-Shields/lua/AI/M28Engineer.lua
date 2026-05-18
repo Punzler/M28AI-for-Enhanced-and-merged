@@ -7170,6 +7170,21 @@ function GETemplateReassessGameEnderCategory(tLZData, tLZTeamData, iPlateau, iLa
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
 end
 
+function IsUnitOverlappingBuildSlot(oUnit, tBuildLocation, sBuildBP)
+    --M28AI-Blackops+Shields fork: helper for GE-template reclaim logic. Returns true if oUnit's build skirt actually overlaps a build slot at tBuildLocation for the BP sBuildBP. The reclaim-search GetUnitsInRect calls in the arti/shield/defence reclaim paths were widened from (iBuildingSize*0.5 - 0.3) to (iBuildingSize*0.5 + 5) so adjacent buildings whose skirts extend INTO the slot but whose centres sit OUTSIDE the slot's own footprint can be discovered. This check then filters out neighbours that were caught by the wider rect but do not actually skirt-overlap the slot - prevents M28 from reclaiming non-blocking buildings.
+    if not(oUnit) or not(sBuildBP) or not(tBuildLocation) then return true end
+    local oUnitBP = oUnit:GetBlueprint()
+    local oBuildBP = __blueprints[sBuildBP]
+    if not(oUnitBP) or not(oBuildBP) then return true end
+    local iUnitHalfX = ((oUnitBP.Physics and oUnitBP.Physics.SkirtSizeX) or (oUnitBP.Footprint and oUnitBP.Footprint.SizeX) or 2) * 0.5
+    local iUnitHalfZ = ((oUnitBP.Physics and oUnitBP.Physics.SkirtSizeZ) or (oUnitBP.Footprint and oUnitBP.Footprint.SizeZ) or 2) * 0.5
+    local iBuildHalfX = ((oBuildBP.Physics and oBuildBP.Physics.SkirtSizeX) or (oBuildBP.Footprint and oBuildBP.Footprint.SizeX) or 4) * 0.5
+    local iBuildHalfZ = ((oBuildBP.Physics and oBuildBP.Physics.SkirtSizeZ) or (oBuildBP.Footprint and oBuildBP.Footprint.SizeZ) or 4) * 0.5
+    local tPos = oUnit:GetPosition()
+    return math.abs(tPos[1] - tBuildLocation[1]) < (iUnitHalfX + iBuildHalfX - 0.5)
+       and math.abs(tPos[3] - tBuildLocation[3]) < (iUnitHalfZ + iBuildHalfZ - 0.5)
+end
+
 function GETemplateStartBuildingArtiOrGameEnder(tAvailableEngineers, tAvailableT3EngineersByFaction, tLZData, tLZTeamData, iPlateau, iLandZone, iTeam, tTableRef, iTableRef, oFirstAeon, oFirstSeraphim, oFirstUEF, oFirstCybran, oFirstEngineer)
     --Decide on the arti blueprint we want to try and build; priority to use:
     --Aeon (Paragon and T3 arti) > Seraphim (Yolona) > UEF (Mavor) > Cybran (Scathis)
@@ -7295,9 +7310,10 @@ function GETemplateStartBuildingArtiOrGameEnder(tAvailableEngineers, tAvailableT
             local iArtiRadius = M28UnitInfo.GetBuildingSize(sArtiToBuild) * 0.5
             local iThresholdDistDif = iArtiRadius + 3 - 0.8 --i.e. a shield is radius 6; so this gives a 0.8 leeway to hopefully cover off rounding
             for iEntry, tBuildLocation in tTableRef[M28Map.subrefGEArtiLocations] do
-                local tBlockingUnits = GetUnitsInRect(M28Utilities.GetRectAroundLocation(tBuildLocation, iBuildingSize * 0.5 - 0.3)) --tried with -0.7 but wouldnt pickup on SAM that was just inside the shield build area
+                --M28AI-Blackops+Shields fork: widened from (iBuildingSize*0.5 - 0.3) to (iBuildingSize*0.5 + 5) so adjacent buildings whose skirts overlap the slot are also discovered. IsUnitOverlappingBuildSlot below filters out neighbours that do not actually skirt-overlap.
+                local tBlockingUnits = GetUnitsInRect(M28Utilities.GetRectAroundLocation(tBuildLocation, iBuildingSize * 0.5 + 5))
                 if not(tBlockingUnits) then
-                    M28Utilities.ErrorHandler('Tempalte location cant be built on but has no units in it', true)
+                    M28Utilities.ErrorHandler('Template location cant be built on but has no units in it', true)
                     if not(tTableRef[M28Map.subrefGEArtiBlockedFailureCount][iEntry]) then
                         if not(tTableRef[M28Map.subrefGEArtiBlockedFailureCount]) then tTableRef[M28Map.subrefGEArtiBlockedFailureCount] = {} end
                         tTableRef[M28Map.subrefGEArtiBlockedFailureCount][iEntry] = 0
@@ -7376,8 +7392,12 @@ function GETemplateStartBuildingArtiOrGameEnder(tAvailableEngineers, tAvailableT
                                     break
 
                                 else
-                                    if bDebugMessages == true then LOG(sFunctionRef..': Adding blocking unit to table of units to consider reclaiming') end
-                                    table.insert(tUnitsToConsiderReclaiming, oUnit)
+                                    --M28AI-Blackops+Shields fork: with the widened search rect we may catch neighbour buildings whose skirts do not actually overlap this slot. Filter them out to avoid spurious reclaim orders.
+                                    if IsUnitOverlappingBuildSlot(oUnit, tBuildLocation, sArtiToBuild) then
+                                        if bDebugMessages == true then LOG(sFunctionRef..': Adding blocking unit to table of units to consider reclaiming') end
+                                        table.insert(tUnitsToConsiderReclaiming, oUnit)
+                                    elseif bDebugMessages == true then LOG(sFunctionRef..': Unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..' found in widened search rect but does not skirt-overlap the slot, skipping')
+                                    end
                                 end
                             end
                         end
@@ -7905,9 +7925,10 @@ function GETemplateStartBuildingShield(tAvailableEngineers, tAvailableT3Engineer
             local iXDif, iZDif
 
             function ConsiderUnitsToReclaim(tBuildLocation, iEntry)
-                local tBlockingUnits = GetUnitsInRect(M28Utilities.GetRectAroundLocation(tBuildLocation, iBuildingSize * 0.5 - 0.3))
+                --M28AI-Blackops+Shields fork: widened search rect (+5 padding) to catch adjacent buildings whose skirts overlap the slot. IsUnitOverlappingBuildSlot below filters out neighbours that do not actually skirt-overlap.
+                local tBlockingUnits = GetUnitsInRect(M28Utilities.GetRectAroundLocation(tBuildLocation, iBuildingSize * 0.5 + 5))
                 if not(tBlockingUnits) then
-                    M28Utilities.ErrorHandler('Tempalte location cant be built on but has no units in it', true)
+                    M28Utilities.ErrorHandler('Template location cant be built on but has no units in it', true)
                     if not(tTableRef[M28Map.subrefGEShieldBlockedFailureCount][iEntry]) then
                         if not(tTableRef[M28Map.subrefGEShieldBlockedFailureCount]) then tTableRef[M28Map.subrefGEShieldBlockedFailureCount] = {} end
                         tTableRef[M28Map.subrefGEShieldBlockedFailureCount][iEntry] = 0
@@ -7990,8 +8011,12 @@ function GETemplateStartBuildingShield(tAvailableEngineers, tAvailableT3Engineer
                                         end
 
                                     else
-                                        if bDebugMessages == true then LOG(sFunctionRef..': Will add unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..' to table of units to reclaim') end
-                                        table.insert(tUnitsToConsiderReclaiming, oUnit)
+                                        --M28AI-Blackops+Shields fork: filter neighbours caught by the widened rect that do not actually skirt-overlap the slot.
+                                        if IsUnitOverlappingBuildSlot(oUnit, tBuildLocation, sShieldToBuild) then
+                                            if bDebugMessages == true then LOG(sFunctionRef..': Will add unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..' to table of units to reclaim') end
+                                            table.insert(tUnitsToConsiderReclaiming, oUnit)
+                                        elseif bDebugMessages == true then LOG(sFunctionRef..': Unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..' found in widened search rect but does not skirt-overlap the slot, skipping')
+                                        end
                                     end
                                 end
                                 end
@@ -8215,9 +8240,10 @@ function GETemplateConsiderDefences(tAvailableEngineers, tAvailableT3EngineersBy
                     local iBuildingSize = M28UnitInfo.GetBuildingSize(sBPToBuild)
 
                     function ConsiderUnitsToReclaim(tSearchLocation, iEntry)
-                        local tBlockingUnits = GetUnitsInRect(M28Utilities.GetRectAroundLocation(tSearchLocation, iBuildingSize * 0.5 - 0.3))
+                        --M28AI-Blackops+Shields fork: widened search rect (+5 padding) to catch adjacent buildings whose skirts overlap the slot. IsUnitOverlappingBuildSlot below filters out neighbours that do not actually skirt-overlap.
+                        local tBlockingUnits = GetUnitsInRect(M28Utilities.GetRectAroundLocation(tSearchLocation, iBuildingSize * 0.5 + 5))
                         if not(tBlockingUnits) then
-                            M28Utilities.ErrorHandler('Tempalte location cant be built on but has no units in it', true)
+                            M28Utilities.ErrorHandler('Template location cant be built on but has no units in it', true)
                             if not(tTableRef[M28Map.subrefGEDefenceBlockedFailureCount][iEntry]) then
                                 if not(tTableRef[M28Map.subrefGEDefenceBlockedFailureCount]) then tTableRef[M28Map.subrefGEDefenceBlockedFailureCount] = {} end
                                 tTableRef[M28Map.subrefGEDefenceBlockedFailureCount][iEntry] = 0
@@ -8276,8 +8302,12 @@ function GETemplateConsiderDefences(tAvailableEngineers, tAvailableT3EngineersBy
                                                 end
                                                 break
                                             else
-                                                if bDebugMessages == true then LOG(sFunctionRef..': Will add to table of units to reclaim') end
-                                                table.insert(tUnitsToConsiderReclaiming, oUnit)
+                                                --M28AI-Blackops+Shields fork: filter neighbours caught by the widened rect that do not actually skirt-overlap the slot.
+                                                if IsUnitOverlappingBuildSlot(oUnit, tSearchLocation, sBPToBuild) then
+                                                    if bDebugMessages == true then LOG(sFunctionRef..': Will add to table of units to reclaim') end
+                                                    table.insert(tUnitsToConsiderReclaiming, oUnit)
+                                                elseif bDebugMessages == true then LOG(sFunctionRef..': Unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..' found in widened search rect but does not skirt-overlap the slot, skipping')
+                                                end
                                             end
                                         end
                                     end

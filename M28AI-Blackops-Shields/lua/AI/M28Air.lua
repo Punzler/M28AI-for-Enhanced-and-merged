@@ -11594,7 +11594,7 @@ function NovaxCoreTargetLoop(aiBrain, oNovax, bCalledFromUnitDeath)
                     end
                 end
             end
-            local iSafeBoundary = 90
+            local iSafeBoundary = 95
             if M28Utilities.IsTableEmpty(tEnemyAntiSatSMDs) == false then
                 local tSatPos = oNovax:GetPosition()
                 local oNearestThreatSMD

@@ -9121,7 +9121,7 @@ function UpdateScoutingShortlist(iTeam)
                 iInterval = iInterval * 2
             end
         end
-        local iRadarFactor = 4 --If have radar coverage then dont want to scout as often
+        --M28AI-Blackops+Shields fork: removed iRadarFactor — radar no longer reduces scouting frequency
         local iLongestOverdueScoutingTarget = 0
         --Create shortlist
         M28Team.tTeamData[iTeam][M28Team.subrefiTimeOfScoutingShortlistUpdate] = GetGameTimeSeconds()
@@ -9148,7 +9148,7 @@ function UpdateScoutingShortlist(iTeam)
                 if tLZData[M28Map.subrefLZOrWZMexCount] > 0 or tLZData[M28Map.subrefLZTotalSegmentCount] >= iMinSegmentsWantedForMexFreeZones then
                     local tLZOrWZTeamData = tLZData[M28Map.subrefLZTeamData][iTeam]
                     iIntervalWanted =  tiTimeByPriority[tLZOrWZTeamData[M28Map.refiScoutingPriority]] + tLZOrWZTeamData[M28Map.refiRecentlyFailedScoutAttempts] ^ 3
-                    if tLZOrWZTeamData[M28Map.refiRadarCoverage] >= 40 then iIntervalWanted = iIntervalWanted * iRadarFactor end
+                    --M28AI-Blackops+Shields fork: radar coverage no longer extends scouting interval
                     iAmountOverIntervalWanted = GetGameTimeSeconds() - (tLZOrWZTeamData[M28Map.refiTimeLastHadVisual] or 0) - iIntervalWanted
                     iLongestOverdueScoutingTarget = math.max(iLongestOverdueScoutingTarget, iAmountOverIntervalWanted)
                     if bDebugMessages == true then LOG(sFunctionRef..': Considering iPlateau='..iPlateau..'; iLandZone='..iLandZone..'; tiTimeByPriority[tLZOrWZTeamData[M28Map.refiScoutingPriority]]='..tiTimeByPriority[tLZOrWZTeamData[M28Map.refiScoutingPriority]]..'; tLZOrWZTeamData[M28Map.refiRecentlyFailedScoutAttempts]='..tLZOrWZTeamData[M28Map.refiRecentlyFailedScoutAttempts]..'; Time last had visual='..(tLZOrWZTeamData[M28Map.refiTimeLastHadVisual] or 0)..'; Cur time='..GetGameTimeSeconds()..'; Do we expect to be adding this to shortlist='..tostring(GetGameTimeSeconds() - (tLZOrWZTeamData[M28Map.refiTimeLastHadVisual] or 0) > iIntervalWanted)..'; iAmountOverIntervalWanted='..iAmountOverIntervalWanted) end
@@ -9174,7 +9174,7 @@ function UpdateScoutingShortlist(iTeam)
             for iWaterZone, tWZData in tPondSubtable[M28Map.subrefPondWaterZones] do
                 local tLZOrWZTeamData = tWZData[M28Map.subrefWZTeamData][iTeam]
                 iIntervalWanted =  tiTimeByPriority[tLZOrWZTeamData[M28Map.refiScoutingPriority]] + tLZOrWZTeamData[M28Map.refiRecentlyFailedScoutAttempts] ^ 3
-                if tLZOrWZTeamData[M28Map.refiRadarCoverage] >= 50 then iIntervalWanted = iIntervalWanted * iRadarFactor end
+                --M28AI-Blackops+Shields fork: radar coverage no longer extends scouting interval
                 if bDebugMessages == true then LOG(sFunctionRef..': Considering iWaterZone='..iWaterZone..'; tLZOrWZTeamData[M28Map.refiTimeLastHadVisual]='..(tLZOrWZTeamData[M28Map.refiTimeLastHadVisual] or 'nil')..'; Time since last had visula='..GetGameTimeSeconds() - (tLZOrWZTeamData[M28Map.refiTimeLastHadVisual] or 0)..'; iIntervalWanted='..iIntervalWanted) end
                 if GetGameTimeSeconds() - (tLZOrWZTeamData[M28Map.refiTimeLastHadVisual] or 0) > iIntervalWanted then
                     iLongestOverdueScoutingTarget = math.max(GetGameTimeSeconds() - (tLZOrWZTeamData[M28Map.refiTimeLastHadVisual] or 0) - iIntervalWanted, iLongestOverdueScoutingTarget)

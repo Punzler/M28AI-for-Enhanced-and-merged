@@ -8,6 +8,7 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 
 ### Changed
 - Hover micro for bombers is now restricted to experimental bombers only (e.g. Ahwassa). T1/T2/T3 bombers and torp bombers use normal attack and move orders instead of tick-by-tick steering.
+- Air scouts now ignore radar coverage when deciding which zones to rescan. Previously, zones with good radar had their scouting interval multiplied by 4×, which could delay visual intel by several minutes.
 
 ### Added
 - Hard cap of 150 interceptors/ASF per AI brain (all tiers combined). Once the cap is reached, air factories switch to bombers, gunships, or engineers instead of idling.

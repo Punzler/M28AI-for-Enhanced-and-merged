@@ -7,6 +7,7 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 ## [Unreleased]
 
 ### Added
+- Hard cap of 150 interceptors/ASF per AI brain (all tiers combined). Once the cap is reached, air factories switch to bombers, gunships, or engineers instead of idling.
 - AI no longer gifts units or resources to teammates. ASF transfers, mex gifts, support factory redistribution, energy/mass sharing between AI brains, and Paragon-related transfers are all disabled. Death-fallback (units transfer when an AI is eliminated) and adjacency-only storage swaps remain active.
 - Endgame Large experimental shields. M28 now deliberately builds up to 3 Large exp shields per AI when the enemy fields multiple game-enders or T3 artillery, prioritising coverage of its own game-enders first, then highest-value base areas. Skipped while the team is in a power stall so the 2.2M-energy build does not stall the wider economy.
 - M28 now builds SMDs against enemy satellite control centres (Novax / Artemis), treating them like nuke launchers. Combined with the BlackOps AntiSat-modified SMDs, this gives a real defensive answer to enemy satellites.

@@ -44,6 +44,7 @@ refbActiveDelayedCheck = 'M28FAcDC' --true if we are running code to consider if
 refbPrimaryFactoryForIslandOrPond = 'M28FaPrim' --true if this is the primary factory for a zone that has a decent number of mexes (so it doesnt get paused in a mass stall)
 reftsFactoryEnhancementPreferences = 'M28FaPref' --false if no enhancements available or wanted, otherwise, contains a table of enhancement strings for a factory to try and get
 refsFactoryNextBlueprintOverride = 'M28FaOvrd' --If this is set, the factory will build this unit in place of normal logic
+local iMaxAirAAPerBrain = 150
 
 --Variables against units (generally):
 refiTimeOfLastFacBlockOrder = 'M28FacBlkO' --Gametimeseconds that a unit was told to move (to try and unblock a factory)
@@ -590,6 +591,11 @@ function AdjustBlueprintForOverrides(aiBrain, oFactory, sBPIDToBuild, tLZTeamDat
             if aiBrain:GetCurrentUnits(M28UnitInfo.refCategoryGunship) >= 80 and not(M28Map.bIsCampaignMap) then
                 sBPIDToBuild = nil
                 if bDebugMessages == true then LOG(sFunctionRef..': Already have 80 gunships so wont get more') end
+            end
+        elseif EntityCategoryContains(M28UnitInfo.refCategoryAirAA, sBPIDToBuild) then
+            if aiBrain:GetCurrentUnits(M28UnitInfo.refCategoryAirAA) >= iMaxAirAAPerBrain then
+                sBPIDToBuild = nil
+                if bDebugMessages == true then LOG(sFunctionRef..': Already have '..iMaxAirAAPerBrain..' AirAA so wont get more') end
             end
         end
     end

@@ -25,6 +25,8 @@ local M28ACU = import('/mods/M28AI-Blackops-Shields/lua/AI/M28ACU.lua')
 local M28Chat = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Chat.lua')
 
 
+bDisableGifting = true
+
 --Team data variables
 bActiveTeamDeathChecker = false
 bRecordedAllPlayers = false
@@ -4578,6 +4580,7 @@ function ConsiderGiftingStorageToTeammate(oEnergyStorage)
     local bDebugMessages = false if M28Profiler.bGlobalDebugOverride == true then   bDebugMessages = true end
     local sFunctionRef = 'ConsiderGiftingStorageToTeammate'
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
+    if bDisableGifting then M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd) return end
 
     local aiBrain = oEnergyStorage:GetAIBrain()
     local iTeam = aiBrain.M28Team
@@ -4969,6 +4972,7 @@ function ConsiderGiftingSupportFactoriesToTeammateWithBetterHQ(aiBrain, sHQJustD
     local sFunctionRef = 'ConsiderGiftingSupportFactoriesToTeammateWithBetterHQ'
     local bDebugMessages = false if M28Profiler.bGlobalDebugOverride == true then   bDebugMessages = true end
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
+    if bDisableGifting then M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd) return end
     if bDebugMessages == true then LOG(sFunctionRef..': Start of code, brain='..aiBrain.Nickname..'; sHQJustDiedOrSupportFacID='..sHQJustDiedOrSupportFacID..' time='..GetGameTimeSeconds()) end
     if aiBrain.M28AI then
         local sBrainFactoryTechVaraible

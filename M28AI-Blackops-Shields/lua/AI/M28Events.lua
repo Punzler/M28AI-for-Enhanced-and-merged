@@ -2599,7 +2599,7 @@ function OnConstructed(oEngineer, oJustBuilt)
                             ForkThread(M28Economy.UpdateZoneM28MexByTechCount, oJustBuilt, false, 10)
                             --If this is a t3 mex and we have a paragon, then gift the mex to teammate, otherwise gift the storage from teammates to us
                             local bGiftingToTeammate = false
-                            if oJustBuilt:GetAIBrain()[M28Economy.refbBuiltParagon] and not((oJustBuilt:GetBlueprint().General.UpgradesTo or '') == '') then
+                            if oJustBuilt:GetAIBrain()[M28Economy.refbBuiltParagon] and not((oJustBuilt:GetBlueprint().General.UpgradesTo or '') == '') and not(M28Team.bDisableGifting) then
                                 local oM28BrainToGiftTo
                                 local oOtherBrainToGiftTo
                                 for iBrain, oBrain in M28Team.tTeamData[iTeam][M28Team.subreftoFriendlyHumanAndAIBrains] do
@@ -2660,7 +2660,7 @@ function OnConstructed(oEngineer, oJustBuilt)
                                             end
                                         end
                                         if bDebugMessages == true then LOG(sFunctionRef..': Considering whether to gift T1 mex '..oJustBuilt.UnitId..M28UnitInfo.GetUnitLifetimeCount(oJustBuilt)..' to a teammate, iClosestNonM28BrainDistBase='..iClosestNonM28BrainDistBase..'; iClosestM28BrainDistBase='..iClosestM28BrainDistBase) end
-                                        if iClosestNonM28BrainDistBase <= 200 and (bInSameZoneAsNonM28AIStart or iClosestNonM28BrainDistBase + 50 <= iClosestM28BrainDistBase) then
+                                        if iClosestNonM28BrainDistBase <= 200 and (bInSameZoneAsNonM28AIStart or iClosestNonM28BrainDistBase + 50 <= iClosestM28BrainDistBase) and not(M28Team.bDisableGifting) then
                                             --Dont gift a human player's mexes in shared army mode, even if M28 logic is active
                                             if M28Orders.bDontConsiderCombinedArmy or (oJustBuilt.M28Active and not(oJustBuilt:GetAIBrain().BrainType == 'Human')) then
                                                 --Check we have enough mexes to be able to gift
@@ -2834,7 +2834,7 @@ function OnConstructed(oEngineer, oJustBuilt)
                         elseif EntityCategoryContains(M28UnitInfo.refCategorySMD, oJustBuilt.UnitId) then
                             --If we have a paragon on the team then gift this to a paragon owner
                             local oBrainToTransferTo
-                            if M28Team.tTeamData[iTeam][M28Team.refbBuiltParagon] and not(oJustBuilt:GetAIBrain()[M28Economy.refbBuiltParagon]) then
+                            if M28Team.tTeamData[iTeam][M28Team.refbBuiltParagon] and not(oJustBuilt:GetAIBrain()[M28Economy.refbBuiltParagon]) and not(M28Team.bDisableGifting) then
                                 for iBrain, oBrain in M28Team.tTeamData[iTeam][M28Team.subreftoFriendlyHumanAndAIBrains] do
                                     if not(oBrain == oJustBuilt:GetAIBrain()) then
                                         if oBrain.M28AI and oBrain[M28Economy.refbBuiltParagon] then
@@ -2890,7 +2890,7 @@ function OnConstructed(oEngineer, oJustBuilt)
                             M28Team.TeamEconomyRefresh(iTeam)
                         elseif EntityCategoryContains(M28UnitInfo.refCategoryNavalFactory, oJustBuilt.UnitId) then
                             --Navy personality - assign all naval facs to it if it is the primary brain for this zone
-                            if not(EntityCategoryContains(M28UnitInfo.refCategoryNavalFactory, oEngineer.UnitId)) and not(oJustBuilt:GetAIBrain()[M28Overseer.refbPrioritiseNavy]) then
+                            if not(EntityCategoryContains(M28UnitInfo.refCategoryNavalFactory, oEngineer.UnitId)) and not(oJustBuilt:GetAIBrain()[M28Overseer.refbPrioritiseNavy]) and not(M28Team.bDisableGifting) then
                                 local tWZData, tWZTeamData = M28Map.GetLandOrWaterZoneData(oJustBuilt:GetPosition(), true, oJustBuilt:GetAIBrain().M28Team)
                                 if ArmyBrains[tWZTeamData[M28Map.reftiClosestFriendlyM28BrainIndex]][M28Overseer.refbPrioritiseNavy] then
                                     if bDebugMessages == true then LOG(sFunctionRef..': Will gift naval fac to the brain prioritising navy') end

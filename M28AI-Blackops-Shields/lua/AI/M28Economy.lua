@@ -1988,7 +1988,7 @@ function ManageMassStalls(iTeam)
                                                                 end
                                                             end
                                                         end
-                                                        if oBrainWithParagon and bApplyActionToUnit and not(oUnit[M28Engineer.refbPrimaryBuilder]) then
+                                                        if oBrainWithParagon and bApplyActionToUnit and not(oUnit[M28Engineer.refbPrimaryBuilder]) and not(M28Team.bDisableGifting) then
                                                             bApplyActionToUnit = false
                                                             M28Team.TransferUnitsToPlayer({ oUnit }, oBrainWithParagon:GetArmyIndex(), false)
                                                         end
@@ -2962,8 +2962,7 @@ function AllocateTeamEnergyAndMassResources(iTeam)
     local bDebugMessages = false if M28Profiler.bGlobalDebugOverride == true then   bDebugMessages = true end
     local sFunctionRef = 'AllocateTeamEnergyResources'
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
-
-
+    if M28Team.bDisableGifting then M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd) return end
 
     if bDebugMessages == true then LOG(sFunctionRef..': Start of code, iTeam='..iTeam..'; Is table of active brains empty='..tostring(M28Utilities.IsTableEmpty(M28Team.tTeamData[iTeam][M28Team.subreftoFriendlyActiveM28Brains]))) end
 

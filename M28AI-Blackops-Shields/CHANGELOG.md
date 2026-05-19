@@ -7,6 +7,7 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 ## [Unreleased]
 
 ### Added
+- AI no longer gifts units or resources to teammates. ASF transfers, mex gifts, support factory redistribution, energy/mass sharing between AI brains, and Paragon-related transfers are all disabled. Death-fallback (units transfer when an AI is eliminated) and adjacency-only storage swaps remain active.
 - Endgame Large experimental shields. M28 now deliberately builds up to 3 Large exp shields per AI when the enemy fields multiple game-enders or T3 artillery, prioritising coverage of its own game-enders first, then highest-value base areas. Skipped while the team is in a power stall so the 2.2M-energy build does not stall the wider economy.
 - M28 now builds SMDs against enemy satellite control centres (Novax / Artemis), treating them like nuke launchers. Combined with the BlackOps AntiSat-modified SMDs, this gives a real defensive answer to enemy satellites.
 - Defense placement (PD, artillery, AA) now uses a mex-cluster band system along the base→enemy axis instead of building at zone midpoints. Structures are placed at the nearest mex cluster shifted toward the enemy front, keeping defenses where they protect the economy.

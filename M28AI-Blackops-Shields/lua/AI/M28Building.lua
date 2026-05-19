@@ -4418,6 +4418,7 @@ function JustBuiltParagon(oParagon)
 
     WaitTicks(1)
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
+    if M28Team.bDisableGifting then M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd) return end
     if M28UnitInfo.IsUnitValid(oParagon) then
         if bDebugMessages == true then LOG(sFunctionRef..': oParagon owner='..oParagon:GetAIBrain().Nickname..'; Unit='..oParagon.UnitId..M28UnitInfo.GetUnitLifetimeCount(oParagon)..'; GameTime='..GetGameTimeSeconds()..'; Fraction complete='..oParagon:GetFractionComplete()..'; oParagon(M28BuiltParagon)='..tostring(oParagon['M28BuiltParagon'] or false)) end
         if not(oParagon['M28BuiltParagon']) then

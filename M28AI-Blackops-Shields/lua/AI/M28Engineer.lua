@@ -1287,6 +1287,9 @@ function GetBlueprintAndLocationToBuild(aiBrain, oEngineer, iOptionalEngineerAct
                     if aiBrain[M28Overseer.refbCloseToUnitCap] or M28Conditions.GetLifetimeBuildCount(aiBrain, M28UnitInfo.refCategorySpecialFactory) >= 1 then
                         iCategoryToBuild = iCategoryToBuild - categories.SERAPHIM * categories.FACTORY
                     end
+                    if categories.bab2404 and aiBrain:GetCurrentUnits(categories.bab2404) >= 1 then
+                        iCategoryToBuild = iCategoryToBuild - categories.bab2404
+                    end
                     sBlueprintToBuild = M28Factory.GetBlueprintThatCanBuildOfCategory(aiBrain, iCategoryToBuild, oEngineer, false,        false,          nil,        nil)
 
                     --If we have ended up with a game ender then only proceed if we have sufficient eco
@@ -5274,6 +5277,9 @@ function GetCategoryToBuildOrAssistFromAction(iActionToAssign, iMinTechLevel, ai
 
             end
             if bDebugMessages == true then LOG(sFunctionRef..': Is iCategoryToBuild nil after unit cap adjustment='..tostring(iCategoryToBuild == nil)) end
+        end
+        if categories.bab2404 and iCategoryToBuild and aiBrain:GetCurrentUnits(categories.bab2404) >= 1 then
+            iCategoryToBuild = iCategoryToBuild - categories.bab2404
         end
     end
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)

@@ -4130,39 +4130,39 @@ function ManageAirAAUnits(iTeam, iAirSubteam)
 
     --Update if we have air control and/or are far behind on air
     local iFarBehindFactor = 0.75
-    local iAirControlFactor = 1.25 --having too many cases where we think we have superior force and we still lose the air fight - limits to what micro can achieve due to performance concerns, so try and get around by requiring significantly greater force
+    local iAirControlFactor = 1.1 --M28AI-Blackops+Shields fork: was 1.25 — lowered for more aggressive air control declaration
     if M28Team.tTeamData[iTeam][M28Team.refiEnemyAirAAThreat] >= 25000 then
         local iEnemyThreatOverThreshold = M28Team.tTeamData[iTeam][M28Team.refiEnemyAirAAThreat] - 25000
         iFarBehindFactor = math.min(0.9, 0.75 + iEnemyThreatOverThreshold / 1000)
-        iAirControlFactor = math.max(iAirControlFactor, math.min(1.45, iEnemyThreatOverThreshold / 1000))
+        iAirControlFactor = math.max(iAirControlFactor, math.min(1.25, iEnemyThreatOverThreshold / 1000)) --M28AI-Blackops+Shields fork: cap was 1.45
     end
     local iAirAAHeavyLossesReduceAirAAThresholdFactor = 1 --e.g. if normally would run from 1k enemy threat and this is 0.9 then will run from 900 threat
     if M28Team.tTeamData[iTeam][M28Team.refiAirAAKills] < M28Team.tTeamData[iTeam][M28Team.refiAirAALossesToAir] and M28Team.tTeamData[iTeam][M28Team.refiAirAALossesToAir] >= 1000 then
         local iAdjustValue = 0.1 * math.min(1.7, (M28Team.tTeamData[iTeam][M28Team.refiAirAALossesToAir] - M28Team.tTeamData[iTeam][M28Team.refiAirAAKills]) / 20000)
         iFarBehindFactor = math.min(0.99, iFarBehindFactor + iAdjustValue)
-        iAirControlFactor = math.max(iAirControlFactor + 0.1, math.min(1.55, iAirControlFactor + iAdjustValue))
+        iAirControlFactor = math.max(iAirControlFactor + 0.07, math.min(1.3, iAirControlFactor + iAdjustValue)) --M28AI-Blackops+Shields fork: was +0.1/1.55
         if not(M28Team.tAirSubteamData[iAirSubteam][M28Team.refbHaveAirControl]) then
             iAirAAHeavyLossesReduceAirAAThresholdFactor = iAirAAHeavyLossesReduceAirAAThresholdFactor - math.min(0.2, iAdjustValue)
             if bDebugMessages == true then LOG(sFunctionRef..': iAirAAHeavyLossesReduceAirAAThresholdFactor='..iAirAAHeavyLossesReduceAirAAThresholdFactor) end
         end
     end
 
-    if not(M28Utilities.bFAFActive) then iAirControlFactor = iAirControlFactor + 0.03 end
+    if not(M28Utilities.bFAFActive) then iAirControlFactor = iAirControlFactor + 0.02 end --M28AI-Blackops+Shields fork: was +0.03
     --Larger maps - increase control factor slightly more as we are less likely to have intel of enemy air force
     if M28Map.iMapSize >= 700 then
         if M28Map.iMapSize > 1024 then
-            iAirControlFactor = iAirControlFactor + 0.1
+            iAirControlFactor = iAirControlFactor + 0.06 --M28AI-Blackops+Shields fork: was +0.1
             iFarBehindFactor = math.min(0.99, iFarBehindFactor + 0.06)
         elseif M28Map.iMapSize >= 1000 then
-            iAirControlFactor = iAirControlFactor + 0.06
+            iAirControlFactor = iAirControlFactor + 0.04 --M28AI-Blackops+Shields fork: was +0.06
             iFarBehindFactor = math.min(0.99, iFarBehindFactor + 0.03)
         else
-            iAirControlFactor = iAirControlFactor + 0.03
+            iAirControlFactor = iAirControlFactor + 0.02 --M28AI-Blackops+Shields fork: was +0.03
             iFarBehindFactor = math.min(0.99, iFarBehindFactor + 0.01)
         end
     end
     if GetGameTimeSeconds() >= 2700 then --After 45m, increase the factor wanted by below % over the next 30m (due to risk as enemies' production expands they can surprise us with more asf at once)
-        iAirControlFactor = math.min(0.08, 0.08 * (GetGameTimeSeconds() - 2700) / 1800) + iAirControlFactor
+        iAirControlFactor = math.min(0.05, 0.05 * (GetGameTimeSeconds() - 2700) / 1800) + iAirControlFactor --M28AI-Blackops+Shields fork: was 0.08/0.08
     end
     M28Team.tAirSubteamData[iAirSubteam][M28Team.refiFarBehindFactor] = iFarBehindFactor
     M28Team.tAirSubteamData[iAirSubteam][M28Team.refiAirControlFactor] = iAirControlFactor
@@ -5202,6 +5202,44 @@ function ManageAirAAUnits(iTeam, iAirSubteam)
 
                                 end
                                 if M28Utilities.IsTableEmpty(tAvailableAirAA) == false then
+                                    --M28AI-Blackops+Shields fork: escort active T3/Exp bombers with ~50% of idle ASF
+                                    local tEscortPosition
+                                    local oFrontT3 = M28Team.tAirSubteamData[iAirSubteam][M28Team.toFrontT3Bomber]
+                                    local tRallyPoint = M28Team.tAirSubteamData[iAirSubteam][M28Team.reftAirSubRallyPoint]
+                                    local iBestDistFromRally = 80
+                                    if M28UnitInfo.IsUnitValid(oFrontT3) then
+                                        local iDist = M28Utilities.GetDistanceBetweenPositions(oFrontT3:GetPosition(), tRallyPoint)
+                                        if iDist >= iBestDistFromRally then
+                                            iBestDistFromRally = iDist
+                                            tEscortPosition = {oFrontT3:GetPosition()[1], oFrontT3:GetPosition()[2], oFrontT3:GetPosition()[3]}
+                                        end
+                                    end
+                                    local oEscortBrain = M28Team.GetFirstActiveM28Brain(iTeam)
+                                    if oEscortBrain then
+                                        local tExpBombers = oEscortBrain:GetListOfUnits(M28UnitInfo.refCategoryBomber * categories.EXPERIMENTAL, false)
+                                        if M28Utilities.IsTableEmpty(tExpBombers) == false then
+                                            for _, oExpBomber in tExpBombers do
+                                                if M28UnitInfo.IsUnitValid(oExpBomber) then
+                                                    local iDist = M28Utilities.GetDistanceBetweenPositions(oExpBomber:GetPosition(), tRallyPoint)
+                                                    if iDist > iBestDistFromRally then
+                                                        iBestDistFromRally = iDist
+                                                        tEscortPosition = {oExpBomber:GetPosition()[1], oExpBomber:GetPosition()[2], oExpBomber:GetPosition()[3]}
+                                                    end
+                                                end
+                                            end
+                                        end
+                                    end
+                                    if tEscortPosition then
+                                        local iEscortCount = 0
+                                        for iUnit, oUnit in tAvailableAirAA do
+                                            if not(oUnit.Dead) and oUnit:GetFuelRatio() >= 0.6 and M28UnitInfo.GetUnitHealthPercent(oUnit) > 0.85 then
+                                                M28Orders.IssueTrackedAggressiveMove(oUnit, tEscortPosition, 30, false, 'AAEscort', false)
+                                                iEscortCount = iEscortCount + 1
+                                            end
+                                        end
+                                        if bDebugMessages == true then LOG(sFunctionRef..': Escort: sent '..iEscortCount..' ASF to bomber at {'..tEscortPosition[1]..','..tEscortPosition[3]..'}') end
+                                        tAvailableAirAA = {}
+                                    end
                                     --Alternate where on the move point we will gather at, to try and make it more likely asfs will be facing the same direction when idling
                                     local iAngleAdjust = (M28Team.tAirSubteamData[iAirSubteam][M28Team.refiLastAirAASupportPointAngleAdjust] or 0) + 15
                                     if iAngleAdjust >= 360 then iAngleAdjust = iAngleAdjust - 360 end
@@ -5899,6 +5937,77 @@ function ApplyEngiHuntingBomberLogic(oBomber, iAirSubteam, iTeam)
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
 end
 
+--M28AI-Blackops+Shields fork: try angled detour paths when direct bomber route has too much AA
+function TryAlternativeRouteAroundAA(iTeam, iStartPlateauOrZero, iStartZone, iEndPlateauOrZero, iEndZone, bHaveAirControl, iMaxAAThreat, iAirSubteam)
+    local bDebugMessages = false if M28Profiler.bGlobalDebugOverride == true then bDebugMessages = true end
+    local sFunctionRef = 'TryAlternativeRouteAroundAA'
+    M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
+
+    local tStartMid
+    if iStartPlateauOrZero == 0 then
+        tStartMid = M28Map.tPondDetails[M28Map.tiPondByWaterZone[iStartZone]][M28Map.subrefPondWaterZones][iStartZone][M28Map.subrefMidpoint]
+    else
+        tStartMid = M28Map.tAllPlateaus[iStartPlateauOrZero][M28Map.subrefPlateauLandZones][iStartZone][M28Map.subrefMidpoint]
+    end
+    local tEndMid
+    if iEndPlateauOrZero == 0 then
+        tEndMid = M28Map.tPondDetails[M28Map.tiPondByWaterZone[iEndZone]][M28Map.subrefPondWaterZones][iEndZone][M28Map.subrefMidpoint]
+    else
+        tEndMid = M28Map.tAllPlateaus[iEndPlateauOrZero][M28Map.subrefPlateauLandZones][iEndZone][M28Map.subrefMidpoint]
+    end
+
+    local iDirectAngle = M28Utilities.GetAngleFromAToB(tStartMid, tEndMid)
+    local iDirectDist = M28Utilities.GetDistanceBetweenPositions(tStartMid, tEndMid)
+
+    if iDirectDist < 80 then
+        M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+        return false, 0, nil, nil
+    end
+
+    local tAngleOffsets = {-60, -30, 30, 60}
+    local iBestThreat = iMaxAAThreat
+    local tBestAAUnits
+    local tBestWaypoint
+
+    for _, iOffset in tAngleOffsets do
+        local iWaypointAngle = iDirectAngle + iOffset
+        if iWaypointAngle < 0 then iWaypointAngle = iWaypointAngle + 360
+        elseif iWaypointAngle >= 360 then iWaypointAngle = iWaypointAngle - 360
+        end
+
+        local tWaypoint = M28Utilities.MoveInDirection(tStartMid, iWaypointAngle, iDirectDist * 0.5, true, false, false)
+        if tWaypoint then
+            local iWpPlateau, iWpZone = M28Map.GetClosestPlateauOrZeroAndZoneToPosition(tWaypoint)
+            if iWpPlateau and iWpZone then
+                local iLeg1Threat, tLeg1AA = DoesEnemyHaveAAThreatAlongPath(iTeam, iStartPlateauOrZero, iStartZone, iWpPlateau, iWpZone, bHaveAirControl, iMaxAAThreat, nil, false, iAirSubteam, true, true, nil, true)
+                if iLeg1Threat < iMaxAAThreat then
+                    local iLeg2Threat, tLeg2AA = DoesEnemyHaveAAThreatAlongPath(iTeam, iWpPlateau, iWpZone, iEndPlateauOrZero, iEndZone, bHaveAirControl, iMaxAAThreat, nil, false, iAirSubteam, true, true, nil, true)
+                    local iTotalThreat = iLeg1Threat + iLeg2Threat
+                    if bDebugMessages == true then LOG(sFunctionRef..': offset='..iOffset..'; iLeg1Threat='..iLeg1Threat..'; iLeg2Threat='..iLeg2Threat..'; iTotalThreat='..iTotalThreat..'; iMaxAAThreat='..iMaxAAThreat) end
+                    if iTotalThreat < iBestThreat then
+                        iBestThreat = iTotalThreat
+                        tBestWaypoint = tWaypoint
+                        tBestAAUnits = {}
+                        if M28Utilities.IsTableEmpty(tLeg1AA) == false then
+                            for _, oUnit in tLeg1AA do table.insert(tBestAAUnits, oUnit) end
+                        end
+                        if M28Utilities.IsTableEmpty(tLeg2AA) == false then
+                            for _, oUnit in tLeg2AA do table.insert(tBestAAUnits, oUnit) end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+    if tBestWaypoint then
+        return true, iBestThreat, tBestAAUnits, tBestWaypoint
+    else
+        return false, 0, nil, nil
+    end
+end
+
 function ManageBombers(iTeam, iAirSubteam)
     local bDebugMessages = false if M28Profiler.bGlobalDebugOverride == true then   bDebugMessages = true end
     local sFunctionRef = 'ManageBombers'
@@ -6102,8 +6211,33 @@ function ManageBombers(iTeam, iAirSubteam)
             end
             if bDebugMessages == true then LOG(sFunctionRef..': oClosestSnipeTarget='..(oClosestSnipeTarget.UnitId or 'nil')..(M28UnitInfo.GetUnitLifetimeCount(oClosestSnipeTarget) or 'nil')) end
             if oClosestSnipeTarget then
-                ForkThread(PlanBomberSnipe, tAvailableBombers,  oClosestSnipeTarget, iTeam)
-                tAvailableBombers = nil
+                --M28AI-Blackops+Shields fork: cap snipe pool at 30, release rest for normal duties
+                local iSnipeCap = 30
+                if table.getn(tAvailableBombers) <= iSnipeCap then
+                    ForkThread(PlanBomberSnipe, tAvailableBombers, oClosestSnipeTarget, iTeam)
+                    tAvailableBombers = nil
+                else
+                    local tSnipeTargetPos = oClosestSnipeTarget:GetPosition()
+                    local tDistByIndex = {}
+                    for iBomber, oBomber in tAvailableBombers do
+                        tDistByIndex[iBomber] = M28Utilities.GetDistanceBetweenPositions(oBomber:GetPosition(), tSnipeTargetPos)
+                    end
+                    local tSnipeBombers = {}
+                    local tbSnipeSet = {}
+                    local iSnipeCount = 0
+                    for iSorted, _ in M28Utilities.SortTableByValue(tDistByIndex, false) do
+                        if iSnipeCount >= iSnipeCap then break end
+                        table.insert(tSnipeBombers, tAvailableBombers[iSorted])
+                        tbSnipeSet[tAvailableBombers[iSorted]] = true
+                        iSnipeCount = iSnipeCount + 1
+                    end
+                    local tRemainingBombers = {}
+                    for iBomber, oBomber in tAvailableBombers do
+                        if not(tbSnipeSet[oBomber]) then table.insert(tRemainingBombers, oBomber) end
+                    end
+                    ForkThread(PlanBomberSnipe, tSnipeBombers, oClosestSnipeTarget, iTeam)
+                    tAvailableBombers = tRemainingBombers
+                end
             end
         end
         if M28Utilities.IsTableEmpty(tAvailableBombers) == false then
@@ -6169,10 +6303,10 @@ function ManageBombers(iTeam, iAirSubteam)
                 tbZonesConsideredByPlateau[iRallyPlateauOrZero] = {}
                 local iMaxEnemyGroundAAThreat
                 if M28Team.tTeamData[iTeam][M28Team.refiTimeLastNearUnitCap] then
-                    iMaxEnemyGroundAAThreat = M28Team.tTeamData[iTeam][M28Team.subrefiOurT1ToT3BomberThreat] * 0.2
-                    if bDebugMessages == true then LOG(sFunctionRef..': Base GroundAA threat - are near unit cap so increasing to 20% of our bomber threat, iMaxEnemyGroundAAThreat='..iMaxEnemyGroundAAThreat) end
+                    iMaxEnemyGroundAAThreat = M28Team.tTeamData[iTeam][M28Team.subrefiOurT1ToT3BomberThreat] * 0.30 --M28AI-Blackops+Shields fork: was 0.2
+                    if bDebugMessages == true then LOG(sFunctionRef..': Base GroundAA threat - are near unit cap so increasing to 30% of our bomber threat, iMaxEnemyGroundAAThreat='..iMaxEnemyGroundAAThreat) end
                 else
-                    iMaxEnemyGroundAAThreat = M28Team.tTeamData[iTeam][M28Team.subrefiOurT1ToT3BomberThreat] * 0.15
+                    iMaxEnemyGroundAAThreat = M28Team.tTeamData[iTeam][M28Team.subrefiOurT1ToT3BomberThreat] * 0.25 --M28AI-Blackops+Shields fork: was 0.15
                     if bDebugMessages == true then LOG(sFunctionRef..': Base GroundAA threat - iMaxEnemyGroundAAThreat='..iMaxEnemyGroundAAThreat) end
                 end
                 if bDebugMessages == true then LOG(sFunctionRef..': About to adjust bomber GroundAA threat for kills and losses, bomber losses='..(M28Team.tTeamData[iTeam][M28Team.refiBomberLosses] or 0)..'; Bomber kills='..(M28Team.tTeamData[iTeam][M28Team.refiBomberKills] or 0)) end
@@ -6187,7 +6321,7 @@ function ManageBombers(iTeam, iAirSubteam)
                     iMaxEnemyGroundAAThreat = iMaxEnemyGroundAAThreat * math.min(1.2, (M28Team.tTeamData[iTeam][M28Team.refiBomberKills] / (M28Team.tTeamData[iTeam][M28Team.refiBomberLosses] or 0) - 1)*0.35 + 1)
                     if bDebugMessages == true then LOG(sFunctionRef..': Killed more than we have lossed to increasing threshold, iMaxEnemyGroundAAThreat='..iMaxEnemyGroundAAThreat) end
                 else
-                    iMaxEnemyGroundAAThreat = iMaxEnemyGroundAAThreat * math.max(0.25, (M28Team.tTeamData[iTeam][M28Team.refiBomberKills] or 0) /  (M28Team.tTeamData[iTeam][M28Team.refiBomberLosses] or 0))
+                    iMaxEnemyGroundAAThreat = iMaxEnemyGroundAAThreat * math.max(0.5, (M28Team.tTeamData[iTeam][M28Team.refiBomberKills] or 0) /  (M28Team.tTeamData[iTeam][M28Team.refiBomberLosses] or 0)) --M28AI-Blackops+Shields fork: floor was 0.25
                     if bDebugMessages == true then LOG(sFunctionRef..': Not killed more than we have lost so reducing AA threshold based on % of kills to losses='.. (M28Team.tTeamData[iTeam][M28Team.refiBomberKills] or 0) /  (M28Team.tTeamData[iTeam][M28Team.refiBomberLosses] or 0)..'; iMaxEnemyGroundAAThreat='..iMaxEnemyGroundAAThreat) end
                 end
                 --If have strat bombers then have a higher minimum ground AA threshold
@@ -6405,6 +6539,7 @@ function ManageBombers(iTeam, iAirSubteam)
                                                     iCurGroundAAThreatAlongPath, tAAUnitsAlongPath = DoesEnemyHaveAAThreatAlongPath(iTeam, iStartPlateauToUse, iStartZoneToUse,           iOtherPlateauOrZero, iOtherLZOrWZ, M28Team.tAirSubteamData[iAirSubteam][M28Team.refbHaveAirControl], iMaxEnemyGroundAAThreat, nil,                      false,           iAirSubteam, true,                     true,                       nil,                                            true)
                                                     if bDebugMessages == true then LOG(sFunctionRef..': Assigning bomber targets for iOtherLZOrWZ='..iOtherLZOrWZ..'; iCurGroundAAThreatAlongPath='..iCurGroundAAThreatAlongPath..'; iMaxEnemyGroundAAThreat='..iMaxEnemyGroundAAThreat) end
                                                     bProceedWithAttack = false
+                                                    local tAlternativeWaypoint --M28AI-Blackops+Shields fork: waypoint for alternative route
                                                     if iCurGroundAAThreatAlongPath < iMaxEnemyGroundAAThreat then
                                                         bProceedWithAttack = true
                                                         local oClosestEnemyToRally = M28Utilities.GetNearestUnit(tEnemyTargets, tRallyPoint)
@@ -6420,17 +6555,40 @@ function ManageBombers(iTeam, iAirSubteam)
                                                                 end
                                                             end
                                                         end
-                                                        if bProceedWithAttack then
-                                                            if M28Utilities.IsTableEmpty(tAAUnitsAlongPath) == false then
-                                                                if bDebugMessages == true then LOG(sFunctionRef..': will add AA units along path to available targets') end
-                                                                FilterToAvailableTargets(tAAUnitsAlongPath, nil, true)
-                                                            end
-                                                            --Further redundancy for nearby AA - get the closest potential enemy target, and search for nearby groundAA units using getunitsaroundpoint
-
-                                                            AssignTorpOrBomberTargets(tAvailableBombers, tEnemyTargets, iAirSubteam, false, true)
-                                                            if bDebugMessages == true then LOG(sFunctionRef..': Have added all enemy units and AA units along the path, are available bombers table empty now='..tostring(M28Utilities.IsTableEmpty(tAvailableBombers))) end
-                                                            if M28Utilities.IsTableEmpty(tAvailableBombers) then break end
+                                                    else
+                                                        --M28AI-Blackops+Shields fork: direct path has too much AA, try alternative angled routes
+                                                        local bAltSuccess, iAltThreat, tAltAAUnits, tAltWaypoint = TryAlternativeRouteAroundAA(iTeam, iStartPlateauToUse, iStartZoneToUse, iOtherPlateauOrZero, iOtherLZOrWZ, M28Team.tAirSubteamData[iAirSubteam][M28Team.refbHaveAirControl], iMaxEnemyGroundAAThreat, iAirSubteam)
+                                                        if bAltSuccess then
+                                                            if bDebugMessages == true then LOG(sFunctionRef..': Alternative route found with threat='..iAltThreat..'; waypoint={'..tAltWaypoint[1]..','..tAltWaypoint[3]..'}') end
+                                                            bProceedWithAttack = true
+                                                            tAlternativeWaypoint = tAltWaypoint
+                                                            tAAUnitsAlongPath = tAltAAUnits
                                                         end
+                                                    end
+                                                    if bProceedWithAttack then
+                                                        if M28Utilities.IsTableEmpty(tAAUnitsAlongPath) == false then
+                                                            if bDebugMessages == true then LOG(sFunctionRef..': will add AA units along path to available targets') end
+                                                            FilterToAvailableTargets(tAAUnitsAlongPath, nil, true)
+                                                        end
+                                                        if tAlternativeWaypoint then
+                                                            --M28AI-Blackops+Shields fork: send bombers via waypoint to avoid AA corridor
+                                                            local tTargetMid
+                                                            if iOtherPlateauOrZero == 0 then
+                                                                tTargetMid = M28Map.tPondDetails[M28Map.tiPondByWaterZone[iOtherLZOrWZ]][M28Map.subrefPondWaterZones][iOtherLZOrWZ][M28Map.subrefMidpoint]
+                                                            else
+                                                                tTargetMid = M28Map.tAllPlateaus[iOtherPlateauOrZero][M28Map.subrefPlateauLandZones][iOtherLZOrWZ][M28Map.subrefMidpoint]
+                                                            end
+                                                            for iBomber, oBomber in tAvailableBombers do
+                                                                M28Orders.IssueTrackedMove(oBomber, tAlternativeWaypoint, 5, false, 'BombAltRt', false)
+                                                                M28Orders.IssueTrackedAggressiveMove(oBomber, tTargetMid, 10, true, 'BombAltAtk', false)
+                                                            end
+                                                            tAvailableBombers = {}
+                                                            if bDebugMessages == true then LOG(sFunctionRef..': Sent bombers via alternative waypoint route') end
+                                                        else
+                                                            AssignTorpOrBomberTargets(tAvailableBombers, tEnemyTargets, iAirSubteam, false, true)
+                                                        end
+                                                        if bDebugMessages == true then LOG(sFunctionRef..': Have added all enemy units and AA units along the path, are available bombers table empty now='..tostring(M28Utilities.IsTableEmpty(tAvailableBombers))) end
+                                                        if M28Utilities.IsTableEmpty(tAvailableBombers) then break end
                                                     end
                                                     if not(bProceedWithAttack) then
                                                         if bDebugMessages == true then LOG(sFunctionRef..': Too great an enemy threat so wont add these targets after all') end
@@ -7571,7 +7729,7 @@ function ManageGunships(iTeam, iAirSubteam)
             end
             if bDebugMessages == true then LOG(sFunctionRef..': iEnemyGroundAAThreatByGunship='..iEnemyGroundAAThreatByGunship..'; Gunship threat='..M28Team.tAirSubteamData[iAirSubteam][M28Team.subrefiOurGunshipThreat]..'; iEnemyAirAAThreatNearGunship='..iEnemyAirAAThreatNearGunship) end
 
-            if iEnemyGroundAAThreatByGunship <= math.min(2000, M28Team.tAirSubteamData[iAirSubteam][M28Team.subrefiOurGunshipThreat] * 0.15) and iEnemyAirAAThreatNearGunship <= math.min(500, M28Team.tAirSubteamData[iAirSubteam][M28Team.subrefiOurGunshipThreat] * 0.05) then
+            if iEnemyGroundAAThreatByGunship <= math.min(10000, M28Team.tAirSubteamData[iAirSubteam][M28Team.subrefiOurGunshipThreat] * 0.15) and iEnemyAirAAThreatNearGunship <= math.min(500, M28Team.tAirSubteamData[iAirSubteam][M28Team.subrefiOurGunshipThreat] * 0.05) then --M28AI-Blackops+Shields fork: ground AA cap was 2000
                 iDistFromRallyToGunship = M28Utilities.GetDistanceBetweenPositions(M28Team.tAirSubteamData[iAirSubteam][M28Team.reftAirSubRallyPoint], M28Team.tAirSubteamData[iAirSubteam][M28Team.refoFrontGunship]:GetPosition())
                 if M28Map.iMapSize >= 1000 and iDistFromRallyToGunship >= 250 then iDistToMoveToAltPoint = 200 end
                 if bDebugMessages == true then LOG(sFunctionRef..': iDistFromRallyToGunship='..iDistFromRallyToGunship..'; iDistToMoveToAltPoint='..iDistToMoveToAltPoint) end
@@ -8398,7 +8556,7 @@ function ManageGunships(iTeam, iAirSubteam)
                 end
 
                 --Check if want gunships to run to rally point if nearby enemy airAA (if give no targets for gunships then they will go to rally point or air staging), or if we have very weak AirAA
-                local iGunshipThreatFactorForSameZone = 1.725 --This is referenced by the later zones threat factor wanted to ensure always higher
+                local iGunshipThreatFactorForSameZone = 1.0 --M28AI-Blackops+Shields fork: was 1.725 — gunships attack at parity instead of requiring 1.7× advantage
                 if M28Map.bIsCampaignMap then
                     iGunshipThreatFactorForSameZone = 1.6
                     if M28Team.tTeamData[iTeam][M28Team.refbDontHaveBuildingsOrACUInPlayableArea] then iGunshipThreatFactorForSameZone = 0.01 end

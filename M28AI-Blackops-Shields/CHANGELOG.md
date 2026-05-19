@@ -9,8 +9,14 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 ### Changed
 - Hover micro for bombers is now restricted to experimental bombers only (e.g. Ahwassa). T1/T2/T3 bombers and torp bombers use normal attack and move orders instead of tick-by-tick steering.
 - Air scouts now ignore radar coverage when deciding which zones to rescan. Previously, zones with good radar had their scouting interval multiplied by 4×, which could delay visual intel by several minutes.
+- Bombers now tolerate ~67% more enemy ground AA before aborting an attack run. After heavy bomber losses, the AI retains 50% of its base tolerance instead of collapsing to 25%.
+- Snipe-mode bomber pool is now capped at 30. Excess bombers are freed for normal attack duties instead of all sitting at the rally point waiting for the snipe threshold.
+- Air control declaration is more aggressive: the AI claims air control at roughly even ASF numbers instead of requiring a 25–55% superiority margin.
+- Gunships now attack at threat parity instead of requiring a 1.7× advantage over same-zone enemies. The ground-AA tolerance cap is raised from 2000 to 10000, so large gunship fleets are no longer held back by a few T2 flak.
 
 ### Added
+- Bombers now try up to 4 alternative angled routes (±30°, ±60°) when the direct path has too much AA. If a detour path has less AA than the tolerance threshold, bombers fly via a waypoint instead of giving up on the target entirely.
+- Idle ASF now escort active T3 and experimental bombers. All qualifying ASF (≥60% fuel, >85% HP) are sent as cover to the furthest-out bomber.
 - Hard cap of 150 interceptors/ASF per AI brain (all tiers combined). Once the cap is reached, air factories switch to bombers, gunships, or engineers instead of idling.
 - AI no longer gifts units or resources to teammates. ASF transfers, mex gifts, support factory redistribution, energy/mass sharing between AI brains, and Paragon-related transfers are all disabled. Death-fallback (units transfer when an AI is eliminated) and adjacency-only storage swaps remain active.
 - Endgame Large experimental shields. M28 now deliberately builds up to 3 Large exp shields per AI when the enemy fields multiple game-enders or T3 artillery, prioritising coverage of its own game-enders first, then highest-value base areas. Skipped while the team is in a power stall so the 2.2M-energy build does not stall the wider economy.

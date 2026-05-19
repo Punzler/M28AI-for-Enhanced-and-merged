@@ -1502,6 +1502,10 @@ function OverseerManager(aiBrain)
 
 
 
+    local bDrawZones = false
+
+    if bDrawZones then M28Map.DrawAllZones(aiBrain.M28Team) end
+
     --Initialise main systems
     if bDebugMessages == true then LOG(sFunctionRef..': About to cork of initialization') end
     ForkThread(Initialisation, aiBrain)
@@ -1519,7 +1523,13 @@ function OverseerManager(aiBrain)
     local bSetHook = false --Used for debugging
     if M28Config.M28RunMemoryProfiling then ForkThread(M28Profiler.ShowFileMemoryUsage) end
     if bDebugMessages == true then LOG(sFunctionRef..': About to run main overseer loop') end
+    local iLastZoneDraw = 0
     while not(aiBrain:IsDefeated()) and not(aiBrain.M28IsDefeated) do
+        local iCurTime = math.floor(GetGameTimeSeconds())
+        if bDrawZones and iCurTime - iLastZoneDraw >= 60 then
+            iLastZoneDraw = iCurTime
+            M28Map.DrawAllZones(aiBrain.M28Team)
+        end
         local bEnabledProfiling = false
 
         --[[if GetGameTimeSeconds() >= 900 and not(bEnabledProfiling) then

@@ -6930,6 +6930,163 @@ function ConsiderLargeShieldBuild(aiBrain)
     end
 end
 
+function ComputeBaseCenter(iTeam)
+    local tPositions = {}
+    local tCoreZones = M28Team.tTeamData[iTeam][M28Team.reftiCoreZonesByPlateau]
+    if tCoreZones then
+        for iPlateau, tPlateauCoreZones in tCoreZones do
+            if iPlateau > 0 then
+                for iZone, bTrue in tPlateauCoreZones do
+                    local tLZData = M28Map.tAllPlateaus[iPlateau][M28Map.subrefPlateauLandZones][iZone]
+                    if tLZData then
+                        table.insert(tPositions, tLZData[M28Map.subrefMidpoint])
+                        local tMexLocs = tLZData[M28Map.subrefLZOrWZMexLocations]
+                        if not M28Utilities.IsTableEmpty(tMexLocs) then
+                            for _, tMex in tMexLocs do
+                                table.insert(tPositions, tMex)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    if table.getn(tPositions) > 0 then
+        return M28Utilities.GetAverageOfLocations(tPositions)
+    end
+    return nil
+end
+
+function ComputeEnemyReference(aiBrain, tBaseCenter)
+    local tEnemyFactories = aiBrain:GetUnitsAroundPoint(M28UnitInfo.refCategoryLandFactory + M28UnitInfo.refCategoryAirFactory, tBaseCenter, 1000, 'Enemy')
+    if not M28Utilities.IsTableEmpty(tEnemyFactories) then
+        local iClosestDist = 99999
+        local tClosestPos
+        for _, oFac in tEnemyFactories do
+            if not oFac.Dead then
+                local tPos = oFac:GetPosition()
+                local iDist = M28Utilities.GetDistanceBetweenPositions(tBaseCenter, tPos)
+                if iDist < iClosestDist then
+                    iClosestDist = iDist
+                    tClosestPos = tPos
+                end
+            end
+        end
+        if tClosestPos then return tClosestPos end
+    end
+    return M28Map.GetPrimaryEnemyBaseLocation(aiBrain)
+end
+
+function ComputeDefenseBands(aiBrain)
+    local iTeam = aiBrain.M28Team
+    local tBaseCenter = ComputeBaseCenter(iTeam)
+    if not tBaseCenter then return end
+    local tEnemyRef = ComputeEnemyReference(aiBrain, tBaseCenter)
+    if not tEnemyRef then return end
+
+    local iAxisAngle = M28Utilities.GetAngleFromAToB(tBaseCenter, tEnemyRef)
+    local iAxisRad = iAxisAngle * math.pi / 180
+    local iAxisDirX = math.sin(iAxisRad)
+    local iAxisDirZ = -math.cos(iAxisRad)
+
+    local tMexProjections = {}
+    local tAllPlateaus = M28Map.tAllPlateaus
+    for iPlateau, tPlateauData in tAllPlateaus do
+        if iPlateau > 0 and tPlateauData[M28Map.subrefPlateauLandZones] then
+            for iLZ, tLZData in tPlateauData[M28Map.subrefPlateauLandZones] do
+                local tLZTeamData = tLZData[M28Map.subrefLZTeamData] and tLZData[M28Map.subrefLZTeamData][iTeam]
+                if tLZTeamData and not tLZTeamData[M28Map.subrefLZbCoreBase] then
+                    local tAlliedUnits = tLZTeamData[M28Map.subreftoLZOrWZAlliedUnits]
+                    if not M28Utilities.IsTableEmpty(tAlliedUnits) then
+                        local tMexes = EntityCategoryFilterDown(M28UnitInfo.refCategoryMex, tAlliedUnits)
+                        if not M28Utilities.IsTableEmpty(tMexes) then
+                            for _, oMex in tMexes do
+                                if not oMex.Dead then
+                                    local tPos = oMex:GetPosition()
+                                    local iProj = (tPos[1] - tBaseCenter[1]) * iAxisDirX + (tPos[3] - tBaseCenter[3]) * iAxisDirZ
+                                    table.insert(tMexProjections, {iProj, tPos})
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    if table.getn(tMexProjections) == 0 then
+        M28Team.tTeamData[iTeam][M28Team.reftDefenseBands] = nil
+        M28Team.tTeamData[iTeam][M28Team.refiDefenseBandLastUpdate] = GetGameTimeSeconds()
+        return
+    end
+
+    table.sort(tMexProjections, function(a, b) return a[1] < b[1] end)
+
+    local tBands = {}
+    local tCurrentCluster = {tMexProjections[1]}
+    for i = 2, table.getn(tMexProjections) do
+        if tMexProjections[i][1] - tMexProjections[i - 1][1] > 40 then
+            table.insert(tBands, tCurrentCluster)
+            tCurrentCluster = {}
+        end
+        table.insert(tCurrentCluster, tMexProjections[i])
+    end
+    table.insert(tBands, tCurrentCluster)
+
+    local tResult = {
+        tBaseCenter = tBaseCenter,
+        tEnemyRef = tEnemyRef,
+        iAxisAngle = iAxisAngle,
+        tBands = {},
+    }
+
+    for iBand, tCluster in tBands do
+        local tMexPositions = {}
+        for _, tEntry in tCluster do
+            table.insert(tMexPositions, tEntry[2])
+        end
+        local tMidpoint = M28Utilities.GetAverageOfLocations(tMexPositions)
+        local tDefensePos = M28Utilities.MoveInDirection(tMidpoint, iAxisAngle, 15, true)
+        table.insert(tResult.tBands, {
+            tMidpoint = tMidpoint,
+            tDefensePos = tDefensePos,
+            iMexCount = table.getn(tMexPositions),
+        })
+    end
+
+    M28Team.tTeamData[iTeam][M28Team.reftDefenseBands] = tResult
+    M28Team.tTeamData[iTeam][M28Team.refiDefenseBandLastUpdate] = GetGameTimeSeconds()
+end
+
+function GetDefenseBandPosition(aiBrain, iPlateau, iLandZone, iActionType)
+    local iTeam = aiBrain.M28Team
+    local tBandCache = M28Team.tTeamData[iTeam][M28Team.reftDefenseBands]
+    if not tBandCache or M28Utilities.IsTableEmpty(tBandCache.tBands) then return nil end
+
+    local tLZData = M28Map.tAllPlateaus[iPlateau] and M28Map.tAllPlateaus[iPlateau][M28Map.subrefPlateauLandZones] and M28Map.tAllPlateaus[iPlateau][M28Map.subrefPlateauLandZones][iLandZone]
+    if not tLZData then return nil end
+
+    if iActionType ~= 32 then
+        local tLZTeamData = tLZData[M28Map.subrefLZTeamData] and tLZData[M28Map.subrefLZTeamData][iTeam]
+        if tLZTeamData and tLZTeamData[M28Map.subrefLZbCoreBase] and tBandCache.tBaseCenter then
+            return M28Utilities.MoveInDirection(tBandCache.tBaseCenter, tBandCache.iAxisAngle, 100, true)
+        end
+    end
+
+    local tZoneMid = tLZData[M28Map.subrefMidpoint]
+    local iBestDist = 99999
+    local tBestPos
+    for _, tBand in tBandCache.tBands do
+        local tPos = (iActionType == 32) and tBand.tMidpoint or tBand.tDefensePos
+        local iDist = M28Utilities.GetDistanceBetweenPositions(tZoneMid, tBand.tMidpoint)
+        if iDist < iBestDist then
+            iBestDist = iDist
+            tBestPos = tPos
+        end
+    end
+    return tBestPos
+end
+
 function UpgradeShieldsCoveringSMD(iTeam)
     --Called via fork thread when enemy has t3 arti/novax and SML, so we make sure any t2 shields covering SMD are upgraded to t3 to make it slightly harder to break through
     while M28Team.tTeamData[iTeam][M28Team.subrefbTeamIsStallingEnergy] do

@@ -3331,6 +3331,70 @@ function DrawLandZones()
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
 end
 
+function ForkedDrawAllZones(tRects, iDisplayCount)
+    for iTick = 1, iDisplayCount do
+        for _, tEntry in tRects do
+            local r = tEntry[1]
+            local sColour = tEntry[2]
+            local t1 = {r['x0'], GetTerrainHeight(r['x0'], r['y0']), r['y0']}
+            local t2 = {r['x1'], GetTerrainHeight(r['x1'], r['y0']), r['y0']}
+            local t3 = {r['x1'], GetTerrainHeight(r['x1'], r['y1']), r['y1']}
+            local t4 = {r['x0'], GetTerrainHeight(r['x0'], r['y1']), r['y1']}
+            DrawLine(t1, t2, sColour)
+            DrawLine(t2, t3, sColour)
+            DrawLine(t3, t4, sColour)
+            DrawLine(t4, t1, sColour)
+        end
+        coroutine.yield(2)
+    end
+end
+
+function DrawAllZones(iTeam)
+    local tRects = {}
+    local iHalf = iLandZoneSegmentSize * 0.5
+    local tZoneColours = {
+        'c00000FF', -- 1: Dark blue
+        'ff00CC00', -- 2: Green
+        'ffFF00FF', -- 3: Magenta
+        'ff00FFFF', -- 4: Cyan
+        'ffFF8000', -- 5: Orange
+        'ff8080FF', -- 6: Light purple
+    }
+    local iNumColours = 6
+    local tStatusColours = {
+        CoreBase = 'ffFF4040',    -- Red
+        Expansion = 'fff4a460',   -- Gold
+        Midpoint = 'c0000000',    -- Black
+    }
+    for iPlateau, tPlateauData in tAllPlateaus do
+        if tPlateauData[subrefPlateauLandZones] then
+            for iLZ, tLZData in tPlateauData[subrefPlateauLandZones] do
+                local tTeamData = tLZData[subrefLZTeamData] and tLZData[subrefLZTeamData][iTeam]
+                local sMidColour = tStatusColours.Midpoint
+                local sSegColour
+                if tTeamData and tTeamData[subrefLZbCoreBase] then
+                    sSegColour = tStatusColours.CoreBase
+                    sMidColour = tStatusColours.CoreBase
+                elseif tTeamData and tTeamData[subrefLZCoreExpansion] then
+                    sSegColour = tStatusColours.Expansion
+                    sMidColour = tStatusColours.Expansion
+                else
+                    sSegColour = tZoneColours[math.mod(iLZ - 1, iNumColours) + 1]
+                end
+                for _, tXZ in tLZData[subrefLZSegments] do
+                    local tLoc = GetPositionFromPathingSegments(tXZ[1], tXZ[2])
+                    table.insert(tRects, {Rect(tLoc[1] - iHalf, tLoc[3] - iHalf, tLoc[1] + iHalf, tLoc[3] + iHalf), sSegColour})
+                end
+                local tMid = tLZData[subrefMidpoint]
+                table.insert(tRects, {Rect(tMid[1] - 3, tMid[3] - 3, tMid[1] + 3, tMid[3] + 3), sMidColour})
+            end
+        end
+    end
+    if table.getn(tRects) > 0 then
+        ForkThread(ForkedDrawAllZones, tRects, 50)
+    end
+end
+
 function RecordMidpointAndOtherDataForZone(iPlateau, iZone, tLZData, tOptionalStartPositionsInZone)
     local bDebugMessages = false if M28Profiler.bGlobalDebugOverride == true then   bDebugMessages = true end
     local sFunctionRef = 'RecordMidpointAndOtherDataForZone'

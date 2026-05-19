@@ -264,6 +264,8 @@ tTeamData = {} --[x] is the aiBrain.M28Team number - stores certain team-wide in
     toBomberSnipeTargets = 'M28ActBSnT' --Bomber snipe targets - i.e. if we want to plan a bomber snipe, but dont want other units to go all-in attacking the unit
     refiTimeOfLastM28PlayerDefeat = 'M28TLstDth' --Gametimeseconds of the last M28 player defat (used to check if shield cycling should be paused)
     tPotentiallyActiveGETemplates = 'M28TGETA' --when a gameender template is created, it gets added to this table, to allow quick referencing of other templates
+    reftDefenseBands = 'M28DefBands' --cached defense band data for mex-cluster-based PD/AA/Arti placement
+    refiDefenseBandLastUpdate = 'M28DefBandTime' --GetGameTimeSeconds() of last ComputeDefenseBands call
     reftiCoreZonesByPlateau = 'M28CZBPl' --[x] = plateau ref, [y] = LZ ref, returns true
     reftiFortifyZonesByPlateau = 'M28CZBFPl' --[x] = plateau ref, [y] = LZ ref, returns true
     reftEnemyShieldsFailedToArti = 'M28SFlArt' --[x] = 1,2,3...x; returns the fixed shield unit

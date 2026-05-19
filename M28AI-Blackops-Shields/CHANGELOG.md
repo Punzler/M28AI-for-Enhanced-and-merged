@@ -6,6 +6,9 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 
 ## [Unreleased]
 
+### Changed
+- Hover micro for bombers is now restricted to experimental bombers only (e.g. Ahwassa). T1/T2/T3 bombers and torp bombers use normal attack and move orders instead of tick-by-tick steering.
+
 ### Added
 - Hard cap of 150 interceptors/ASF per AI brain (all tiers combined). Once the cap is reached, air factories switch to bombers, gunships, or engineers instead of idling.
 - AI no longer gifts units or resources to teammates. ASF transfers, mex gifts, support factory redistribution, energy/mass sharing between AI brains, and Paragon-related transfers are all disabled. Death-fallback (units transfer when an AI is eliminated) and adjacency-only storage swaps remain active.

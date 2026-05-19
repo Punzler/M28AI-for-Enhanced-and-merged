@@ -1406,6 +1406,13 @@ function TurnAirUnitAndMoveToTarget(oBomber, tDirectionToMoveTo, iMaxAcceptableA
     local sFunctionRef = 'TurnAirUnitAndMoveToTarget'
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
 
+    if not(EntityCategoryContains(categories.EXPERIMENTAL, oBomber.UnitId)) then
+        if M28UnitInfo.IsUnitValid(oBomber) and not(M28Utilities.IsTableEmpty(tDirectionToMoveTo)) then
+            M28Orders.IssueTrackedMove(oBomber, tDirectionToMoveTo, 2, false, 'NoMiAirMv', false)
+        end
+        M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+        return
+    end
     if bDebugMessages == true then LOG(sFunctionRef..': Start of code, oBomber='..oBomber.UnitId..M28UnitInfo.GetUnitLifetimeCount(oBomber)..'; Does bomber fire salvo='..tostring(M28UnitInfo.DoesBomberFireSalvo(oBomber) or false)..'; GameTime='..GetGameTimeSeconds()) end
     --First delay microing until finished our salvo if dealing with T1-T3 bomber
     if M28UnitInfo.DoesBomberFireSalvo(oBomber) and EntityCategoryContains(M28UnitInfo.refCategoryBomber - categories.EXPERIMENTAL, oBomber.UnitId) then
@@ -1553,6 +1560,13 @@ function TurnAirUnitAndAttackTarget(oBomber, oTarget, bDontAdjustMicroFlag, bCon
     local sFunctionRef = 'TurnAirUnitAndAttackTarget'
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
 
+    if not(EntityCategoryContains(categories.EXPERIMENTAL, oBomber.UnitId)) then
+        if M28UnitInfo.IsUnitValid(oBomber) and M28UnitInfo.IsUnitValid(oTarget) then
+            M28Orders.IssueTrackedAttack(oBomber, oTarget, false, 'NoMiAtck', false)
+        end
+        M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+        return nil
+    end
     if bDebugMessages == true then LOG(sFunctionRef..': Start of code, oBomber='..oBomber.UnitId..M28UnitInfo.GetUnitLifetimeCount(oBomber)..'; oTarget='..oTarget.UnitId..M28UnitInfo.GetUnitLifetimeCount(oTarget)..'; bDontAdjustMicroFlag='..tostring(bDontAdjustMicroFlag or false)..'; bContinueAttackUntilFiredBomb='..tostring((bContinueAttackUntilFiredBomb or false))..'; GameTime='..GetGameTimeSeconds()) end
     if M28UnitInfo.IsUnitValid(oBomber) and M28UnitInfo.IsUnitValid(oTarget) then
         local aiBrain = oBomber:GetAIBrain()
@@ -2426,6 +2440,13 @@ function T1OrT3HoverBombTarget(oBomber, oTarget, bDontAdjustMicroFlag, bContinue
     local sFunctionRef = 'T1OrT3HoverBombTarget'
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
 
+    if not(EntityCategoryContains(categories.EXPERIMENTAL, oBomber.UnitId)) then
+        if M28UnitInfo.IsUnitValid(oBomber) and M28UnitInfo.IsUnitValid(oTarget) then
+            M28Orders.IssueTrackedAttack(oBomber, oTarget, false, 'NoMiAtck', false)
+        end
+        M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+        return
+    end
     if bDebugMessages == true then LOG(sFunctionRef..': Start of code, oBomber='..oBomber.UnitId..M28UnitInfo.GetUnitLifetimeCount(oBomber)..'; oTarget='..oTarget.UnitId..M28UnitInfo.GetUnitLifetimeCount(oTarget)..'; bDontAdjustMicroFlag='..tostring(bDontAdjustMicroFlag or false)..'; bContinueAttackingUntilTargetDead='..tostring(bContinueAttackingUntilTargetDead or false)..'; bAbortForGroundAAUnlessTargetIsEngineer='..tostring(bAbortForGroundAAUnlessTargetIsEngineer or false)..'; refbSpecialMicroActive='..tostring((oBomber[M28UnitInfo.refbSpecialMicroActive] or false))..'; GameTime='..GetGameTimeSeconds()) end
     if M28UnitInfo.IsUnitValid(oBomber) and M28UnitInfo.IsUnitValid(oTarget) and (not(oBomber[M28UnitInfo.refbSpecialMicroActive]) or oBomber[M28UnitInfo.refbLowerPriorityMicroActive]) then
         local iStartTime = GetGameTimeSeconds()

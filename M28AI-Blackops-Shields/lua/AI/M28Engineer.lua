@@ -10428,11 +10428,15 @@ function ConsiderActionToAssign(iActionToAssign, iMinTechWanted, iTotalBuildPowe
                                     --Mod support for mods that introduce t3 air staging which is very expensive - want to avoid unless close to unit cap
                                     --M28AI-Blackops+Shields fork: vanilla gate was (bGetCheapest or not(refiTimeLastNearUnitCap)); the second condition is a sticky timestamp that never clears, so once the team hit unit cap once the T3 filter stayed disabled for the rest of the match. Added a per-brain cap of 1 T3/EXP air staging (built or under construction) — keeps the BlackOps Bx5205 (7200-8640 mass) as a unit-cap relief option but stops M28 from spamming them.
                                     local bStripT3 = bGetCheapest or not(M28Team.tTeamData[aiBrain.M28Team][M28Team.refiTimeLastNearUnitCap])
-                                    if not(bStripT3) and aiBrain:GetCurrentUnits(M28UnitInfo.refCategoryAirStaging * (categories.TECH3 + categories.EXPERIMENTAL)) >= 1 then bStripT3 = true end
+                                    if not(bStripT3) and (aiBrain:GetCurrentUnits(M28UnitInfo.refCategoryAirStaging * (categories.TECH3 + categories.EXPERIMENTAL)) >= 1 or aiBrain.M28PendingT3AirStaging) then bStripT3 = true end
                                     local iCategoryForAirStaging = iCategoryWanted
                                     if bStripT3 then iCategoryForAirStaging = iCategoryWanted - categories.TECH3 - categories.EXPERIMENTAL end
                                     --GetBlueprintAndLocationToBuild(aiBrain, oEngineer, iOptionalEngineerAction, iCategoryToBuild,                                         iMaxAreaToSearch, iCatToBuildBy, tAlternativePositionToLookFrom, bNotYetUsedLookForQueuedBuildings, oUnitToBuildBy, iOptionalCategoryForStructureToBuild, bBuildCheapestStructure, tLZData, tLZTeamData, bCalledFromGetBestLocation, sBlueprintOverride)
                                     sBlueprint, tBuildLocation = GetBlueprintAndLocationToBuild(aiBrain, oFirstEngineer, iActionToAssign, iCategoryForAirStaging,                                  iMaxSearchRange, iAdjacencyCategory, nil,                           false,                          nil,                nil,                                bGetCheapest,           tLZOrWZData,  tLZOrWZTeamData)
+                                    if sBlueprint and not(bStripT3) and EntityCategoryContains(categories.TECH3 + categories.EXPERIMENTAL, sBlueprint) then
+                                        aiBrain.M28PendingT3AirStaging = true
+                                        M28Utilities.DelayChangeVariable(aiBrain, 'M28PendingT3AirStaging', nil, 30)
+                                    end
                                 elseif vOptionalVariable and iActionToAssign == refActionBuildSpecialObjective then
                                     local iMaxSearchArea = vOptionalVariable[M28Map.subrefiObjLocationSize] --ok with this being nil
                                     sBlueprint, tBuildLocation = GetBlueprintAndLocationToBuild(aiBrain, oFirstEngineer, iActionToAssign, iCategoryWanted, iMaxSearchArea, nil, vOptionalVariable[M28Map.subreftObjLocation], nil, nil, nil, bGetCheapest, tLZOrWZData, tLZOrWZTeamData, nil, nil)

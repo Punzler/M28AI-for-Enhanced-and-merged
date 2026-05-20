@@ -7,6 +7,7 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 ## [Unreleased]
 
 ### Changed
+- AI personalities renamed from "M28 …" to "BlackOps …" in the lobby dropdown (e.g. "AI: BlackOps Adaptive" instead of "AI: M28 Adaptive").
 - Hover micro for bombers is now restricted to experimental bombers only (e.g. Ahwassa). T1/T2/T3 bombers and torp bombers use normal attack and move orders instead of tick-by-tick steering.
 - Air scouts now ignore radar coverage when deciding which zones to rescan. Previously, zones with good radar had their scouting interval multiplied by 4×, which could delay visual intel by several minutes.
 - Bombers now tolerate ~67% more enemy ground AA before aborting an attack run. After heavy bomber losses, the AI retains 50% of its base tolerance instead of collapsing to 25%.

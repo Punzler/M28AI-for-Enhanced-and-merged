@@ -41,6 +41,7 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 - Mobile anti-air no longer chases enemy satellites it cannot actually shoot. Satellites are skipped when picking the closest enemy air unit to advance toward.
 - Rare stuck-Novax-centre fix: if a centre finishes building but its satellite never spawns due to engine state desync, M28 now detects the stuck state and re-issues the satellite build.
 - Modded BlackOps hydrocarbon plants (T1 → T2 → T3) are now upgraded automatically again. The same fix re-enables T2 → T3 shield upgrades on SMDs when the enemy fields T3 artillery or Novax+SML.
+- Non-Seraphim naval combat ships (UEF, Cybran, Aeon frigates and similar) no longer silently stop receiving orders mid-game. A missing argument in the unit classification caused ships with AA weapons to be skipped entirely once their blueprints were evaluated by the threat system.
 
 ### Removed
 - Anti-teleport PD builder. This placed PDs at enemy teleport locations which often landed inside the core base.

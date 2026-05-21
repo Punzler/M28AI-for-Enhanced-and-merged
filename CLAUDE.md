@@ -37,154 +37,17 @@ fork to run. Side-effect: BlackOpsFAF-Merged / BlackOpsFAF-ACUs-Enhanced /
 Shields Enhanced still hook `/mods/m28ai/...` paths — if the original
 M28AI folder isn't mounted those hooks no-op. Accept for now.
 
-## Open tasks (in priority order)
+## Completed tasks
 
-### 1. ✅ Fix `ueb9301`/`urb9207` "no valid upgrade ID" errors (DONE 2026-05-16)
-
-**Root cause:** the bug was *not* a misbehaving caller. It was three orthogonal silent-skip conditions missing inside `M28Economy.UpgradeUnit` itself. Diagnosed via temp debug logging at function entry — once a verification run confirmed the pattern, the debug block was removed and the fix landed at the error site.
-
-Three error flavors all flowed into the same `else`-branch:
-1. **Empty/nil `UpgradesTo`** — top-tier units (modded `ueb9301`/`xsb9301`/`beb5205`, also vanilla `urb4302`). Some BP layer in the FAF mod stack normalizes the missing field to `""` (empty string), which is truthy in Lua and slips past the existing `if BP.UpgradesTo then` guards at the ForkThread call sites.
-2. **Recursion at [M28Economy.lua:157](M28AI-Blackops-Shields/lua/AI/M28Economy.lua#L157)** — race-state retry handler for the `BeingUpgraded+FractionComplete=1` engine state-flap. The recursion passes `bUpdateUpgradeTracker=false`, which forces the function's outer `if`-condition to fail on re-entry. Architectural quirk: the workaround sabotages its own retry path.
-3. **CanBuild fails** — BlackOps cross-mod chains like `urb1102→brb1202` where the upgrade target's BP exists but the engineer can't issue it. After `refbTriedIgnoringCanBuildForUpgrade` is set, subsequent attempts can't even use the fallback path, so they fall into the error.
-
-**Fix:** four-branch logic at [M28Economy.lua:173+](M28AI-Blackops-Shields/lua/AI/M28Economy.lua#L173):
-- empty/nil `UpgradesTo` → silent
-- restricted (existing) → silent
-- `not(bUpdateUpgradeTracker)` (recursion) → silent
-- `CanBuild` fails → Warning (`ErrorHandler(msg, true)`) instead of Error, so it surfaces once then auto-throttles
-- real bug → Error as before
-
-**Result (game_27069683.log):** 16 `M28ERROR` → 0. 5 throttled `M28Warning` lines remain — see below, working as designed.
-
-**Follow-up (2026-05-18):** Branch 2 was originally written assuming the only `bUpdateUpgradeTracker=false` caller was the race-handler ForkThread at Z.157. That was wrong — `ConsiderHydroUpgradeLoop` at [M28Economy.lua:882](M28AI-Blackops-Shields/lua/AI/M28Economy.lua#L882) passes `false` and `UpgradeShieldsCoveringSMD` at [M28Building.lua:6951](M28AI-Blackops-Shields/lua/AI/M28Building.lua#L6951) passes nil. Both were silently no-op'd by Branch 2, so BlackOps hydros (BEB1202→BEB1302 etc.) and SMD-covering T2 shields were never upgraded automatically. Now fixed at the caller sites (both pass `true` explicitly), so Branch 2 only covers the legitimate race-handler retry. Verified against the BlackOpsFAF-Merged `hook/mods/M28AI/lua/AI/M28Economy.lua` hook, which addressed the same bug from a different angle (forcing `bUpdateUpgradeTracker=true` at the top of `UpgradeUnit`) — that hook is now dead code since the fork-rewrite renamed the mount point, and we don't need it because the caller-site fix is narrower (keeps the race-handler explicitly silent, avoids the BeingUpgraded+FractionComplete=1 endless-recursion edge case).
-
-### 1b. ✅ Support-factory `CanBuild` warnings — investigated, working as designed (2026-05-16)
-
-The five remaining `M28Warning` lines after Task #1 (`zrb9501→zrb9601`, `zsb9502→zsb9602` etc.) come from Branch 3 of the Task #1 fix and are *correct behaviour*, not a bug to fix.
-
-**FAF naming quick-ref (we kept confusing ourselves):**
-- `urb0101` = T1 land factory (the only "T1" — starting tier)
-- `urb0201` / `zrb9501` = T2 land factory (regular / support variant); both have BP `Categories.TECH2`
-- `urb0301` / `zrb9601` = T3 land factory (regular / support variant); both have BP `Categories.TECH3`
-- There is no "T1 support factory" — the support chain starts at T2
-
-So `zrb9501 → zrb9601` is a **T2 support → T3 support** upgrade, BP TECH2 → BP TECH3. Requires the team to have an active T3 HQ (the equivalent of regular factory T2→T3 needing a T3 HQ to allow self-upgrade).
-
-**Source-of-truth checks (FAF GitHub):** all four factions' T2 support factory BPs declare `UpgradesTo` to the T3 variant and have a matching `BuildableCategory` entry (`"BUILTBYTIER2SUPPORTFACTORY <FACTION> STRUCTURE <DOMAIN>"`) that *should* let CanBuild succeed once the HQ-tech condition is met. Verified for `zrb9501`/`zab9501`/`zeb9501`/`zsb9502` — pattern is identical across factions, no mod hooks the BPs (checked BlackOpsFAF-Merged, BlackOpsFAF-ACUs-Enhanced, Shields Enhanced, Total Mayhem, Savers Unitspack).
-
-**Why only Cybran + Seraphim warnings show in the test log:** likely sampling, not a structural asymmetry. In the test game those brains happened to reach `GetAnyMexOrFactoryToUpgrade` with a T2 support factory while their team still lacked a T3 HQ at that moment (engineer present but HQ not yet built or destroyed).
-
-**Caller chain:** [M28Team.lua:3934](M28AI-Blackops-Shields/lua/AI/M28Team.lua#L3934) `ConsiderNormalUpgrades` → [M28Team.lua:3608](M28AI-Blackops-Shields/lua/AI/M28Team.lua#L3608) `GetAnyMexOrFactoryToUpgrade` (backup logic) → `UpgradeUnit`. The filter at Z.3593 (`refCategoryLandFactory - categories.TECH3`) intentionally pulls in support factories for upgrade consideration.
-
-**Why no fix:** the system is self-healing. M28 polls for upgrades, engine refuses while team lacks T3 HQ, M28 retries on next sweep, eventually succeeds once T3 HQ stands. Branch 3 throttles the noise (5 lines / 27-min match). Filtering `SUPPORTFACTORY` out at the caller would prevent legitimate upgrades when conditions ARE met; adding a HQ-tech precondition is more code for no functional improvement.
-
-### 1c. ✅ GE templates never formed with mod Small shields (DONE 2026-05-17)
-
-**Symptom:** in multiple test games the user observed Mavor/Czar/Paragon being built with only 1–2 lone shields around them instead of the structured shield clusters that GE templates normally produce. Test log `game_27075956.log` confirmed: all 7 built game-enders (1 Czar, 6 Mavors) had `engineerAction=21` (`refActionBuildExperimental`) instead of `=75` (`refActionManageGameEnderTemplate`) — no template was ever created.
-
-**Root cause:** vanilla gate at [M28Engineer.lua:4108](M28AI-Blackops-Shields/lua/AI/M28Engineer.lua#L4108) in `DecideOnExperimentalToBuild`:
-
-```lua
-if iCategoryWanted and not(aiBrain[M28Overseer.refbCanBuildExperimentalShields]) then
-```
-
-Vanilla assumption: *"if the brain can build exp-shields, they're T4-sized → `ActiveShieldMonitor` single-unit coverage is enough, no GE template needed."* Holds for vanilla M28 (T4 = ~600 radius). Does **not** hold for Shields Enhanced Small variants (50–63k HP, much smaller radius).
-
-Phase A (commit `699f8ac1`) + threshold lowering (commit `22ce5776`) flipped `refbCanBuildExperimentalShields = true` for mod setups → the gate becomes `not(true)=false` → the entire block Z.4108–4267, including the template conversion at Z.4171 (`iCategoryWanted = refActionManageGameEnderTemplate`), is skipped → the action conversion at Z.10071 never fires → the engineer builds the game-ender raw under action 21, `AssignEngineerToGameEnderTemplate` is never called, no template is created.
-
-**Fix:** gate removal at Z.4108 — single-line change:
-
-```lua
-if iCategoryWanted then --M28AI-Blackops+Shields fork: removed vanilla gate on refbCanBuildExperimentalShields …
-```
-
-**Verified in-game:** user confirmed templates now form correctly and shield clusters appear around game-enders.
-
-### 1d. ✅ Cluster path occasionally built Large exp shields (DONE 2026-05-17)
-
-**Symptom:** test log `game_27076350.log` showed 3 Large exp shields completed (`uab94011`, `urb94071`, `urb94073`) with `scope=cluster` — built outside any GE-template or special-assignment context. Phase A's intent was to never build Large via automatic paths, only via a future dedicated trigger.
-
-**Root cause:** vanilla M28 expansion at [M28Engineer.lua:5248](M28AI-Blackops-Shields/lua/AI/M28Engineer.lua#L5248) in `GetCategoryToBuildOrAssistFromAction`:
-
-```lua
-if iMinTechLevel == 3 then iCategoryToBuild = iCategoryToBuild * categories.TECH3 + iCategoryToBuild*categories.EXPERIMENTAL
-```
-
-For shield contexts where `iCategoryToBuild = M28UnitInfo.refCategoryFixedShield * categories.TECH3` (set at Z.5223 cluster path), this expands by category-distributivity to `SHIELD * STRUCTURE * (TECH3 OR EXPERIMENTAL)` — which matches all Large mod variants (`uab9401`/`ueb9401`/`urb9407`/`xsb9401`, all tagged `EXPERIMENTAL + TECH4 + SIZE12`). Cluster builds picked them ~1-3× per match.
-
-**Fix:** subtract `refiLargeExperimentalShieldCategory` from `iCategoryToBuild` right after the expansion. Keeps Small mod variants pickable (still useful redundancy in case the Phase A upgrade-trigger misses them) but eliminates Large from the cluster path.
-
-### 2. ✅ Endgame dedicated Large-shield build trigger (DONE 2026-05-18)
-
-**Implemented as `ConsiderLargeShieldBuild(aiBrain)` in [`M28Building.lua`](M28AI-Blackops-Shields/lua/AI/M28Building.lua), wired into the same shield-completion hook in [`M28Events.lua:2877`](M28AI-Blackops-Shields/lua/AI/M28Events.lua#L2877) as the existing T3→Exp upgrade trigger.**
-
-**Trigger conditions:** enemy team has ≥2 game-enders (refCategoryGameEnder: Mavor/Czar/Yolona/Paragon, including under-construction) OR ≥5 pure T3 fixed artillery (refCategoryFixedT3Arti, excluding experimentals).
-
-**Caps (per AI brain — NOT team-wide):**
-| Enemy GE count | Allowed Large per brain |
-|---|---|
-| ≥4 | 3 |
-| ≥3 | 2 |
-| else (only T3-Arti trigger or 2 GE) | 1 |
-
-Hard ceiling 3 per brain. In a multi-M28-brain team, each brain runs independently — team total can exceed 3.
-
-**Placement priority** (per-brain only — each brain protects its own assets):
-1. Each of this brain's own GEs not yet covered by this brain's own Large gets a candidate position offset 10–12 ogrids from the GE midpoint (8 compass directions tried, first one that validates `aiBrain:CanBuildStructureAt` wins). Skirt-clear (Large 8×8 skirt + GE ~10×10 skirt → min 9 ogrids apart), well within the ~42 ogrid shield radius for full coverage.
-2. Top-5 LZs by `subrefLZSValue` (M28's eco-score) whose midpoints are not yet inside this brain's Large coverage AND don't overlap an active GE-template via `WillBlockTemplateLocation`.
-
-Engineer pick: this brain's free T3 engineers (refiAssignedAction nil/0) within 300 ogrids of the candidate position, can build at least one BP from the brain's Large bucket. Most-expensive Large BP picked (`GetMostExpensiveBlueprintOfCategory`-equivalent inline).
-
-**Helper functions:** `GetLargeShieldsForBrain(aiBrain)`, `IsPositionWithinLargeCoverage(tPos, toExistingLarges, fMultiplier)`, `CountEnemyGEAndT3Arti(iTeam)` — all in M28Building.lua near `ConsiderLargeShieldBuild`.
-
-**Result (game_27080560):** trigger fires, 1 Large built, no `ConsiderLargeShieldBuild`-related errors in log. Per-brain cap tiers ≥2 not exhaustively tested due to enemy GE-count not reaching threshold in test session, but cap logic is symmetric (same code path, different comparison values).
-
-### 3. ✅ ASF must ignore enemy satellites (DONE 2026-05-18)
-
-**Symptom:** ASF were observed flying directly *under* enemy Novax satellites without engaging them, wasting ASF time and exposing them to enemy AirAA along the path.
-
-**Root cause:** M28's generic AirAA targeting in `TargetUnitWithAirAA` ([M28Air.lua:3344](M28AI-Blackops-Shields/lua/AI/M28Air.lua#L3344)) was never designed for high-altitude satellites:
-- Ground/near-ground attack-order path skipped (satellite is high)
-- Intercept-prediction issues a `MoveOrder` to the satellite's 3D position; ASF cruise at their own altitude → fly under
-- Close-range fallback only issues an attack order if target is Czar/T3-bomber/Exp-bomber/Transport/Gunship — Novax matches none
-- Result: ASF were given move-orders to the Novax's XY, no attack-order ever issued
-
-**Design decision:** in this fork, anti-satellite duty belongs to dedicated ground structures (Shields Enhanced / BlackOps anti-sat), not air superiority fighters. ASF should never even consider satellites as targets.
-
-**Fix:** single-line filter at the entry of `AssignAirAATargets` ([M28Air.lua:3474](M28AI-Blackops-Shields/lua/AI/M28Air.lua#L3474)):
-
-```lua
-tEnemyTargets = EntityCategoryFilterDown(categories.ALLUNITS - M28UnitInfo.refCategorySatellite, tEnemyTargets)
-```
-
-Catches all 8 call-sites of `AssignAirAATargets` in one place. Threat statistics (`refiEnemyNovaxCount`, `refiEnemyAirAAThreat`) intentionally left untouched — those still drive shield-building, ACU-run, engineer-priority logic.
-
-**Result:** user verified in-game — ASF no longer fly toward satellites.
-
-### 4. ✅ Protect hydros and T1 mass storage from M28 self-destruct (DONE 2026-05-18)
-
-**Symptom:** in lategame near unit cap, user observed M28 ctrl-K'ing T1 mass storage adjacent to its own mass extractors (losing the adjacency-bonus speichers), and also losing modded T3 BlackOps hydros (`BEB1302`/`BAB1302`/`BRB1302`/`BSB1302`) that were nowhere near unit cap pressure.
-
-**Root cause:** two unrelated code paths, both unaware that hydros are high-value:
-
-1. **CheckUnitCap categories** ([M28Overseer.lua:851-853](M28AI-Blackops-Shields/lua/AI/M28Overseer.lua#L851-L853)): Tier 0 (`categories.TECH1 - …`) catches all T1 structures *including* T1 mass storage and T1 hydros (only T1 mex is excluded). Tier -2 (`refCategoryStructure * TECH1 + refCategoryStructure * TECH2 - refCategoryMex - …`) catches T1+T2 structures including T2 hydros (BlackOps `BEB1202` etc., TECH2 STRUCTURE). T3 BlackOps hydros are TECH3 STRUCTURE and *don't* match here — they were being killed elsewhere.
-2. **GE-template / shield placement and naval-factory unstuck cleanup** in `M28Engineer.lua` and `M28Factory.lua`: when a M28 brain places a game-ender artillery / shield / shieldMD slot and a building sits in that slot, M28 picks the lowest-mass-cost blocker combo across slots (cap 150 000) and either reclaims or ctrl-K's them. T3 hydros at 3000 mass fall well under that. Same for the AssistShield blocking-buildings sweep (cap 5000 mass × fraction complete) and the T3 naval factory unstuck-cleanup.
-
-**Fix:** five-site patch — hydros are now excluded from every M28-initiated self-destruct path, and T1 mass storage is excluded from CheckUnitCap:
-
-- [M28Overseer.lua:851-853](M28AI-Blackops-Shields/lua/AI/M28Overseer.lua#L851-L853) — Tier 0 + Tier -2 now subtract `categories.HYDROCARBON` and `M28UnitInfo.refCategoryMassStorage` (T1).
-- [M28Engineer.lua:6741](M28AI-Blackops-Shields/lua/AI/M28Engineer.lua#L6741) — AssistShield blocking-building sweep skips HYDROCARBON.
-- [M28Engineer.lua:7398-7405](M28AI-Blackops-Shields/lua/AI/M28Engineer.lua#L7398-L7405) (GE-Arti), [M28Engineer.lua:8017-8024](M28AI-Blackops-Shields/lua/AI/M28Engineer.lua#L8017-L8024) (GE-Shield), [M28Engineer.lua:8308-8316](M28AI-Blackops-Shields/lua/AI/M28Engineer.lua#L8308-L8316) (GE-ShieldMD) — if a hydro overlaps a candidate slot, `tUnitsToConsiderReclaiming = nil; break` aborts the slot so M28 looks for another one rather than reclaiming/ctrl-K'ing the hydro.
-- [M28Factory.lua:4537](M28AI-Blackops-Shields/lua/AI/M28Factory.lua#L4537) — T3 naval factory unstuck-cleanup skips HYDROCARBON.
-
-**Trade-off:** if *all* viable GE-template slots are blocked by hydros, the template isn't built at all — user explicitly accepted this ("Hydros raus aus allen Kill-Pfaden"). Random T1/T2 PD / power / walls remain in the cap-kill pool as before.
-
-### 5. ❌ PD/Reactive-arti edge placement (ATTEMPTED 2026-05-18, REVERTED)
-
-Attempted to relocate PD and reactive T2-arti from base midpoint to the zone edge facing the enemy, in frontline base zones only. Multi-layer filter + override + debug instrumentation, fully reverted after 7 test iterations because the M28 build-search undoes the target-position shift and several build paths bypass the filter entirely. Workspace + FAF live folder back at the pre-attempt state.
-
-**Do not start from scratch if revisiting** — read [M28AI-Blackops-Shields/HANDOVER-pd-edge-placement.md](M28AI-Blackops-Shields/HANDOVER-pd-edge-placement.md) first. It documents what was tried, what failed and why (with empirical numbers from test logs), and concrete recommendations for a different architectural approach (`tOptionalLocationToBuildAwayFrom` + `iOptionalMaxDistanceFromTargetLocation` on `GetBestBuildLocationForTarget` instead of shifting the target position).
+1. **UpgradeUnit errors** (2026-05-16) — Four-branch error handling in `M28Economy.lua:173+` for empty UpgradesTo, recursion, CanBuild failures. Follow-up: fixed `ConsiderHydroUpgradeLoop` and `UpgradeShieldsCoveringSMD` callers passing wrong `bUpdateUpgradeTracker`.
+2. **Support-factory warnings** (2026-05-16) — Investigated, working as designed. T2-support→T3-support CanBuild fails until T3 HQ exists; M28 self-heals on next sweep.
+3. **GE templates with mod shields** (2026-05-17) — Removed vanilla `refbCanBuildExperimentalShields` gate in `M28Engineer.lua:4108` that blocked template creation when Small exp shields are available.
+4. **Large shields in cluster path** (2026-05-17) — Subtract `refiLargeExperimentalShieldCategory` after TECH3+EXPERIMENTAL expansion in `M28Engineer.lua:5248`.
+5. **Large-shield build trigger** (2026-05-18) — `ConsiderLargeShieldBuild` in `M28Building.lua`, triggered from `M28Events.lua:2877`. Caps 1–3 per brain based on enemy GE count. Placement near own GEs and high-value LZs.
+6. **ASF ignore satellites** (2026-05-18) — Filter `refCategorySatellite` out of `AssignAirAATargets` in `M28Air.lua:3474`.
+7. **Protect hydros/mass storage** (2026-05-18) — Excluded HYDROCARBON from all self-destruct paths (CheckUnitCap, GE-template slots, AssistShield, naval unstuck). T1 mass storage excluded from CheckUnitCap.
+8. **PD edge placement** (2026-05-18, REVERTED) — Approach failed; see `HANDOVER-pd-edge-placement.md` before revisiting.
+9. **Non-Seraphim navy stuck** (2026-05-21) — Missing `oUnit.UnitId` arg in `EntityCategoryContains` at `M28Navy.lua:1855` (MAA classification guard). After dynamic `refCategoryNavalAA` expansion added AA-capable frigates, the 1-arg call errored and silently skipped UEF/Cybran/Aeon combat ships from classification. Pre-existing bug in upstream M28AI v297.
 
 ## Workflow
 
@@ -201,46 +64,16 @@ is version-controlled.
 
 ### Testing
 
-- Activate **only** `M28AI-Blackops+Shields` in FAF lobby. With the
-  self-contained rewrite (2026-05-16) the original M28AI mod is no longer
-  needed for the fork to load its own code. Activating both at the same
-  time risks Lua state confusion.
-- Mod stack used: Total Mayhem, BlackOps FAF Merged, BlackOpsFAF-ACUs-
-  Enhanced, Shields Enhanced, Savers Unitspack
-- Run minimum 8–15 min for T3 engineers to spawn (gate fires on
-  `LifetimeCount == 1 + TECH3 * Engineer` in M28Events.lua:3885)
+- Activate **only** `M28AI-Blackops+Shields` in FAF lobby (not original M28AI).
+- Mod stack: Total Mayhem, BlackOps FAF Merged, BlackOpsFAF-ACUs-Enhanced, Shields Enhanced, Savers Unitspack
 - Logs: `C:\Users\etien\AppData\Roaming\Forged Alliance Forever\logs\game_*.log`
-- Crash exit code via `client.log`:
-  - `0` = clean exit
-  - `-1073741819` (0xC0000005) = engine access violation
-- Search log for `M28-BLACKOPS-DEBUG` (current debug marker for the
-  UpgradeUnit no-UpgradesTo investigation), `M28-MyAddon` (legacy
-  Hook-Addon approach), and `M28AI-Blackops+Shields`
+- Crash exit code `0` = clean, `-1073741819` (0xC0000005) = engine access violation
 
-## Important context from earlier diagnosis
+## Why a direct fork (not a hook mod)
 
-The user originally tried to make a separate addon mod (`M28-MyAddon`)
-using FAF's `hook/mods/M28AI/lua/AI/M28Building.lua` mechanism instead
-of directly forking. **That approach was abandoned** due to:
-
-1. **SCR_LuaDoFileConcat parser bug** — Multi-line `if`/`and`/`or` or
-   multi-line function-calls in a hook file break Lua's parser on the
-   concatenated original+hook file. Symptom: `unexpected symbol near 'end'`
-   error, entire M28Building.lua module fails to load, hundreds of
-   `access to nonexistent global` errors at runtime.
-
-2. **Top-level `import()` in hooks** corrupts M28's module state. Got
-   1770–14964 `access to nonexistent global variable` errors when hook
-   had `import('M28UnitInfo.lua')` and `import('M28Factory.lua')` at
-   top level. Only `import('M28Overseer.lua')` worked. Lazy imports
-   (inside function body) helped but not fully.
-
-3. **`categories[sBP]`** is an engine-internal C-API call that can
-   natively crash (Access Violation `0xC0000005`) on certain mod BPs.
-
-The fork approach sidesteps all three issues — we just edit M28's code
-directly. The legacy `M28-MyAddon/` folder is not in the workspace by
-default; ask the user to copy it in if its history is needed.
+An earlier addon-mod approach (`M28-MyAddon`) using FAF hooks was abandoned
+due to SCR_LuaDoFileConcat parser bugs, top-level `import()` state corruption,
+and `categories[sBP]` C-API crashes. Direct fork sidesteps all three.
 
 ## Sibling reference repos in workspace
 

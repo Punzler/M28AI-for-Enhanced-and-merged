@@ -7,6 +7,8 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 ## [v1]
 
 ### Changed
+- Radar upgrade chain: T1 radar now automatically upgrades to T2 when eco allows, instead of building a separate T2 next to it. T2-to-omni upgrade no longer requires 20km+ maps, specific zone positions, or bomber/gunship threat — just T3 mexes and sufficient eco.
+- Air scouts no longer suppressed by radar coverage or omni vision. Scouts are produced and sent regardless of intel structure coverage.
 - AI personalities renamed from "M28 …" to "BlackOps …" in the lobby dropdown (e.g. "AI: BlackOps Adaptive" instead of "AI: M28 Adaptive").
 - Hover micro for bombers is now restricted to experimental bombers only (e.g. Ahwassa). T1/T2/T3 bombers and torp bombers use normal attack and move orders instead of tick-by-tick steering.
 - Air scouts now ignore radar coverage when deciding which zones to rescan. Previously, zones with good radar had their scouting interval multiplied by 4×, which could delay visual intel by several minutes.

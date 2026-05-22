@@ -1546,6 +1546,77 @@ function GetUpgradePathForACU(oACU, bWantToDoTeleSnipe)
     if bDebugMessages == true then LOG(sFunctionRef..': Time='..GetGameTimeSeconds()..'; oACU='..oACU.UnitId..M28UnitInfo.GetUnitLifetimeCount(oACU)..' owned by brain '..aiBrain.Nickname..'; oACU[refbStartedUnderwater]='..tostring(oACU[refbStartedUnderwater] or false)..'; oACU[refiUpgradeCount='..oACU[refiUpgradeCount]..'; aiBrain[M28Economy.refiGrossEnergyBaseIncome]='..aiBrain[M28Economy.refiGrossEnergyBaseIncome]..'; aiBrain[M28Economy.refiGrossMassBaseIncome]='..aiBrain[M28Economy.refiGrossMassBaseIncome]..'; Is aeon or cybran='..tostring(EntityCategoryContains(categories.AEON + categories.CYBRAN, oACU.UnitId))..'; aiBrain[M28Economy.refiBrainResourceMultiplier]='..aiBrain[M28Economy.refiBrainResourceMultiplier]..'; bWantToDoTeleSnipe='..tostring(bWantToDoTeleSnipe or false)..'; oACU[refbPlanningToGetTeleport]='..tostring(oACU[refbPlanningToGetTeleport] or false)..'; aiBrain[refbPlanningToGetShield]='..tostring(aiBrain[refbPlanningToGetShield] or false)) end
     local oBP = oACU:GetBlueprint()
 
+    -- BlackOpsFAF-ACUs-Enhanced: detect by prerequisite chain unique to this mod
+    if oBP.Enhancements
+        and oBP.Enhancements['AdvancedEngineering']
+        and oBP.Enhancements['AdvancedEngineering'].Prerequisite == 'ImprovedEngineering' then
+
+        local tPath = {}
+        local tEnhancements = oBP.Enhancements
+        local function AddIfPresent(sName)
+            if tEnhancements[sName] then
+                table.insert(tPath, sName)
+            end
+        end
+
+        local sFaction = 'UEF'
+        for _, sCat in (oBP.Categories or {}) do
+            if sCat == 'SERAPHIM' then sFaction = 'SERAPHIM' break
+            elseif sCat == 'AEON'  then sFaction = 'AEON'     break
+            elseif sCat == 'CYBRAN' then sFaction = 'CYBRAN'   break
+            end
+        end
+
+        local bNaval = oACU[refbStartedUnderwater]
+
+        if not bNaval then
+            if sFaction == 'UEF'      then AddIfPresent('JuryRiggedZephyr')
+            elseif sFaction == 'CYBRAN'   then AddIfPresent('JuryRiggedRipper')
+            elseif sFaction == 'AEON'     then AddIfPresent('JuryRiggedDisruptor')
+            elseif sFaction == 'SERAPHIM' then AddIfPresent('JuryRiggedChronotron')
+            end
+        end
+
+        AddIfPresent('ImprovedEngineering')
+        if bNaval then AddIfPresent('TorpedoLauncher') end
+        AddIfPresent('AdvancedEngineering')
+
+        if sFaction == 'CYBRAN' then AddIfPresent('ArmorPlating')
+        elseif sFaction == 'SERAPHIM' then AddIfPresent('LambdaFieldEmitters')
+        else AddIfPresent('ShieldBattery')
+        end
+
+        if bNaval then
+            if sFaction == 'AEON' then AddIfPresent('ImprovedTorpLoader')
+            else AddIfPresent('ImprovedReloader')
+            end
+        end
+
+        AddIfPresent('ExperimentalEngineering')
+
+        if sFaction == 'CYBRAN' then AddIfPresent('StructuralIntegrityFields')
+        elseif sFaction == 'SERAPHIM' then AddIfPresent('EnhancedLambdaEmitters')
+        else AddIfPresent('ImprovedShieldBattery')
+        end
+
+        if bNaval then AddIfPresent('AdvancedWarheads') end
+
+        if sFaction == 'CYBRAN' then AddIfPresent('CompositeMaterials')
+        elseif sFaction == 'SERAPHIM' then AddIfPresent('ControlledQuantumRuptures')
+        else AddIfPresent('AdvancedShieldBattery')
+        end
+
+        if sFaction == 'UEF' and not bNaval then
+            AddIfPresent('ExpandedShieldBubble')
+        end
+
+        oACU[reftPreferredUpgrades] = tPath
+        RemovePreferredUpgradesThatWeAlreadyHave(oACU, oBP)
+        if bDebugMessages == true then LOG(sFunctionRef..': BlackOps ACU detected, faction='..sFaction..'; bNaval='..tostring(bNaval)..'; path='..repru(tPath)) end
+        M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+        return
+    end
+
     oACU[refiTimeLastConsideredUpgradePath] = GetGameTimeSeconds()
     if (bWantToDoTeleSnipe or (oACU[refbPlanningToGetTeleport] and (oACU:HasEnhancement('MicrowaveLaserGenerator') or oACU:HasEnhancement('Teleporter') or oACU:HasEnhancement('BlastAttack')))) and oBP.Enhancements['Teleporter'] then
         if EntityCategoryContains(categories.CYBRAN, oACU.UnitId) then

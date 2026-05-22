@@ -4,7 +4,7 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 
 ---
 
-## [Unreleased]
+## [v1]
 
 ### Changed
 - AI personalities renamed from "M28 …" to "BlackOps …" in the lobby dropdown (e.g. "AI: BlackOps Adaptive" instead of "AI: M28 Adaptive").
@@ -16,6 +16,7 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 - Gunships now attack at threat parity instead of requiring a 1.7× advantage over same-zone enemies. The ground-AA tolerance cap is raised from 2000 to 10000, so large gunship fleets are no longer held back by a few T2 flak.
 
 ### Added
+- AI now recognises BlackOpsFAF-ACUs-Enhanced ACUs and picks correct multi-tier upgrade chains (Engineering → Defensive → Weapons). On land maps, a cheap weapon boost is researched first; on naval maps, torpedoes are interleaved with engineering and defensive upgrades.
 - Bombers now try up to 4 alternative angled routes (±30°, ±60°) when the direct path has too much AA. If a detour path has less AA than the tolerance threshold, bombers fly via a waypoint instead of giving up on the target entirely.
 - Idle ASF now escort active T3 and experimental bombers. All qualifying ASF (≥60% fuel, >85% HP) are sent as cover to the furthest-out bomber.
 - Hard cap of 150 interceptors/ASF per AI brain (all tiers combined). Once the cap is reached, air factories switch to bombers, gunships, or engineers instead of idling.
@@ -29,9 +30,9 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 - Hybrid PD+AA structures from TotalMayhem (e.g. the Anode) are no longer incorrectly built through the AA defense path.
 - Fixed a vanilla M28 typo that caused ~50 "nonexistent global variable" errors per minute in late game when many engineers are active.
 - Game-ender shields no longer flicker on and off when nothing is shooting at them. M28 only rotates shields once one of them has actually taken damage; otherwise all shields stay up.
-- Game-enders are now built inside proper shield clusters again instead of with only 1-2 lone shields next to them.
+- Game-enders are now built inside proper shield clusters again (broke because of the new shields) instead with only 1-2 lone shields next to them.
 - Large exp shields are no longer built by accident through the normal cluster path; they only appear from the endgame trigger above.
-- Game-ender templates now reclaim adjacent buildings whose skirts overlap a template slot instead of getting stuck and spamming "template location blocked" warnings. M28 only reclaims a neighbour if it actually skirt-overlaps the slot, so unrelated buildings are left alone.
+- Game-ender templates more often reclaim adjacent buildings whose skirts overlap a template slot instead of getting stuck and spamming "template location blocked" warnings. M28 only reclaims a neighbour if it actually skirt-overlaps the slot, so unrelated buildings are left alone.
 - Limit each AI brain to building at most one T3 Advanced Air Staging Facility.
 - Limit each AI brain to building at most one Artemis satellite control centre (bab2404). If the Artemis is destroyed, the brain may rebuild one.
 - ASF no longer fly under enemy Novax satellites trying to engage them. Satellites are now left to dedicated anti-satellite defences.

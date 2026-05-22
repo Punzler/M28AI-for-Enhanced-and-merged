@@ -4,6 +4,13 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 
 ---
 
+## [v1.1]
+
+### Fixed
+- Large exp shields are now placed at proper distance from game-enders instead of too far away. Previous offsets were too small, causing all nearby positions to fail and the AI to fall back to distant base zones.
+
+---
+
 ## [v1]
 
 ### Changed

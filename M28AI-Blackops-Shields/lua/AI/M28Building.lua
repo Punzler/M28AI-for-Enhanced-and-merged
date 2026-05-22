@@ -6874,7 +6874,11 @@ function ConsiderLargeShieldBuild(aiBrain)
     --  5a. For each of this brain's own GEs (built or under-construction) NOT already inside one of this brain's Large coverage radius, try 8 compass-offset positions around the GE midpoint.
     --  5b. Top-5 LZs by subrefLZSValue (eco-score), only LZ midpoints not yet inside this brain's existing Large coverage.
     local tCandidatePositions = {}
-    local tOffsets = {{12,0},{-12,0},{0,12},{0,-12},{10,10},{-10,10},{10,-10},{-10,-10}}
+    local tOffsets = {
+        {30,0},{-30,0},{0,30},{0,-30},{22,22},{-22,22},{22,-22},{-22,-22},
+        {35,0},{-35,0},{0,35},{0,-35},{25,25},{-25,25},{25,-25},{-25,-25},
+        {20,0},{-20,0},{0,20},{0,-20},{15,15},{-15,15},{15,-15},{-15,-15},
+    }
 
     --5a: per-GE offsets (this brain's own GEs only)
     local toOwnGEs = aiBrain:GetListOfUnits(M28UnitInfo.refCategoryGameEnder, false, true)
@@ -6892,16 +6896,25 @@ function ConsiderLargeShieldBuild(aiBrain)
         end
     end
 
-    --5b: top-N LZs by S-Value (only consider LZs whose midpoint is NOT yet within 0.7x coverage of an existing Large)
+    --5b: top-N LZs by S-Value, only if within 60 ogrids of an own GE (so the shield still covers it)
     local tLZByValue = {}
-    if M28Map.tAllPlateaus then
+    if M28Map.tAllPlateaus and not(M28Utilities.IsTableEmpty(toOwnGEs)) then
         for iPlat, tPlateau in M28Map.tAllPlateaus do
             if tPlateau[M28Map.subrefPlateauLandZones] then
                 for iLZ, tLZData in tPlateau[M28Map.subrefPlateauLandZones] do
                     local tLZTeamData = tLZData[M28Map.subrefLZTeamData] and tLZData[M28Map.subrefLZTeamData][iTeam]
                     if tLZTeamData and tLZData[M28Map.subrefMidpoint] and (tLZTeamData[M28Map.subrefLZSValue] or 0) > 0 then
                         if not(IsPositionWithinLargeCoverage(tLZData[M28Map.subrefMidpoint], toExistingLarges, 0.7)) then
-                            table.insert(tLZByValue, {iVal=tLZTeamData[M28Map.subrefLZSValue], tPos=tLZData[M28Map.subrefMidpoint], iPlat=iPlat, iLZ=iLZ, tLZTeamData=tLZTeamData})
+                            local bNearGE = false
+                            for _, oGE in toOwnGEs do
+                                if M28UnitInfo.IsUnitValid(oGE) and M28Utilities.GetDistanceBetweenPositions(tLZData[M28Map.subrefMidpoint], oGE:GetPosition()) <= 60 then
+                                    bNearGE = true
+                                    break
+                                end
+                            end
+                            if bNearGE then
+                                table.insert(tLZByValue, {iVal=tLZTeamData[M28Map.subrefLZSValue], tPos=tLZData[M28Map.subrefMidpoint], iPlat=iPlat, iLZ=iLZ, tLZTeamData=tLZTeamData})
+                            end
                         end
                     end
                 end

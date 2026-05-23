@@ -1481,7 +1481,9 @@ function RecordPriorityShields(iTeam, tLZTeamData)
                     if iCurShieldHealth > 0 and (iMaxShieldHealth >= 13000 or (iCurShieldHealth / iMaxShieldHealth <= 0.8 or (bConsiderRecentlyDamagedShields and oShield[M28UnitInfo.refiTimeLastDamaged] and GetGameTimeSeconds() - (oShield[M28UnitInfo.refiTimeLastDamaged] or -100) <= 30))) then
                         for iUnit, oUnit in oShield[reftoUnitsCoveredByShield] do
                             if not(oUnit == oShield) then
-                                if EntityCategoryContains(M28UnitInfo.refCategorySMD, oUnit.UnitId) and M28Utilities.IsTableEmpty(M28Team.tTeamData[iTeam][M28Team.reftEnemyNukeLaunchers]) == false then
+                                --M28AI-Blackops+Shields fork: only elevate SMD priority if at least one enemy nuke launcher is visually confirmed (radar-only blips don't reveal SML type)
+                                local tVisuallyConfirmedNukeLaunchers = M28UnitInfo.GetSplitByVisibility(M28Team.tTeamData[iTeam][M28Team.reftEnemyNukeLaunchers], iTeam)
+                                if EntityCategoryContains(M28UnitInfo.refCategorySMD, oUnit.UnitId) and M28Utilities.IsTableEmpty(tVisuallyConfirmedNukeLaunchers) == false then
                                     iCurMassValue = 30000
                                 elseif EntityCategoryContains(M28UnitInfo.refCategorySML, oUnit.UnitId) then
                                     iCurMassValue = 27500
@@ -3540,11 +3542,19 @@ function GetT3ArtiTarget(oArti, bCalledFromSalvoSize)
                     local iMaxTargetsPerZone = 25
                     local bDontConsiderIfUnderwater = true
                     if iPlateauOrZero == 0 then bDontConsiderIfUnderwater = true end
+                    --M28AI-Blackops+Shields fork: only visually-confirmed enemies are filtered by category.
+                    --Radar-only blips bypass category discrimination and get added below at flat priority.
                     if oArti[M28UnitInfo.refbEasyBrain] then
-                        tPriorityUnits = EntityCategoryFilterDown(categories.EXPERIMENTAL + M28UnitInfo.refCategoryStructure * categories.TECH3 + M28UnitInfo.refCategoryStructure * categories.TECH2, tAltLZOrWZTeamData[M28Map.subrefTEnemyUnits])
+                        tPriorityUnits = M28UnitInfo.EntityCategoryFilterDownByVisibility(categories.EXPERIMENTAL + M28UnitInfo.refCategoryStructure * categories.TECH3 + M28UnitInfo.refCategoryStructure * categories.TECH2, tAltLZOrWZTeamData[M28Map.subrefTEnemyUnits], iTeam, aiBrain)
                         iMaxTargetsPerZone = 10
                     else
-                        tPriorityUnits = EntityCategoryFilterDown(categories.EXPERIMENTAL + categories.TECH3 + M28UnitInfo.refCategoryStructure * categories.TECH2 + M28UnitInfo.refCategoryCruiser * categories.TECH2, tAltLZOrWZTeamData[M28Map.subrefTEnemyUnits])
+                        tPriorityUnits = M28UnitInfo.EntityCategoryFilterDownByVisibility(categories.EXPERIMENTAL + categories.TECH3 + M28UnitInfo.refCategoryStructure * categories.TECH2 + M28UnitInfo.refCategoryCruiser * categories.TECH2, tAltLZOrWZTeamData[M28Map.subrefTEnemyUnits], iTeam, aiBrain)
+                    end
+                    --Append radar-only blips to the priority pool (BP unknown, will score at flat default in scoring loop below)
+                    for _, oUnit in tAltLZOrWZTeamData[M28Map.subrefTEnemyUnits] do
+                        if not(M28UnitInfo.HasTeamSeenUnitVisually(oUnit, iTeam, aiBrain)) then
+                            table.insert(tPriorityUnits, oUnit)
+                        end
                     end
 
                     local iCurDist
@@ -3560,8 +3570,9 @@ function GetT3ArtiTarget(oArti, bCalledFromSalvoSize)
                             iCurDist = M28Utilities.GetDistanceBetweenPositions(oUnit:GetPosition(), oArti:GetPosition())
                             if bDebugMessages == true then LOG(sFunctionRef..': Considering targeting oUnit='..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..'; iCurDist='..iCurDist..'; iMaxRange='..iMaxRange..'; iMinRange='..iMinRange..'; iAOE='..(iAOE or 'nil')..'; iDamage='..(iDamage or 'nil')..'; iFriendlyUnitReductionFactor='..(iFriendlyUnitReductionFactor or 'nil')..'; iFriendlyUnitAOEFactor='..(iFriendlyUnitAOEFactor or 'nil')..'; iSizeAdjust='..(iSizeAdjust or 'nil')..'; iMultipleShotMod='..(iMultipleShotMod or 'nil')..'; iMobileValueFactorInner='..(iMobileValueFactorInner or 'nil')..'; iShieldReductionFactor='..(iShieldReductionFactor or 'nil')) end
                             if iCurDist <= iMaxRange and iCurDist >= iMinRange and (bDontConsiderIfUnderwater or not(M28UnitInfo.IsUnitUnderwater(oUnit))) then
-                                iBaseValue = (oUnit[M28UnitInfo.refiUnitMassCost] or M28UnitInfo.GetUnitMassCost(oUnit)) * oUnit:GetFractionComplete()
-                                if EntityCategoryContains(categories.MOBILE, oUnit.UnitId) and oUnit:GetFractionComplete() >= 0.98 then iBaseValue = iBaseValue * iMobileValueFactorInner end
+                                --M28AI-Blackops+Shields fork: mass cost and mobile-factor masked for radar-only blips (flat default, no BP category boost)
+                                iBaseValue = M28UnitInfo.GetUnitMassCostByVisibility(oUnit, iTeam, aiBrain) * oUnit:GetFractionComplete()
+                                if M28UnitInfo.GetCategoryContainsByVisibility(categories.MOBILE, oUnit, iTeam, aiBrain) and oUnit:GetFractionComplete() >= 0.98 then iBaseValue = iBaseValue * iMobileValueFactorInner end
                                 tiBaseValueOfPriorityUnits[iUnit] = iBaseValue
                             end
                         end
@@ -3579,7 +3590,8 @@ function GetT3ArtiTarget(oArti, bCalledFromSalvoSize)
                             --Only set the min value if we dont have a negative value from the target (e.g. happens if targeting our own base or capture target)
                             if (iCurValue or 0) >= 0 and M28UnitInfo.IsUnitValid(oUnit) and oUnit.GetFractionComplete and (oUnit:GetFractionComplete() < 1 or EntityCategoryContains(M28UnitInfo.refCategoryStructure, oUnit.UnitId)) then
                                 --redundancy for buildings and under construction units
-                                iMinValue = (oUnit[M28UnitInfo.refiUnitMassCost] or M28UnitInfo.GetUnitMassCost(oUnit)) * oUnit:GetFractionComplete()
+                                --M28AI-Blackops+Shields fork: mass cost masked for radar-only blips
+                                iMinValue = M28UnitInfo.GetUnitMassCostByVisibility(oUnit, iTeam, aiBrain) * oUnit:GetFractionComplete()
                                 if bDebugMessages == true then LOG(sFunctionRef..': Considering increasing cur value to min basic value based on the unit target, iCurValue='..(iCurValue or 'nil')..'; iBestCurValue='..(iBestCurValue or 'nil')..'; iMinValue='..(iMinValue or 'nil')) end
                                 iCurValue = math.max((iCurValue or 0), iMinValue)
                             end
@@ -6796,14 +6808,15 @@ end
 
 function CountEnemyGEAndT3Arti(iTeam)
     --Iterates the team's enemy arti+exp-structure tracking table once, classifies each unit as either a game-ender (Mavor/Czar/Yolona/Paragon) or a pure T3 fixed artillery (vanilla T3 Heavy Arti, excluding experimentals). Under-construction units count for both categories - they tip the trigger early so we react before the GE actually fires.
+    --M28AI-Blackops+Shields fork: only counts visually-confirmed enemy structures. Radar-only blips don't reveal their BP type, so they're skipped (M28 cannot know a radar contact is specifically a Mavor without LOS).
     local iGE, iT3Arti = 0, 0
     local tEnemyTable = M28Team.tTeamData[iTeam] and M28Team.tTeamData[iTeam][M28Team.reftEnemyArtiAndExpStructure]
     if M28Utilities.IsTableEmpty(tEnemyTable) then return 0, 0 end
     for _, oUnit in tEnemyTable do
         if M28UnitInfo.IsUnitValid(oUnit) then
-            if EntityCategoryContains(M28UnitInfo.refCategoryGameEnder, oUnit.UnitId) then
+            if M28UnitInfo.GetCategoryContainsByVisibility(M28UnitInfo.refCategoryGameEnder, oUnit, iTeam, nil) then
                 iGE = iGE + 1
-            elseif EntityCategoryContains(M28UnitInfo.refCategoryFixedT3Arti, oUnit.UnitId) then
+            elseif M28UnitInfo.GetCategoryContainsByVisibility(M28UnitInfo.refCategoryFixedT3Arti, oUnit, iTeam, nil) then
                 iT3Arti = iT3Arti + 1
             end
         end

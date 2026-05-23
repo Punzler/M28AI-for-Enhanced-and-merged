@@ -216,10 +216,15 @@ function UpdateEnemyAirThreats(iTeam)
     end
     --Base air threats on the highest enemy team threat, not all enemy teams combined (e.g. relevant where 3+ teams)
                                                                         --GetAirThreatLevel(tUnits,                                             bEnemyUnits,    bIncludeAirToAir, bIncludeGroundToAir, bIncludeAirToGround, bIncludeNonCombatAir, bIncludeAirTorpedo, bBlueprintThreat, bRecordByTeam)
-    M28Team.tTeamData[iTeam][M28Team.refiEnemyAirAAThreat] = M28UnitInfo.GetAirThreatLevel(M28Team.tTeamData[iTeam][M28Team.reftoAllEnemyAir], true,            true,               false,              false,                  false,              false,              nil,                true)
-    M28Team.tTeamData[iTeam][M28Team.refiEnemyAirToGroundThreat] = M28UnitInfo.GetAirThreatLevel(M28Team.tTeamData[iTeam][M28Team.reftoEnemyAirToGround], true, false,              false,              true,                   false,              false,              nil,                true)
-    M28Team.tTeamData[iTeam][M28Team.refiEnemyTorpBombersThreat] = M28UnitInfo.GetAirThreatLevel(M28Team.tTeamData[iTeam][M28Team.reftoEnemyTorpBombers], true, false,              false,              false,                  false,              true,              nil,                true)
-    M28Team.tTeamData[iTeam][M28Team.refiEnemyAirOtherThreat] = M28UnitInfo.GetAirThreatLevel(M28Team.tTeamData[iTeam][M28Team.reftoEnemyAirOther], true,       true,               false,              true,                   true,               true,              nil,                true)
+    --M28AI-Blackops+Shields fork: split enemy air pools by visibility; visually-confirmed scored by BP, radar-only blips contribute flat air-threat default
+    local tVisualAllEnemyAir, iRadarAllEnemyAirCount = M28UnitInfo.GetSplitByVisibility(M28Team.tTeamData[iTeam][M28Team.reftoAllEnemyAir], iTeam)
+    local tVisualAirToGround, iRadarAirToGroundCount = M28UnitInfo.GetSplitByVisibility(M28Team.tTeamData[iTeam][M28Team.reftoEnemyAirToGround], iTeam)
+    local tVisualTorpBombers, iRadarTorpBomberCount = M28UnitInfo.GetSplitByVisibility(M28Team.tTeamData[iTeam][M28Team.reftoEnemyTorpBombers], iTeam)
+    local tVisualAirOther, iRadarAirOtherCount = M28UnitInfo.GetSplitByVisibility(M28Team.tTeamData[iTeam][M28Team.reftoEnemyAirOther], iTeam)
+    M28Team.tTeamData[iTeam][M28Team.refiEnemyAirAAThreat] = M28UnitInfo.GetAirThreatLevel(tVisualAllEnemyAir, true,            true,               false,              false,                  false,              false,              nil,                true) + iRadarAllEnemyAirCount * M28UnitInfo.refiRadarBlipDefaultThreatAir
+    M28Team.tTeamData[iTeam][M28Team.refiEnemyAirToGroundThreat] = M28UnitInfo.GetAirThreatLevel(tVisualAirToGround, true, false,              false,              true,                   false,              false,              nil,                true) + iRadarAirToGroundCount * M28UnitInfo.refiRadarBlipDefaultThreatAir
+    M28Team.tTeamData[iTeam][M28Team.refiEnemyTorpBombersThreat] = M28UnitInfo.GetAirThreatLevel(tVisualTorpBombers, true, false,              false,              false,                  false,              true,              nil,                true) + iRadarTorpBomberCount * M28UnitInfo.refiRadarBlipDefaultThreatAir
+    M28Team.tTeamData[iTeam][M28Team.refiEnemyAirOtherThreat] = M28UnitInfo.GetAirThreatLevel(tVisualAirOther, true,       true,               false,              true,                   true,               true,              nil,                true) + iRadarAirOtherCount * M28UnitInfo.refiRadarBlipDefaultThreatAir
     if bDebugMessages == true then LOG(sFunctionRef..': End of code, time='..GetGameTimeSeconds()..'; Enemy AirAA threat='..M28Team.tTeamData[iTeam][M28Team.refiEnemyAirAAThreat]..'; Air to ground threat='..M28Team.tTeamData[iTeam][M28Team.refiEnemyAirToGroundThreat]..'; Torp bomber threat='..M28Team.tTeamData[iTeam][M28Team.refiEnemyTorpBombersThreat]..'; Other threat='..M28Team.tTeamData[iTeam][M28Team.refiEnemyAirOtherThreat]) end
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
 end
@@ -7212,7 +7217,9 @@ function AssignTorpOrBomberTargets(tAvailableBombers, tEnemyTargets, iAirSubteam
     if bTargetAAAndShieldsFirst then
         if bDebugMessages == true then LOG(sFunctionRef..': Will split up targets between those iwth AA category and those without; also priority enemy ACUs ahead of all this, mass cost of available bombers='..M28UnitInfo.GetMassCostOfUnits(tAvailableBombers)) end
         if M28Team.tAirSubteamData[iAirSubteam][M28Team.subrefiOurT1ToT3BomberThreat] >= 2000 and EntityCategoryContains(M28UnitInfo.refCategoryBomber, tAvailableBombers[1].UnitId) then
-            local tEnemyACU = EntityCategoryFilterDown(categories.COMMAND, tEnemyTargets)
+            --M28AI-Blackops+Shields fork: only visually-confirmed ACUs trigger ACU-priority bombing; radar-only blips are not BP-classified
+            local tACUBrain = tAvailableBombers[1]:GetAIBrain()
+            local tEnemyACU = M28UnitInfo.EntityCategoryFilterDownByVisibility(categories.COMMAND, tEnemyTargets, tACUBrain.M28Team, tACUBrain)
             if bDebugMessages == true then LOG(sFunctionRef..': is table of enemy ACU empty='..tostring(M28Utilities.IsTableEmpty(tEnemyACU))) end
             if M28Utilities.IsTableEmpty(tEnemyACU) == false then
                 if M28UnitInfo.GetMassCostOfUnits(tAvailableBombers) >= 15000 then
@@ -7222,7 +7229,9 @@ function AssignTorpOrBomberTargets(tAvailableBombers, tEnemyTargets, iAirSubteam
         end
         if M28Utilities.IsTableEmpty(tAvailableBombers) == false then
             local iSearchCategory = M28UnitInfo.refCategoryGroundAA + M28UnitInfo.refCategoryFixedShield + M28UnitInfo.refCategoryMobileLandShield + M28UnitInfo.refCategoryShieldBoat
-            local tEnemyAAAndShields = EntityCategoryFilterDown(iSearchCategory, tEnemyTargets)
+            --M28AI-Blackops+Shields fork: only visually-confirmed AA/Shields trigger priority bombing; radar-only blips fall into "other" bucket below
+            local tAABrain = tAvailableBombers[1]:GetAIBrain()
+            local tEnemyAAAndShields = M28UnitInfo.EntityCategoryFilterDownByVisibility(iSearchCategory, tEnemyTargets, tAABrain.M28Team, tAABrain)
             if M28Utilities.IsTableEmpty(tEnemyAAAndShields) then
                 if bDebugMessages == true then LOG(sFunctionRef..': Have no enemy AA so will call this again and assign targets to all enemy units, without order to target AA first') end
                 AssignTorpOrBomberTargets(tAvailableBombers, tEnemyTargets, iAirSubteam, bForceGroundFire, false, bIgnoreMicro)
@@ -7232,7 +7241,18 @@ function AssignTorpOrBomberTargets(tAvailableBombers, tEnemyTargets, iAirSubteam
                 if bDebugMessages == true then LOG(sFunctionRef..': Have finished targeting the enemy AA units, is available bombers empty='..tostring(M28Utilities.IsTableEmpty(tAvailableBombers))) end
                 if M28Utilities.IsTableEmpty(tAvailableBombers) == false then
                     if bDebugMessages == true then LOG(sFunctionRef..': Still have available bombers so will target all units') end
-                    local tOtherTargets = EntityCategoryFilterDown(categories.ALLUNITS - iSearchCategory, tEnemyTargets)
+                    --M28AI-Blackops+Shields fork: "other" bucket = visually-confirmed non-AA + all radar-only blips (BP-unknown).
+                    --This prevents M28 from classifying radar-only blips as AA/Shield without LOS confirmation.
+                    local tOtherTargets = {}
+                    for _, oUnit in tEnemyTargets do
+                        if M28UnitInfo.HasTeamSeenUnitVisually(oUnit, tAABrain.M28Team, tAABrain) then
+                            if EntityCategoryContains(categories.ALLUNITS - iSearchCategory, oUnit.UnitId) then
+                                table.insert(tOtherTargets, oUnit)
+                            end
+                        else
+                            table.insert(tOtherTargets, oUnit)
+                        end
+                    end
                     if M28Utilities.IsTableEmpty(tOtherTargets) == false then
                         AssignTorpOrBomberTargets(tAvailableBombers, tOtherTargets, iAirSubteam, bForceGroundFire, false, bIgnoreMicro)
                     end
@@ -9280,6 +9300,17 @@ function UpdateScoutingShortlist(iTeam)
             end
         end
         --M28AI-Blackops+Shields fork: removed iRadarFactor — radar no longer reduces scouting frequency
+        --M28AI-Blackops+Shields fork: tighten scout intervals when many enemy contacts are radar-only (vision-only AI is information-starved otherwise)
+        local iBlipCount = M28UnitInfo.GetTeamRadarOnlyBlipCount(iTeam)
+        if iBlipCount >= 5 then
+            local iScoutFactor
+            if iBlipCount >= 15 then iScoutFactor = 0.5
+            elseif iBlipCount >= 10 then iScoutFactor = 0.6
+            else iScoutFactor = 0.75 end
+            for iEntry, iInterval in tiTimeByPriority do
+                tiTimeByPriority[iEntry] = iInterval * iScoutFactor
+            end
+        end
         local iLongestOverdueScoutingTarget = 0
         --Create shortlist
         M28Team.tTeamData[iTeam][M28Team.subrefiTimeOfScoutingShortlistUpdate] = GetGameTimeSeconds()
@@ -9305,7 +9336,12 @@ function UpdateScoutingShortlist(iTeam)
             for iLandZone, tLZData in tPlateauSubtable[M28Map.subrefPlateauLandZones] do
                 if tLZData[M28Map.subrefLZOrWZMexCount] > 0 or tLZData[M28Map.subrefLZTotalSegmentCount] >= iMinSegmentsWantedForMexFreeZones then
                     local tLZOrWZTeamData = tLZData[M28Map.subrefLZTeamData][iTeam]
-                    iIntervalWanted =  tiTimeByPriority[tLZOrWZTeamData[M28Map.refiScoutingPriority]] + tLZOrWZTeamData[M28Map.refiRecentlyFailedScoutAttempts] ^ 3
+                    --M28AI-Blackops+Shields fork: zones with confirmed enemy structures get high-priority scouting cycle for regular base updates. Vanilla only sets enemy STARTING position to high priority once at game start; later expansions stay medium/low.
+                    local iEffectivePriority = tLZOrWZTeamData[M28Map.refiScoutingPriority]
+                    if (tLZOrWZTeamData[M28Map.subrefThreatEnemyStructureTotalMass] or 0) > 0 then
+                        iEffectivePriority = M28Map.subrefiScoutingHighPriority
+                    end
+                    iIntervalWanted =  tiTimeByPriority[iEffectivePriority] + tLZOrWZTeamData[M28Map.refiRecentlyFailedScoutAttempts] ^ 3
                     --M28AI-Blackops+Shields fork: radar coverage no longer extends scouting interval
                     iAmountOverIntervalWanted = GetGameTimeSeconds() - (tLZOrWZTeamData[M28Map.refiTimeLastHadVisual] or 0) - iIntervalWanted
                     iLongestOverdueScoutingTarget = math.max(iLongestOverdueScoutingTarget, iAmountOverIntervalWanted)
@@ -9331,7 +9367,12 @@ function UpdateScoutingShortlist(iTeam)
         for iPond, tPondSubtable in M28Map.tPondDetails do
             for iWaterZone, tWZData in tPondSubtable[M28Map.subrefPondWaterZones] do
                 local tLZOrWZTeamData = tWZData[M28Map.subrefWZTeamData][iTeam]
-                iIntervalWanted =  tiTimeByPriority[tLZOrWZTeamData[M28Map.refiScoutingPriority]] + tLZOrWZTeamData[M28Map.refiRecentlyFailedScoutAttempts] ^ 3
+                --M28AI-Blackops+Shields fork: water zones with confirmed enemy structures get high-priority scouting cycle (same logic as land zones above).
+                local iEffectivePriorityWZ = tLZOrWZTeamData[M28Map.refiScoutingPriority]
+                if (tLZOrWZTeamData[M28Map.subrefThreatEnemyStructureTotalMass] or 0) > 0 then
+                    iEffectivePriorityWZ = M28Map.subrefiScoutingHighPriority
+                end
+                iIntervalWanted =  tiTimeByPriority[iEffectivePriorityWZ] + tLZOrWZTeamData[M28Map.refiRecentlyFailedScoutAttempts] ^ 3
                 --M28AI-Blackops+Shields fork: radar coverage no longer extends scouting interval
                 if bDebugMessages == true then LOG(sFunctionRef..': Considering iWaterZone='..iWaterZone..'; tLZOrWZTeamData[M28Map.refiTimeLastHadVisual]='..(tLZOrWZTeamData[M28Map.refiTimeLastHadVisual] or 'nil')..'; Time since last had visula='..GetGameTimeSeconds() - (tLZOrWZTeamData[M28Map.refiTimeLastHadVisual] or 0)..'; iIntervalWanted='..iIntervalWanted) end
                 if GetGameTimeSeconds() - (tLZOrWZTeamData[M28Map.refiTimeLastHadVisual] or 0) > iIntervalWanted then

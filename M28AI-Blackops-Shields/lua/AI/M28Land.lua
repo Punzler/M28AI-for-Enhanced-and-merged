@@ -435,9 +435,11 @@ function RecordAirThreatForLandZone(tLZTeamData, iTeam, iPlateau, iLandZone)
     local sFunctionRef = 'RecordAirThreatForLandZone'
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
                                                                 --GetAirThreatLevel(tUnits,                                   bEnemyUnits, bIncludeAirToAir, bIncludeGroundToAir, bIncludeAirToGround, bIncludeNonCombatAir, bIncludeAirTorpedo, bBlueprintThreat)
-    tLZTeamData[M28Map.refiEnemyAirToGroundThreat] = M28UnitInfo.GetAirThreatLevel(tLZTeamData[M28Map.reftLZEnemyAirUnits],     true,       false,              false,              true,               false,                  false)
-    tLZTeamData[M28Map.refiEnemyAirAAThreat] = M28UnitInfo.GetAirThreatLevel(tLZTeamData[M28Map.reftLZEnemyAirUnits],           true,       true,               false,              false,              false,                   false)
-    tLZTeamData[M28Map.refiEnemyAirOtherThreat] = M28UnitInfo.GetAirThreatLevel(tLZTeamData[M28Map.reftLZEnemyAirUnits],        true,       false,               false,              false,              true,                   true)
+    --M28AI-Blackops+Shields fork: split air enemies by visibility; visually-confirmed get BP-based threat, radar-only blips contribute flat default per air-threat category
+    local tVisualAirEnemies, iRadarBlipAirCount = M28UnitInfo.GetSplitByVisibility(tLZTeamData[M28Map.reftLZEnemyAirUnits], iTeam)
+    tLZTeamData[M28Map.refiEnemyAirToGroundThreat] = M28UnitInfo.GetAirThreatLevel(tVisualAirEnemies,     true,       false,              false,              true,               false,                  false) + iRadarBlipAirCount * M28UnitInfo.refiRadarBlipDefaultThreatAir
+    tLZTeamData[M28Map.refiEnemyAirAAThreat] = M28UnitInfo.GetAirThreatLevel(tVisualAirEnemies,           true,       true,               false,              false,              false,                   false) + iRadarBlipAirCount * M28UnitInfo.refiRadarBlipDefaultThreatAir
+    tLZTeamData[M28Map.refiEnemyAirOtherThreat] = M28UnitInfo.GetAirThreatLevel(tVisualAirEnemies,        true,       false,               false,              false,              true,                   true) + iRadarBlipAirCount * M28UnitInfo.refiRadarBlipDefaultThreatAir
 
     if bDebugMessages == true then LOG(sFunctionRef..': Finished updating enemy air threat values for iTeam '..iTeam..' iPlateau '..iPlateau..'; iLandZOne '..iLandZone..'; AirToGround threat='.. tLZTeamData[M28Map.refiEnemyAirToGroundThreat]..'; Other air threat='..tLZTeamData[M28Map.refiEnemyAirOtherThreat]..'; Is table of enemy air units empty='..tostring(M28Utilities.IsTableEmpty(tLZTeamData[M28Map.reftLZEnemyAirUnits]))) end
 
@@ -481,7 +483,9 @@ function RecordGroundThreatForLandZone(tLZData, tLZTeamData, iTeam, iPlateau, iL
         local tStructures = EntityCategoryFilterDown(M28UnitInfo.refCategoryStructure + M28UnitInfo.refCategoryScathis, tLZTeamData[M28Map.subrefTEnemyUnits])
         local tEnemiesExclShieldsAndFixedArti = EntityCategoryFilterDown(categories.MOBILE - M28UnitInfo.refCategoryMobileLandShield + categories.DIRECTFIRE, tLZTeamData[M28Map.subrefTEnemyUnits]) --(shield value gets added later based on the threat excl shields)
         local bHaveDangerousEnemies = false
-        tLZTeamData[M28Map.subrefTThreatEnemyCombatTotal] = M28UnitInfo.GetCombatThreatRating(tEnemiesExclShieldsAndFixedArti, true)
+        --M28AI-Blackops+Shields fork: visually-confirmed enemies contribute real BP-based threat; radar-only blips contribute a flat generic threat each
+        local tVisualCombatEnemies, iRadarBlipCombatCount = M28UnitInfo.GetSplitByVisibility(tEnemiesExclShieldsAndFixedArti, iTeam)
+        tLZTeamData[M28Map.subrefTThreatEnemyCombatTotal] = M28UnitInfo.GetCombatThreatRating(tVisualCombatEnemies, true) + iRadarBlipCombatCount * M28UnitInfo.refiRadarBlipDefaultThreatCombat
 
         if bDebugMessages == true then
             if M28Utilities.IsTableEmpty(tLZTeamData[M28Map.subrefTEnemyUnits]) == false then
@@ -493,8 +497,11 @@ function RecordGroundThreatForLandZone(tLZData, tLZTeamData, iTeam, iPlateau, iL
             end
         end
 
-        tLZTeamData[M28Map.subrefLZThreatEnemyStructureIndirect] = M28UnitInfo.GetCombatThreatRating(tStructures, true, false, true)
-        tLZTeamData[M28Map.subrefiThreatEnemyGroundAA] = M28UnitInfo.GetAirThreatLevel(tLZTeamData[M28Map.subrefTEnemyUnits], true, false, true, false, false, false)
+        --M28AI-Blackops+Shields fork: same split pattern for structure-indirect and ground-AA threat counters
+        local tVisualStructures, iRadarBlipStructureCount = M28UnitInfo.GetSplitByVisibility(tStructures, iTeam)
+        tLZTeamData[M28Map.subrefLZThreatEnemyStructureIndirect] = M28UnitInfo.GetCombatThreatRating(tVisualStructures, true, false, true) + iRadarBlipStructureCount * M28UnitInfo.refiRadarBlipDefaultThreatStructureIndirect
+        local tVisualAllEnemies, iRadarBlipAACount = M28UnitInfo.GetSplitByVisibility(tLZTeamData[M28Map.subrefTEnemyUnits], iTeam)
+        tLZTeamData[M28Map.subrefiThreatEnemyGroundAA] = M28UnitInfo.GetAirThreatLevel(tVisualAllEnemies, true, false, true, false, false, false) + iRadarBlipAACount * M28UnitInfo.refiRadarBlipDefaultThreatAA
         tLZTeamData[M28Map.subrefLZThreatEnemyMobileDFByRange] = nil
         tLZTeamData[M28Map.subrefLZThreatEnemyMobileDFTotal] = 0
         tLZTeamData[M28Map.subrefLZThreatEnemyStructureDFByRange] = nil

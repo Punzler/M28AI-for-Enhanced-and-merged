@@ -4,6 +4,24 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 
 ---
 
+## [v1.2]
+
+### Added
+- **Vision-only AI**: M28 no longer reads blueprint data (unit type, mass cost, health, category) from radar-only enemy contacts. Until a unit is visually confirmed by line-of-sight, M28 treats it as a generic blip with no readable identity. Radar still tells M28 where things are; vision tells M28 what they are. Affects long-range targeting, threat assessments, defensive triggers, enemy classification flags, ACU tracking, and strategic responses.
+- Map-coverage-driven scout production. Air factories (all tech levels) build scouts proportional to how much of the map is currently un-scouted. At game start (~100% unexplored) M28 produces 4 scouts; production tapers as visual coverage improves.
+- Dedicated T3 spy-plane production tied to map coverage. T3 factories build T3 scouts independently of experimentals existing, so high-tech recon is available early in the T3 phase.
+- Zones containing confirmed enemy structures get high-priority scouting cycle (~60s refresh) so known enemy bases get regular visual updates. Previously only enemy starting positions were tagged high-priority and never re-evaluated.
+
+### Changed
+- Long-range weapons (T3 artillery, game-enders, TML, SML, strategic bombers) no longer cherry-pick specific target types from radar contacts. Unidentified radar blips have equal priority — M28 still fires at them, but doesn't preferentially aim at Mavor/Czar/SML/ACU without visual confirmation.
+- Threat counters per zone treat radar-only contacts as a flat generic threat. M28 no longer reflexively overbuilds MAA/ASF based on radar-blip categories it can't legitimately see.
+- Defensive constructions (Large experimental shields, SMD mass-priority elevation) require visually-confirmed enemy game-enders or nuke launchers, not radar-only blips.
+- Enemy classification flags — sniper-bot panic, T3-air alarm, ACU tracking, missile-ship recording, T2-transport detection — all require visual line-of-sight. Radar contact alone no longer triggers strategic reactions.
+- Air-scout priority list keeps unconfirmed TMD/SML targets on the scout-priority queue. Vanilla removed them on any detection (radar or vision); now only visual confirmation clears them.
+- Scout intervals scale with radar-blip count. The more unconfirmed radar contacts, the shorter the scouting cycle (down to 0.5× base intervals at 15+ blips).
+
+---
+
 ## [v1.1]
 
 ### Fixed

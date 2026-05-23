@@ -5347,6 +5347,24 @@ function GetBlueprintToBuildForAirFactory(aiBrain, oFactory)
             if ConsiderBuildingCategory(M28UnitInfo.refCategoryAirScout) then return sBPIDToBuild end
         end
 
+        --M28AI-Blackops+Shields fork (LOW POWER branch): air-factory builds scouts driven by map-coverage gap.
+        --Mirrors the normal-power path below; placed here too because M28 spends most of the early-game in the low-power branch (energy-tight from ACU upgrades + factory production). Fires for ANY tech level so T2+ factories also scale scout production with coverage gap.
+        iCurrentConditionToTry = iCurrentConditionToTry + 1
+        if aiBrain[M28Economy.refiGrossEnergyBaseIncome] >= 30 then
+            local iUnexploredPct = M28UnitInfo.GetTeamUnexploredMapPercent(iTeam)
+            if iUnexploredPct >= 30 then
+                if not(iAirSubteamAirScouts) then iAirSubteamAirScouts = M28Conditions.GetNumberOfConstructedUnitsInAirSubteam(iAirSubteam, M28UnitInfo.refCategoryAirScout) end
+                local iWantedScouts = 1
+                if iUnexploredPct >= 50 then iWantedScouts = 2 end
+                if iUnexploredPct >= 70 then iWantedScouts = 3 end
+                if iUnexploredPct >= 90 then iWantedScouts = 4 end
+                if iAirSubteamAirScouts < iWantedScouts and M28Conditions.GetNumberOfUnderConstructionUnitsOfCategoryInOtherCoreZones(tLZTeamData, iTeam, M28UnitInfo.refCategoryAirScout) == 0 then
+                    if bDebugMessages == true then LOG(sFunctionRef..': Low power air factory building scout, tech='..iFactoryTechLevel..'; unexplored='..iUnexploredPct..'%; cur scouts='..iAirSubteamAirScouts..'; wanted='..iWantedScouts) end
+                    if ConsiderBuildingCategory(M28UnitInfo.refCategoryAirScout) then return sBPIDToBuild end
+                end
+            end
+        end
+
         --Get inties ASAP if enemy has t2 transport in  case they are planning a drop
         iCurrentConditionToTry = iCurrentConditionToTry + 1
         if bDebugMessages == true then LOG(sFunctionRef..': Low power enemy t2 transport intie builder, M28Team.tTeamData[iTeam][M28Team.refiEnemyAirOtherThreat]='..M28Team.tTeamData[iTeam][M28Team.refiEnemyAirOtherThreat]..'; M28Team.tTeamData[iTeam][M28Team.subrefiOurAirAAThreat]='..M28Team.tTeamData[iTeam][M28Team.subrefiOurAirAAThreat]..'; M28Team.tTeamData[iTeam][M28Team.refbEnemyHasT2PlusTransport]='..tostring(M28Team.tTeamData[iTeam][M28Team.refbEnemyHasT2PlusTransport] or false)..'; Stalling E='..tostring(M28Team.tTeamData[iTeam][M28Team.subrefbTeamIsStallingEnergy])) end
@@ -5627,9 +5645,31 @@ function GetBlueprintToBuildForAirFactory(aiBrain, oFactory)
             end
         end
 
+        --M28AI-Blackops+Shields fork: T3 air-factory builds T3 spy-planes driven by map-coverage gap.
+        --Bypasses vanilla's "must have built an experimental first" gate. T3 spy-planes have stealth and range so they're valuable independent of game phase. Lower threshold (20% unexplored) since high-tech scouts are the right tool for poorly-mapped regions.
+        iCurrentConditionToTry = iCurrentConditionToTry + 1
+        if iFactoryTechLevel == 3 and not(M28Team.tTeamData[iTeam][M28Team.subrefbTeamIsStallingEnergy]) then
+            local iUnexploredPctT3 = M28UnitInfo.GetTeamUnexploredMapPercent(iTeam)
+            if iUnexploredPctT3 >= 20 then
+                local iCurT3Scouts = M28Conditions.GetNumberOfConstructedUnitsInAirSubteam(iAirSubteam, M28UnitInfo.refCategoryAirScout * categories.TECH3)
+                local iWantedT3Scouts = 1
+                if iUnexploredPctT3 >= 50 then iWantedT3Scouts = 2 end
+                if iUnexploredPctT3 >= 80 then iWantedT3Scouts = 3 end
+                if iCurT3Scouts < iWantedT3Scouts and M28Conditions.GetNumberOfUnitsCurrentlyBeingBuiltOfCategoryInZone(tLZTeamData, M28UnitInfo.refCategoryAirScout * categories.TECH3) == 0 then
+                    if bDebugMessages == true then LOG(sFunctionRef..': Low power T3 air-factory building T3 spy-plane, unexplored='..iUnexploredPctT3..'%; curT3='..iCurT3Scouts..'; wantedT3='..iWantedT3Scouts) end
+                    if ConsiderBuildingCategory(M28UnitInfo.refCategoryAirScout * categories.TECH3) then return sBPIDToBuild end
+                end
+            end
+        end
+
         --Spy planes if major intel deficit
         if not(iAirSubteamAirScouts) then iAirSubteamAirScouts = M28Conditions.GetNumberOfConstructedUnitsInAirSubteam(iAirSubteam, M28UnitInfo.refCategoryAirScout) end
-        if iAirSubteamAirScouts < 6 and iFactoryTechLevel == 3 and M28Team.tTeamData[iTeam][M28Team.subrefiLongestOverdueScoutingTarget] >= 600 and M28Team.tTeamData[iTeam][M28Team.refiConstructedExperimentalCount] > 0 and not(M28Team.tTeamData[iTeam][M28Team.subrefbTeamIsStallingEnergy]) and M28Conditions.GetNumberOfUnitsCurrentlyBeingBuiltOfCategoryInZone(tLZTeamData, M28UnitInfo.refCategoryAirScout * categories.TECH3) == 0 and M28Conditions.GetFactoryLifetimeCount(oFactory, M28UnitInfo.refCategoryAirScout) <= math.floor((oFactory[refiTotalBuildCount] or 0) * 0.1) and iAirSubteamAirScouts <= 2 then
+        --M28AI-Blackops+Shields fork: lower T3 spy-plane overdue threshold when many enemy contacts are radar-only (vision-only AI needs intel even without an exp built yet)
+        local iT3ScoutBuildOverdueThreshold = 600
+        local iBlipCountForT3 = M28UnitInfo.GetTeamRadarOnlyBlipCount(iTeam)
+        if iBlipCountForT3 >= 15 then iT3ScoutBuildOverdueThreshold = 250
+        elseif iBlipCountForT3 >= 10 then iT3ScoutBuildOverdueThreshold = 400 end
+        if iAirSubteamAirScouts < 6 and iFactoryTechLevel == 3 and M28Team.tTeamData[iTeam][M28Team.subrefiLongestOverdueScoutingTarget] >= iT3ScoutBuildOverdueThreshold and M28Team.tTeamData[iTeam][M28Team.refiConstructedExperimentalCount] > 0 and not(M28Team.tTeamData[iTeam][M28Team.subrefbTeamIsStallingEnergy]) and M28Conditions.GetNumberOfUnitsCurrentlyBeingBuiltOfCategoryInZone(tLZTeamData, M28UnitInfo.refCategoryAirScout * categories.TECH3) == 0 and M28Conditions.GetFactoryLifetimeCount(oFactory, M28UnitInfo.refCategoryAirScout) <= math.floor((oFactory[refiTotalBuildCount] or 0) * 0.1) and iAirSubteamAirScouts <= 2 then
             if bDebugMessages == true then LOG(sFunctionRef..': Overdue scouting target so will build spy planes despite low energy, cur air scouts='..aiBrain:GetCurrentUnits(M28UnitInfo.refCategoryAirScout)) end
             if ConsiderBuildingCategory(M28UnitInfo.refCategoryAirScout) then return sBPIDToBuild end
         end
@@ -5704,7 +5744,13 @@ function GetBlueprintToBuildForAirFactory(aiBrain, oFactory)
         iCurrentConditionToTry = iCurrentConditionToTry + 1
 
         if bDebugMessages == true then LOG(sFunctionRef..': air scout builder, stored energy ratio='..aiBrain:GetEconomyStoredRatio('ENERGY')..'; Cur air scouts='..aiBrain:GetCurrentUnits(M28UnitInfo.refCategoryAirScout)..'; this factory lifetime count='..M28Conditions.GetFactoryLifetimeCount(oFactory, M28UnitInfo.refCategoryAirScout)..'; Radar coverage='..(tLZTeamData[M28Map.refiRadarCoverage] or 'nil')..'; factory total build count='..(oFactory[refiTotalBuildCount] or 0)..'; Is table of units wanting priority air scout empty='..tostring(M28Utilities.IsTableEmpty(M28Team.tAirSubteamData[aiBrain.M28AirSubteam][M28Team.reftPriorityUnitsWantingAirScout]))..'; M28Team.tTeamData[iTeam][M28Team.subrefiLongestOverdueScoutingTarget]='..M28Team.tTeamData[iTeam][M28Team.subrefiLongestOverdueScoutingTarget]) end
-        if iFactoryTechLevel >= 2 and (aiBrain:GetEconomyStoredRatio('ENERGY') >= 0.99 or (M28Utilities.IsTableEmpty(M28Team.tAirSubteamData[aiBrain.M28AirSubteam][M28Team.reftPriorityUnitsWantingAirScout]) == false and M28Team.tTeamData[iTeam][M28Team.subrefiLongestOverdueScoutingTarget] >= 90 and (M28Team.tTeamData[iTeam][M28Team.subrefiLongestOverdueScoutingTarget] >= 240 or M28Utilities.IsTableEmpty(EntityCategoryFilterDown(M28UnitInfo.refCategorySML, M28Team.tAirSubteamData[aiBrain.M28AirSubteam][M28Team.reftPriorityUnitsWantingAirScout])) == false) and (aiBrain[M28Economy.refiGrossEnergyBaseIncome] >= 600 or (iFactoryTechLevel < 3 and aiBrain[M28Economy.refiGrossEnergyBaseIncome] >= 125)))) then
+        --M28AI-Blackops+Shields fork: lower T2+ scout-build overdue thresholds when many radar blips unconfirmed
+        local iT2ScoutOverdueLow, iT2ScoutOverdueMed = 90, 240
+        local iBlipCountForT2 = M28UnitInfo.GetTeamRadarOnlyBlipCount(iTeam)
+        if iBlipCountForT2 >= 15 then iT2ScoutOverdueLow, iT2ScoutOverdueMed = 45, 120
+        elseif iBlipCountForT2 >= 10 then iT2ScoutOverdueLow, iT2ScoutOverdueMed = 60, 160
+        elseif iBlipCountForT2 >= 5 then iT2ScoutOverdueLow, iT2ScoutOverdueMed = 75, 200 end
+        if iFactoryTechLevel >= 2 and (aiBrain:GetEconomyStoredRatio('ENERGY') >= 0.99 or (M28Utilities.IsTableEmpty(M28Team.tAirSubteamData[aiBrain.M28AirSubteam][M28Team.reftPriorityUnitsWantingAirScout]) == false and M28Team.tTeamData[iTeam][M28Team.subrefiLongestOverdueScoutingTarget] >= iT2ScoutOverdueLow and (M28Team.tTeamData[iTeam][M28Team.subrefiLongestOverdueScoutingTarget] >= iT2ScoutOverdueMed or M28Utilities.IsTableEmpty(EntityCategoryFilterDown(M28UnitInfo.refCategorySML, M28Team.tAirSubteamData[aiBrain.M28AirSubteam][M28Team.reftPriorityUnitsWantingAirScout])) == false) and (aiBrain[M28Economy.refiGrossEnergyBaseIncome] >= 600 or (iFactoryTechLevel < 3 and aiBrain[M28Economy.refiGrossEnergyBaseIncome] >= 125)))) then
             if not(iAirSubteamAirScouts) then iAirSubteamAirScouts = M28Conditions.GetNumberOfConstructedUnitsInAirSubteam(iAirSubteam, M28UnitInfo.refCategoryAirScout) end
             local iUnitsWantingPriorityScouts = 0
             if M28Utilities.IsTableEmpty(M28Team.tAirSubteamData[aiBrain.M28AirSubteam][M28Team.reftPriorityUnitsWantingAirScout]) == false then iUnitsWantingPriorityScouts = table.getn(M28Team.tAirSubteamData[aiBrain.M28AirSubteam][M28Team.reftPriorityUnitsWantingAirScout]) end
@@ -5713,6 +5759,42 @@ function GetBlueprintToBuildForAirFactory(aiBrain, oFactory)
                     or (iFactoryTechLevel >= 3 and M28Utilities.IsTableEmpty(M28Team.tAirSubteamData[aiBrain.M28AirSubteam][M28Team.reftPriorityUnitsWantingAirScout]) == false and iAirSubteamAirScouts < math.min(2, table.getn(M28Team.tAirSubteamData[aiBrain.M28AirSubteam][M28Team.reftPriorityUnitsWantingAirScout])))) then
                 if bDebugMessages == true then LOG(sFunctionRef..': Want an air scout') end
                 if ConsiderBuildingCategory(M28UnitInfo.refCategoryAirScout) then return sBPIDToBuild end
+            end
+        end
+
+        --M28AI-Blackops+Shields fork: T3 air-factory builds T3 spy-planes driven by map-coverage gap.
+        --Higher priority than the generic path below since T3 spy-planes have stealth+range and are the right tool for poorly-mapped regions in mid/late game. Counts T3-scouts specifically so vanilla T1/T2 scouts don't satisfy the want.
+        iCurrentConditionToTry = iCurrentConditionToTry + 1
+        if iFactoryTechLevel == 3 and not(M28Team.tTeamData[iTeam][M28Team.subrefbTeamIsStallingEnergy]) then
+            local iUnexploredPctT3 = M28UnitInfo.GetTeamUnexploredMapPercent(iTeam)
+            if iUnexploredPctT3 >= 20 then
+                local iCurT3Scouts = M28Conditions.GetNumberOfConstructedUnitsInAirSubteam(iAirSubteam, M28UnitInfo.refCategoryAirScout * categories.TECH3)
+                local iWantedT3Scouts = 1
+                if iUnexploredPctT3 >= 50 then iWantedT3Scouts = 2 end
+                if iUnexploredPctT3 >= 80 then iWantedT3Scouts = 3 end
+                if iCurT3Scouts < iWantedT3Scouts and M28Conditions.GetNumberOfUnitsCurrentlyBeingBuiltOfCategoryInZone(tLZTeamData, M28UnitInfo.refCategoryAirScout * categories.TECH3) == 0 then
+                    if bDebugMessages == true then LOG(sFunctionRef..': T3 air-factory building T3 spy-plane, unexplored='..iUnexploredPctT3..'%; curT3='..iCurT3Scouts..'; wantedT3='..iWantedT3Scouts) end
+                    if ConsiderBuildingCategory(M28UnitInfo.refCategoryAirScout * categories.TECH3) then return sBPIDToBuild end
+                end
+            end
+        end
+
+        --M28AI-Blackops+Shields fork: air-factory builds scouts driven by map-coverage gap (any tech).
+        --Vanilla M28 only builds scouts via engi-hunter one-shot, priority-units, or T2+ overdue thresholds (all rare), leaving most of the map permanently unscouted. Map-coverage % is the natural signal — high % unexplored = scout urgently regardless of tech level.
+        iCurrentConditionToTry = iCurrentConditionToTry + 1
+        if not(M28Team.tTeamData[iTeam][M28Team.subrefbTeamIsStallingEnergy]) and aiBrain[M28Economy.refiGrossEnergyBaseIncome] >= 30 then
+            local iUnexploredPct = M28UnitInfo.GetTeamUnexploredMapPercent(iTeam)
+            if iUnexploredPct >= 30 then
+                if not(iAirSubteamAirScouts) then iAirSubteamAirScouts = M28Conditions.GetNumberOfConstructedUnitsInAirSubteam(iAirSubteam, M28UnitInfo.refCategoryAirScout) end
+                --Scale scout target by coverage gap: 30-49% unexplored=1, 50-69%=2, 70-89%=3, 90%+=4
+                local iWantedScouts = 1
+                if iUnexploredPct >= 50 then iWantedScouts = 2 end
+                if iUnexploredPct >= 70 then iWantedScouts = 3 end
+                if iUnexploredPct >= 90 then iWantedScouts = 4 end
+                if iAirSubteamAirScouts < iWantedScouts and M28Conditions.GetNumberOfUnderConstructionUnitsOfCategoryInOtherCoreZones(tLZTeamData, iTeam, M28UnitInfo.refCategoryAirScout) == 0 then
+                    if bDebugMessages == true then LOG(sFunctionRef..': Air factory building scout, tech='..iFactoryTechLevel..'; unexplored='..iUnexploredPct..'%; cur scouts='..iAirSubteamAirScouts..'; wanted='..iWantedScouts) end
+                    if ConsiderBuildingCategory(M28UnitInfo.refCategoryAirScout) then return sBPIDToBuild end
+                end
             end
         end
 

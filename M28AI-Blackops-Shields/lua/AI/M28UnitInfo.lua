@@ -116,6 +116,20 @@ reftiTeamsRecordedAsNonM28Ally = 'M28TRNmA' --[x] = 1,2,3...' returns the iTeam 
 refiUnitMassCost = 'M28UMCs' --for profiling testing
 refbNonM28ExpConstruction = 'M28UUcE' --true if unit has been recorded against the table of non-M28 experimentals being constructed
 refbHaveSeenUnitByTeam = 'M28UHvSn' --true if we have detected the unit in some way
+refbHaveTeamSeenVisually = 'M28UHvVis' --M28AI-Blackops+Shields fork: true if team has had LOS (not just radar) on this unit; sticky once set
+refiRadarBlipDefaultMassCost = 1000 --Flat mass-cost value used in priority scoring for radar-only enemy contacts
+refiRadarBlipDefaultHealth = 1000 --Flat max-health value used in priority scoring for radar-only enemy contacts
+refiRadarBlipDefaultThreatCombat = 50 --Flat combat-threat value contributed per radar-only enemy contact
+refiRadarBlipDefaultThreatAir = 50 --Flat air-threat value contributed per radar-only enemy contact
+refiRadarBlipDefaultThreatAA = 50 --Flat ground-AA threat contributed per radar-only enemy contact
+refiRadarBlipDefaultThreatStructureIndirect = 100 --Flat structure indirect-fire threat per radar-only enemy contact
+
+--M28AI-Blackops+Shields fork: cached counter slot for GetTeamRadarOnlyBlipCount (stored on tTeamData[iTeam])
+refiCachedRadarBlipCount = 'M28RBCnt'
+refiCachedRadarBlipCountTime = 'M28RBCntT'
+refiCachedUnexploredPct = 'M28UnxP'
+refiCachedUnexploredPctTime = 'M28UnxPT'
+refiUnexploredZoneStaleThreshold = 120 --seconds: zone counts as unexplored if no LOS for this long
 refbScoutCombatOverride = 'M28ScCmO' --true if we want the scout to be treated as a normal combat unit
 refbTriedUpgrading = 'M28TrUpgr' --used for buildings like pgens, true if have tried upgrading (for redundancy to avoid trying to upgrade multiple times)
 refbIssuedUpgrade = 'M28IssUpg' --true if the IssueUpgrade order is called; done to help with campaign compatibility
@@ -3279,6 +3293,165 @@ function CanSeeUnit(aiBrain, oUnit, bRequireVisualNotJustBlipToReturnTrue)
         end
     end
     return false
+end
+
+--M28AI-Blackops+Shields fork: vision-visibility-aware helpers for target priority scoring.
+--Returns true if the team has ever had LOS (not just radar) on this unit. Flag is sticky once set.
+--On-demand promotion: if flag not yet set, checks current blip state and promotes if visible.
+function HasTeamSeenUnitVisually(oUnit, iTeam, aiBrain)
+    if oUnit[refbHaveTeamSeenVisually] and oUnit[refbHaveTeamSeenVisually][iTeam] then
+        return true
+    end
+    if aiBrain and oUnit.GetBlip and not(oUnit.Dead) then
+        local oBlip = oUnit:GetBlip(aiBrain:GetArmyIndex())
+        if oBlip and oBlip:IsSeenEver(aiBrain:GetArmyIndex()) then
+            if not(oUnit[refbHaveTeamSeenVisually]) then oUnit[refbHaveTeamSeenVisually] = {} end
+            oUnit[refbHaveTeamSeenVisually][iTeam] = true
+            return true
+        end
+    end
+    return false
+end
+
+--Returns real mass cost if team has visual confirmation, otherwise generic flat default
+function GetUnitMassCostByVisibility(oUnit, iTeam, aiBrain)
+    if HasTeamSeenUnitVisually(oUnit, iTeam, aiBrain) then
+        return oUnit[refiUnitMassCost] or GetUnitMassCost(oUnit)
+    end
+    return refiRadarBlipDefaultMassCost
+end
+
+--Returns category membership only if team has visual confirmation, false otherwise (radar-only blips have no readable BP category)
+function GetCategoryContainsByVisibility(iCategory, oUnit, iTeam, aiBrain)
+    if HasTeamSeenUnitVisually(oUnit, iTeam, aiBrain) then
+        return EntityCategoryContains(iCategory, oUnit.UnitId)
+    end
+    return false
+end
+
+--Splits an enemy unit list into visually-confirmed units and a count of radar-only blips.
+--Used by threat aggregation: visually-confirmed go through normal BP-based threat scoring;
+--radar-only count is multiplied by a flat default to contribute generic threat without leaking BP info.
+function GetSplitByVisibility(tUnits, iTeam)
+    local tVisual = {}
+    local iRadarCount = 0
+    if tUnits then
+        for _, oUnit in tUnits do
+            if HasTeamSeenUnitVisually(oUnit, iTeam, nil) then
+                table.insert(tVisual, oUnit)
+            else
+                iRadarCount = iRadarCount + 1
+            end
+        end
+    end
+    return tVisual, iRadarCount
+end
+
+--Returns count of currently-tracked enemy units that the team has NOT visually confirmed yet (radar-only blips).
+--Used by scout-aggressiveness logic to scale scouting frequency on "many unconfirmed contacts" signal.
+--Cached for 5 seconds per team to keep cost low; iterates all land + water zones' enemy-unit tables.
+function GetTeamRadarOnlyBlipCount(iTeam)
+    local M28Team = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Team.lua')
+    local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
+    if not(M28Team.tTeamData[iTeam]) then return 0 end
+    local iCurTime = GetGameTimeSeconds()
+    if M28Team.tTeamData[iTeam][refiCachedRadarBlipCountTime] and iCurTime - M28Team.tTeamData[iTeam][refiCachedRadarBlipCountTime] < 5 then
+        return M28Team.tTeamData[iTeam][refiCachedRadarBlipCount] or 0
+    end
+    local iCount = 0
+    for iPlateau, tPlateauSubtable in M28Map.tAllPlateaus do
+        if tPlateauSubtable[M28Map.subrefPlateauLandZones] then
+            for iLandZone, tLZData in tPlateauSubtable[M28Map.subrefPlateauLandZones] do
+                if tLZData[M28Map.subrefLZTeamData] and tLZData[M28Map.subrefLZTeamData][iTeam] then
+                    local tEnemies = tLZData[M28Map.subrefLZTeamData][iTeam][M28Map.subrefTEnemyUnits]
+                    if tEnemies then
+                        for _, oUnit in tEnemies do
+                            if not(HasTeamSeenUnitVisually(oUnit, iTeam, nil)) then
+                                iCount = iCount + 1
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    for iPond, tPondSubtable in M28Map.tPondDetails do
+        if tPondSubtable[M28Map.subrefPondWaterZones] then
+            for iWaterZone, tWZData in tPondSubtable[M28Map.subrefPondWaterZones] do
+                if tWZData[M28Map.subrefWZTeamData] and tWZData[M28Map.subrefWZTeamData][iTeam] then
+                    local tEnemies = tWZData[M28Map.subrefWZTeamData][iTeam][M28Map.subrefTEnemyUnits]
+                    if tEnemies then
+                        for _, oUnit in tEnemies do
+                            if not(HasTeamSeenUnitVisually(oUnit, iTeam, nil)) then
+                                iCount = iCount + 1
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    M28Team.tTeamData[iTeam][refiCachedRadarBlipCount] = iCount
+    M28Team.tTeamData[iTeam][refiCachedRadarBlipCountTime] = iCurTime
+    return iCount
+end
+
+--Returns percentage (0-100) of land + water zones that the team hasn't had LOS on for at least refiUnexploredZoneStaleThreshold seconds.
+--Used by T1 scout-production to drive early-game map-coverage scouting. Drives scout-build even before any radar contact exists.
+--Cached for 5 seconds per team.
+function GetTeamUnexploredMapPercent(iTeam)
+    local M28Team = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Team.lua')
+    local M28Map = import('/mods/M28AI-Blackops-Shields/lua/AI/M28Map.lua')
+    if not(M28Team.tTeamData[iTeam]) then return 0 end
+    local iCurTime = GetGameTimeSeconds()
+    if M28Team.tTeamData[iTeam][refiCachedUnexploredPctTime] and iCurTime - M28Team.tTeamData[iTeam][refiCachedUnexploredPctTime] < 5 then
+        return M28Team.tTeamData[iTeam][refiCachedUnexploredPct] or 0
+    end
+    local iTotalZones = 0
+    local iUnexplored = 0
+    for iPlateau, tPlateauSubtable in M28Map.tAllPlateaus do
+        if tPlateauSubtable[M28Map.subrefPlateauLandZones] then
+            for iLandZone, tLZData in tPlateauSubtable[M28Map.subrefPlateauLandZones] do
+                if tLZData[M28Map.subrefLZTeamData] and tLZData[M28Map.subrefLZTeamData][iTeam] then
+                    iTotalZones = iTotalZones + 1
+                    local iLastVisual = tLZData[M28Map.subrefLZTeamData][iTeam][M28Map.refiTimeLastHadVisual] or 0
+                    if iLastVisual == 0 or iCurTime - iLastVisual > refiUnexploredZoneStaleThreshold then
+                        iUnexplored = iUnexplored + 1
+                    end
+                end
+            end
+        end
+    end
+    for iPond, tPondSubtable in M28Map.tPondDetails do
+        if tPondSubtable[M28Map.subrefPondWaterZones] then
+            for iWaterZone, tWZData in tPondSubtable[M28Map.subrefPondWaterZones] do
+                if tWZData[M28Map.subrefWZTeamData] and tWZData[M28Map.subrefWZTeamData][iTeam] then
+                    iTotalZones = iTotalZones + 1
+                    local iLastVisual = tWZData[M28Map.subrefWZTeamData][iTeam][M28Map.refiTimeLastHadVisual] or 0
+                    if iLastVisual == 0 or iCurTime - iLastVisual > refiUnexploredZoneStaleThreshold then
+                        iUnexplored = iUnexplored + 1
+                    end
+                end
+            end
+        end
+    end
+    local iPct = 0
+    if iTotalZones > 0 then iPct = math.floor(iUnexplored * 100 / iTotalZones) end
+    M28Team.tTeamData[iTeam][refiCachedUnexploredPct] = iPct
+    M28Team.tTeamData[iTeam][refiCachedUnexploredPctTime] = iCurTime
+    return iPct
+end
+
+--Filters a unit list by category, only considering visually-confirmed units. Radar-only blips are excluded from the filtered output.
+function EntityCategoryFilterDownByVisibility(iCategory, tUnits, iTeam, aiBrain)
+    if not(tUnits) then return {} end
+    local tVisible = {}
+    for _, oUnit in tUnits do
+        if HasTeamSeenUnitVisually(oUnit, iTeam, aiBrain) then
+            table.insert(tVisible, oUnit)
+        end
+    end
+    return EntityCategoryFilterDown(iCategory, tVisible)
 end
 
 function DisableUnitWeapon(oUnit)

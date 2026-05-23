@@ -743,6 +743,10 @@ function GetDamageFromBomb(aiBrain, tBaseLocation, iAOE, iDamage, iFriendlyUnitD
                     if bDebugMessages == true then LOG(sFunctionRef..': oUnit is a capture target='..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..'; reducing damage from bomb, iCurDist='..iCurDist..'; Damage after reduction (but may still have other units)='..iTotalDamage) end
                 end
                 if iCurDist <= iAOE then
+                    --M28AI-Blackops+Shields fork: radar-only contacts contribute flat generic value (no BP-derived priority boosts)
+                    if not(M28UnitInfo.HasTeamSeenUnitVisually(oUnit, aiBrain.M28Team, aiBrain)) then
+                        iTotalDamage = iTotalDamage + M28UnitInfo.refiRadarBlipDefaultMassCost
+                    else
                     --Is the unit shielded by more than 90% of our damage?
                     --IsTargetUnderShield(aiBrain, oTarget, iIgnoreShieldsWithLessThanThisCurHealth, bReturnShieldHealthInstead, bIgnoreMobileShields, bTreatPartCompleteAsComplete, bCumulativeShieldHealth)
                     if bCheckForShields and IsTargetUnderShield(aiBrain, oUnit, iShieldThreshold, false, false, nil, bCumulativeShieldHealthCheck) then iMassFactor = (iOptionalShieldReductionFactor or 0) end
@@ -845,6 +849,7 @@ function GetDamageFromBomb(aiBrain, tBaseLocation, iAOE, iDamage, iFriendlyUnitD
                         end
                         if bDebugMessages == true then LOG(sFunctionRef..': Finished considering the unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..'; iTotalDamage='..iTotalDamage..';refiUnitMassCost='..oUnit[M28UnitInfo.refiUnitMassCost]..'; oUnit:GetFractionComplete()='..oUnit:GetFractionComplete()..'; iMassFactor after considering if unit is mobile='..iMassFactor..'; distance between unit and target='..M28Utilities.GetDistanceBetweenPositions(tBaseLocation, oUnit:GetPosition())) end
                     end
+                    end --M28AI-Blackops+Shields fork: closes visibility-gated else for radar-only branch
                 end
 
             end

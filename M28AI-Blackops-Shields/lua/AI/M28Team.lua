@@ -1957,7 +1957,10 @@ function AssignUnitToLandZoneOrPond(aiBrain, oUnit, bAlreadyUpdatedPosition, bAl
             if bIgnoreIfAssignedAlready and oUnit[M28UnitInfo.reftbConsideredForAssignmentByTeam][aiBrain.M28Team] then
                 --Do nothing
             else
-                if not(oUnit[M28UnitInfo.reftbConsideredForAssignmentByTeam][aiBrain.M28Team]) then
+                --M28AI-Blackops+Shields fork: defer enemy BP-classification until LOS confirmed.
+                --For radar-only enemy detections we leave the considered-flag UNSET so the next OnDetectedBy fire (after vision transition) re-runs this whole block with BP info now legitimately available.
+                --Ally/civilian classification runs normally (no BP-leak concern).
+                if not(oUnit[M28UnitInfo.reftbConsideredForAssignmentByTeam][aiBrain.M28Team]) and not(IsEnemy(aiBrain:GetArmyIndex(), oUnit:GetAIBrain():GetArmyIndex()) and not(M28UnitInfo.HasTeamSeenUnitVisually(oUnit, aiBrain.M28Team, aiBrain))) then
                     oUnit[M28UnitInfo.reftbConsideredForAssignmentByTeam][aiBrain.M28Team] = true
 
                     --First time considering the unit for this team

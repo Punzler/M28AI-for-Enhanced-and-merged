@@ -3406,21 +3406,33 @@ function OnDetectedBy(oUnitDetected, iBrainIndex)
             M28Team.ConsiderAssigningUnitToZoneForBrain(aiBrain, oUnitDetected) --This function includes check of whether this is an M28 brain, and updates last known position
 
             if aiBrain.M28AI then
+                --M28AI-Blackops+Shields fork: promote visual-visibility flag whenever blip indicates LOS (not just radar).
+                --Runs on every detection event so radar->vision transitions are captured. Helper performs the same check on-demand.
+                if aiBrain.M28Team and not(oUnitDetected[M28UnitInfo.refbHaveTeamSeenVisually] and oUnitDetected[M28UnitInfo.refbHaveTeamSeenVisually][aiBrain.M28Team]) then
+                    if oUnitDetected.GetBlip then
+                        local oBlip = oUnitDetected:GetBlip(iBrainIndex)
+                        if oBlip and oBlip:IsSeenEver(iBrainIndex) then
+                            if not(oUnitDetected[M28UnitInfo.refbHaveTeamSeenVisually]) then oUnitDetected[M28UnitInfo.refbHaveTeamSeenVisually] = {} end
+                            oUnitDetected[M28UnitInfo.refbHaveTeamSeenVisually][aiBrain.M28Team] = true
+                            --M28AI-Blackops+Shields fork: only remove from priority-scout list after LOS confirmation. Radar-only detection of a TMD/SML doesn't reveal its type to a player, so keep scouting.
+                            if oUnitDetected[M28Air.refiTimeLastWantedPriorityAirScout] and EntityCategoryContains(M28UnitInfo.refCategoryTMD + M28UnitInfo.refCategorySML, oUnitDetected.UnitId) then
+                                if M28Utilities.IsTableEmpty(M28Team.tTeamData[aiBrain.M28Team][M28Team.subreftoFriendlyActiveM28Brains]) == false then
+                                    local tbAirSubteamConsidered = {}
+                                    for iBrain, oBrain in M28Team.tTeamData[aiBrain.M28Team][M28Team.subreftoFriendlyActiveM28Brains] do
+                                        if not(tbAirSubteamConsidered[oBrain.M28AirSubteam]) then
+                                            M28Air.RemoveUnitFromPriorityScoutTable(oUnitDetected, oBrain.M28AirSubteam)
+                                            tbAirSubteamConsidered[oBrain.M28AirSubteam] = true
+                                        end
+                                    end
+                                    oUnitDetected[M28Air.refiTimeLastWantedPriorityAirScout] = nil --redundancy
+                                end
+                            end
+                        end
+                    end
+                end
                 if aiBrain.M28Team and not(oUnitDetected[M28UnitInfo.refbHaveSeenUnitByTeam][aiBrain.M28Team]) then
                     if not(oUnitDetected[M28UnitInfo.refbHaveSeenUnitByTeam]) then oUnitDetected[M28UnitInfo.refbHaveSeenUnitByTeam] = {} end
                     oUnitDetected[M28UnitInfo.refbHaveSeenUnitByTeam][aiBrain.M28Team] = true
-                    if oUnitDetected[M28Air.refiTimeLastWantedPriorityAirScout] and EntityCategoryContains(M28UnitInfo.refCategoryTMD + M28UnitInfo.refCategorySML, oUnitDetected.UnitId) then
-                        if M28Utilities.IsTableEmpty(M28Team.tTeamData[aiBrain.M28Team][M28Team.subreftoFriendlyActiveM28Brains]) == false then
-                            local tbAirSubteamConsidered = {}
-                            for iBrain, oBrain in M28Team.tTeamData[aiBrain.M28Team][M28Team.subreftoFriendlyActiveM28Brains] do
-                                if not(tbAirSubteamConsidered[oBrain.M28AirSubteam]) then
-                                    M28Air.RemoveUnitFromPriorityScoutTable(oUnitDetected, oBrain.M28AirSubteam)
-                                    tbAirSubteamConsidered[oBrain.M28AirSubteam] = true
-                                end
-                            end
-                            oUnitDetected[M28Air.refiTimeLastWantedPriorityAirScout] = nil --redundancy
-                        end
-                    end
                 end
                 --Update highest enemy ground unti health
                 if M28Map.bFirstM28TeamHasBeenInitialised and M28UnitInfo.IsUnitValid(oUnitDetected) and EntityCategoryContains(M28UnitInfo.refCategoryLandCombat - categories.COMMAND - categories.SUBCOMMANDER - M28UnitInfo.refCategoryLandScout, oUnitDetected.UnitId) then

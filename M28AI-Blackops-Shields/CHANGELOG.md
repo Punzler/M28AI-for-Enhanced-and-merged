@@ -4,6 +4,13 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 
 ---
 
+## [v1.3]
+
+### Changed
+- ACU retreats earlier on large maps (20km+). The retreat trigger at 16:40 game time now applies in all game modes, not just assassination.
+
+---
+
 ## [v1.2]
 
 ### Added

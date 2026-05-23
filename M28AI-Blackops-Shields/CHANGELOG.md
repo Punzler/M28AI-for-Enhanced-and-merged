@@ -8,6 +8,8 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 
 ### Fixed
 - Large exp shields are now placed at proper distance from game-enders instead of too far away. Previous offsets were too small, causing all nearby positions to fail and the AI to fall back to distant base zones.
+- Mobile anti-air no longer gets drawn to zones where only satellite threat exists. Satellites are now fully excluded from zone air-unit tracking so they don't inflate air-to-ground threat values that pull MAA across the map.
+- Enemy satellites now trigger SMD construction directly (not just their control centres), giving an earlier defensive response.
 
 ---
 

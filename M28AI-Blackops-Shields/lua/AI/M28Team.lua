@@ -349,7 +349,7 @@ tLandSubteamData = {} --tLandSubteamData[oBrain.M28LandSubteam] results in the b
 --Other variables dependent on above:
 tEnemyBigThreatCategories = { [reftEnemyLandExperimentals] = M28UnitInfo.refCategoryLandExperimental + categories.COMMAND, --include ACU here so that if ACU gets laser or blast gun upgrade it will get assigned to land experimentals
                               --M28AI-Blackops+Shields fork: include satellite control centres (Novax xeb2402, BlackOps Aeon Artemis bab2404) under reftEnemyNukeLaunchers so M28's SMD-build logic fires against them. BlackOps T3 SMDs carry an AntiSat weapon, so building SMDs is the correct defensive response.
-                              [reftEnemyArtiAndExpStructure] = M28UnitInfo.refCategoryFixedT3Arti + M28UnitInfo.refCategoryExperimentalStructure, [reftEnemyNukeLaunchers] = M28UnitInfo.refCategorySML + categories.xeb2402 + categories.bab2404, [reftEnemySMD] = M28UnitInfo.refCategorySMD, [reftEnemyBattleships] = M28UnitInfo.refCategoryNavalSurface * categories.BATTLESHIP, [reftEnemyMobileSatellites] = M28UnitInfo.refCategorySatellite, [reftEnemyAirExperimentals] = M28UnitInfo.refCategoryGunship * categories.EXPERIMENTAL + M28UnitInfo.refCategoryCzar + M28UnitInfo.refCategoryBomber * categories.EXPERIMENTAL }
+                              [reftEnemyArtiAndExpStructure] = M28UnitInfo.refCategoryFixedT3Arti + M28UnitInfo.refCategoryExperimentalStructure, [reftEnemyNukeLaunchers] = M28UnitInfo.refCategorySML + categories.xeb2402 + categories.bab2404 + M28UnitInfo.refCategorySatellite, [reftEnemySMD] = M28UnitInfo.refCategorySMD, [reftEnemyBattleships] = M28UnitInfo.refCategoryNavalSurface * categories.BATTLESHIP, [reftEnemyMobileSatellites] = M28UnitInfo.refCategorySatellite, [reftEnemyAirExperimentals] = M28UnitInfo.refCategoryGunship * categories.EXPERIMENTAL + M28UnitInfo.refCategoryCzar + M28UnitInfo.refCategoryBomber * categories.EXPERIMENTAL }
 
 
 
@@ -1145,7 +1145,9 @@ function AddUnitToLandZoneForBrain(aiBrain, oUnit, iPlateau, iLandZone, bIsEnemy
                         M28Utilities.DrawLocation(oUnit:GetPosition(), 2)
                     end
                 end
-                if bIsEnemyAirUnit then
+                if bIsEnemyAirUnit and EntityCategoryContains(M28UnitInfo.refCategorySatellite, oUnit.UnitId) then
+                    --M28AI-Blackops+Shields fork: satellites are tracked via reftEnemyMobileSatellites; exclude from zone air-unit tables so they don't inflate MAA threat or draw MAA to zones they can't engage in.
+                elseif bIsEnemyAirUnit then
                     table.insert(M28Map.tAllPlateaus[iPlateauRef][M28Map.subrefPlateauLandZones][iLandZoneRef][M28Map.subrefLZTeamData][aiBrain.M28Team][M28Map.reftLZEnemyAirUnits], oUnit)
                 else
                     if bDebugMessages == true then LOG(sFunctionRef..': About to add enemy to table of enemy units, iPlateauRef='..(iPlateauRef or 'nil')..'; iLandZoneRef='..(iLandZoneRef or 'nil')..'; oUnit='..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)..'; Is this a T2 arti unit='..tostring(EntityCategoryContains(M28UnitInfo.refCategoryFixedT2Arti, oUnit.UnitId))) end
@@ -1277,7 +1279,9 @@ function AddUnitToWaterZoneForBrain(aiBrain, oUnit, iWaterZone, bIsEnemyAirUnit)
         if bDebugMessages == true then LOG(sFunctionRef..': iPond='..(iPond or 'nil')..'; iWaterZone='..(iWaterZone or 'nil')..'; Team='..(aiBrain.M28Team or 'nil')..'; IsEnemy='..tostring(IsEnemy(aiBrain:GetArmyIndex(), oUnit:GetAIBrain():GetArmyIndex()))..'; Is tWZTeamData empty='..tostring(M28Utilities.IsTableEmpty(tWZTeamData))) end
         if IsEnemy(aiBrain:GetArmyIndex(), oUnit:GetAIBrain():GetArmyIndex()) then
             if bDebugMessages == true then LOG(sFunctionRef..': Is an enemy so will add to list of enemy air units or enemy units depending on if it is air; aiBrain='..aiBrain.Nickname..'; team='..aiBrain.M28Team..'; Unit position='..repru(oUnit:GetPosition())..'; bIsEnemyAirUnit='..tostring(bIsEnemyAirUnit or false)) end
-            if bIsEnemyAirUnit then
+            if bIsEnemyAirUnit and EntityCategoryContains(M28UnitInfo.refCategorySatellite, oUnit.UnitId) then
+                --M28AI-Blackops+Shields fork: satellites excluded from zone air-unit tables (see AddUnitToLandZoneForBrain).
+            elseif bIsEnemyAirUnit then
                 table.insert(tWZTeamData[M28Map.reftWZEnemyAirUnits], oUnit)
             else
                 table.insert(tWZTeamData[M28Map.subrefTEnemyUnits], oUnit)

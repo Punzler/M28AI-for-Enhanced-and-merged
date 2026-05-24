@@ -3,6 +3,9 @@
 Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for play with **Shields Enhanced** and **BlackOpsFAF-Merged** in FAF.
 
 ---
+## [v2.0]
+
+### Release
 
 ## [v1.5]
 

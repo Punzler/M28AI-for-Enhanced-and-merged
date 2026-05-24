@@ -3,11 +3,11 @@
 Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for play with **Shields Enhanced** and **BlackOpsFAF-Merged** in FAF.
 
 ---
-## [v2.0]
+## [v3.0]
 
 ### Release
 
-## [v1.5]
+## [v2.5]
 
 ### Added
 - Threat-based defense placement. Mex clusters dynamically assess nearby enemy presence and assign PD, artillery, and shields accordingly. Clusters without threats get no defenses; clusters near enemies get layered defense based on proximity and enemy mass value.
@@ -16,7 +16,7 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 
 ---
 
-## [v1.4]
+## [v2.4]
 
 ### Added
 - Pre-emptive SMD in core base after 15 minutes, even without confirmed enemy nuke launchers.
@@ -26,7 +26,7 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 
 ---
 
-## [v1.3]
+## [v2.3]
 
 ### Changed
 - ACU retreats earlier on large maps (20km+). The retreat trigger at 16:40 game time now applies in all game modes, not just assassination.
@@ -34,7 +34,7 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 
 ---
 
-## [v1.2]
+## [v2.2]
 
 ### Added
 - **Vision-only AI**: M28 no longer reads blueprint data (unit type, mass cost, health, category) from radar-only enemy contacts. Until a unit is visually confirmed by line-of-sight, M28 treats it as a generic blip with no readable identity. Radar still tells M28 where things are; vision tells M28 what they are. Affects long-range targeting, threat assessments, defensive triggers, enemy classification flags, ACU tracking, and strategic responses.
@@ -52,7 +52,7 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 
 ---
 
-## [v1.1]
+## [v2.1]
 
 ### Fixed
 - Large exp shields are now placed at proper distance from game-enders instead of too far away. Previous offsets were too small, causing all nearby positions to fail and the AI to fall back to distant base zones.

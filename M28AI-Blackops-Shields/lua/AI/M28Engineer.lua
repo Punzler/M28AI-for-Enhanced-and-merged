@@ -11089,6 +11089,7 @@ function GetBPToAssignToSMD(iPlateau, iLandZone, iTeam, tLZTeamData, bCoreZone, 
                 end
             end
 
+            if iSMDWanted <= 0 and bCoreZone and GetGameTimeSeconds() >= 900 then iSMDWanted = 1 end
             if iSMDWanted <= 0 and ((tLZTeamData[M28Map.reftObjectiveLocation] and M28Utilities.DoesCategoryContainCategory(M28UnitInfo.refCategorySMD, tLZTeamData[M28Map.reftObjectiveLocation][M28Map.subrefiObjCategoryToBuild]) and M28Conditions.DoWeWantToBuildObjectiveCategory(tLZTeamData[M28Map.reftObjectiveLocation])) or (tLZTeamData[M28Map.refiTimeOfLastSMDPrioritisationRequest] and GetGameTimeSeconds() - tLZTeamData[M28Map.refiTimeOfLastSMDPrioritisationRequest] <= 360)) then iSMDWanted = 1 end
             if bDebugMessages == true then LOG(sFunctionRef..': iSMDsWeHave='..iSMDsWeHave..'; iSMDWanted='..iSMDWanted..'; iSMDsWithNoMissiles='..iSMDsWithNoMissiles) end
             if iSMDsWeHave < iSMDWanted or (iSMDsWithNoMissiles > 0 and iEnemyNormalNukes > 0 and iSMDWanted <= 1) then

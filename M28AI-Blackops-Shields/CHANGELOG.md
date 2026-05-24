@@ -4,6 +4,13 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 
 ---
 
+## [v1.4]
+
+### Added
+- Pre-emptive SMD in core base after 15 minutes, even without confirmed enemy nuke launchers.
+
+---
+
 ## [v1.3]
 
 ### Changed

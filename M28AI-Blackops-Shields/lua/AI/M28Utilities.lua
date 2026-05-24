@@ -332,6 +332,8 @@ function ForkedDrawRectangle(rRect, iColour, iDisplayCount)
     elseif iColour == 6 then sColour = 'ff1e90ff' --Cyan (might actually be white as well?)
     elseif iColour == 7 then sColour = 'ffffffff' --white
     elseif iColour == 8 then sColour = 'ffFF6060' --Orangy pink
+    elseif iColour == 9 then sColour = 'ffFF69B4' --Pink
+    elseif iColour == 10 then sColour = 'ff00FF00' --Light green
     else sColour = iColour
     end
 
@@ -414,6 +416,9 @@ function ForkedDrawLine(tStart, tEnd, iColour, iDisplayCount)
     elseif iColour == 5 then sColour = 'ff27408b' --Light Blue
     elseif iColour == 6 then sColour = 'ff1e90ff' --Cyan (might actually be white as well?)
     elseif iColour == 7 then sColour = 'ffffffff' --white
+    elseif iColour == 8 then sColour = 'ff008000' --dark green
+    elseif iColour == 9 then sColour = 'ffFF69B4' --Pink
+    elseif iColour == 10 then sColour = 'ff00FF00' --Light green
     else sColour = 'ffFF6060' --Orangy pink
     end
 
@@ -427,6 +432,7 @@ function ForkedDrawLine(tStart, tEnd, iColour, iDisplayCount)
     while true do
         DrawLine(tStart, tEnd, sColour)
         iCount = iCount + 1
+        iCurDrawCount = iCurDrawCount + 1
         if iCount > 10000 then ErrorHandler('Infinite loop') break end
         if iCurDrawCount > iDisplayCount then return end
         coroutine.yield(2) --Any more and lines will flash instead of being constant
@@ -943,6 +949,9 @@ function DrawCircleAroundPoint(tLocation, iColour, iDisplayCount, iCircleSize)
     elseif iColour == 5 then sColour = 'ff27408b' --Light Blue
     elseif iColour == 6 then sColour = 'ff1e90ff' --Cyan (might actually be white as well?)
     elseif iColour == 7 then sColour = 'ffffffff' --white
+    elseif iColour == 8 then sColour = 'ff008000' --dark green
+    elseif iColour == 9 then sColour = 'ffFF69B4' --Pink
+    elseif iColour == 10 then sColour = 'ff00FF00' --Light green
     else sColour = 'ffFF6060' --Orangy pink
     end
 

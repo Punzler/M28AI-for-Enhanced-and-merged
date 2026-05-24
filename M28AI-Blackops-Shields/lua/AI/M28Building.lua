@@ -6969,6 +6969,27 @@ function ConsiderLargeShieldBuild(aiBrain)
     end
 end
 
+function IsPositionSafeForDefense(tPosition)
+    local iSegX, iSegZ = M28Map.GetPathingSegmentFromPosition(tPosition)
+    if (M28Map.tLandZoneBySegment[iSegX][iSegZ] or 0) <= 0 then
+        return false
+    end
+    local iMinSegDist = math.ceil(10 / M28Map.iLandZoneSegmentSize)
+    for iX = -iMinSegDist, iMinSegDist do
+        for iZ = -iMinSegDist, iMinSegDist do
+            local iCheckX = iSegX + iX
+            local iCheckZ = iSegZ + iZ
+            if iCheckX >= 1 and iCheckX <= M28Map.iMaxLandSegmentX
+               and iCheckZ >= 1 and iCheckZ <= M28Map.iMaxLandSegmentZ then
+                if M28Map.tWaterZoneBySegment[iCheckX][iCheckZ] then
+                    return false
+                end
+            end
+        end
+    end
+    return true
+end
+
 function ComputeBaseCenter(iTeam)
     local tPositions = {}
     local tCoreZones = M28Team.tTeamData[iTeam][M28Team.reftiCoreZonesByPlateau]
@@ -6996,39 +7017,104 @@ function ComputeBaseCenter(iTeam)
     return nil
 end
 
-function ComputeEnemyReference(aiBrain, tBaseCenter)
-    local tEnemyFactories = aiBrain:GetUnitsAroundPoint(M28UnitInfo.refCategoryLandFactory + M28UnitInfo.refCategoryAirFactory, tBaseCenter, 1000, 'Enemy')
-    if not M28Utilities.IsTableEmpty(tEnemyFactories) then
-        local iClosestDist = 99999
-        local tClosestPos
-        for _, oFac in tEnemyFactories do
-            if not oFac.Dead then
-                local tPos = oFac:GetPosition()
-                local iDist = M28Utilities.GetDistanceBetweenPositions(tBaseCenter, tPos)
+function FindNearestEnemyFactoryOnLand(aiBrain, tPosition)
+    local tEnemyFactories = aiBrain:GetUnitsAroundPoint(M28UnitInfo.refCategoryLandFactory + M28UnitInfo.refCategoryAirFactory, tPosition, 1000, 'Enemy')
+    if M28Utilities.IsTableEmpty(tEnemyFactories) then return nil end
+    local iLandLabel = M28Utilities.NavUtils.GetTerrainLabel(M28Map.refPathingTypeLand, tPosition)
+    if not iLandLabel then return nil end
+    local iClosestDist = 99999
+    local tClosestPos
+    for _, oFac in tEnemyFactories do
+        if not oFac.Dead then
+            local tFacPos = oFac:GetPosition()
+            local iFacLabel = M28Utilities.NavUtils.GetTerrainLabel(M28Map.refPathingTypeLand, tFacPos)
+            if iFacLabel == iLandLabel then
+                local iDist = M28Utilities.GetDistanceBetweenPositions(tPosition, tFacPos)
                 if iDist < iClosestDist then
                     iClosestDist = iDist
-                    tClosestPos = tPos
+                    tClosestPos = tFacPos
                 end
             end
         end
-        if tClosestPos then return tClosestPos end
     end
-    return M28Map.GetPrimaryEnemyBaseLocation(aiBrain)
+    if tClosestPos then return tClosestPos end
+    local tFallback = M28Map.GetPrimaryEnemyBaseLocation(aiBrain)
+    if tFallback then
+        local iFallbackLabel = M28Utilities.NavUtils.GetTerrainLabel(M28Map.refPathingTypeLand, tFallback)
+        if iFallbackLabel == iLandLabel then return tFallback end
+    end
+    return nil
+end
+
+function ClusterMexes(tMexPositions, iMaxRadius)
+    local iCount = table.getn(tMexPositions)
+    if iCount == 0 then return {} end
+    local bAssigned = {}
+    local tClusters = {}
+    for iSeed = 1, iCount do
+        if not bAssigned[iSeed] then
+            bAssigned[iSeed] = true
+            local tCluster = {tMexPositions[iSeed]}
+            local tCenter = {tMexPositions[iSeed][1], tMexPositions[iSeed][2], tMexPositions[iSeed][3]}
+            local bChanged = true
+            while bChanged do
+                bChanged = false
+                for iCandidate = 1, iCount do
+                    if not bAssigned[iCandidate] then
+                        if M28Utilities.GetDistanceBetweenPositions(tCenter, tMexPositions[iCandidate]) <= iMaxRadius then
+                            bAssigned[iCandidate] = true
+                            table.insert(tCluster, tMexPositions[iCandidate])
+                            local n = table.getn(tCluster)
+                            tCenter[1] = tCenter[1] + (tMexPositions[iCandidate][1] - tCenter[1]) / n
+                            tCenter[3] = tCenter[3] + (tMexPositions[iCandidate][3] - tCenter[3]) / n
+                            bChanged = true
+                        end
+                    end
+                end
+            end
+            table.insert(tClusters, tCluster)
+        end
+    end
+    return tClusters
+end
+
+function HasPDNearPosition(aiBrain, tPosition, iRadius)
+    local tUnits = aiBrain:GetUnitsAroundPoint(M28UnitInfo.refCategoryPD, tPosition, iRadius, 'Ally')
+    if M28Utilities.IsTableEmpty(tUnits) then return false end
+    for _, oUnit in tUnits do
+        if not oUnit.Dead and oUnit:GetFractionComplete() >= 0.5 then
+            return true
+        end
+    end
+    return false
+end
+
+function GetThreatDirection(aiBrain, tPosition)
+    local tEnemies = aiBrain:GetUnitsAroundPoint(M28UnitInfo.refCategoryMobileLand, tPosition, 250, 'Enemy')
+    if not M28Utilities.IsTableEmpty(tEnemies) then
+        local tPositions = {}
+        for _, oUnit in tEnemies do
+            if not oUnit.Dead then
+                table.insert(tPositions, oUnit:GetPosition())
+            end
+        end
+        if table.getn(tPositions) > 0 then
+            return M28Utilities.GetAverageOfLocations(tPositions)
+        end
+    end
+    return FindNearestEnemyFactoryOnLand(aiBrain, tPosition)
 end
 
 function ComputeDefenseBands(aiBrain)
     local iTeam = aiBrain.M28Team
+    local iNow = GetGameTimeSeconds()
     local tBaseCenter = ComputeBaseCenter(iTeam)
     if not tBaseCenter then return end
-    local tEnemyRef = ComputeEnemyReference(aiBrain, tBaseCenter)
-    if not tEnemyRef then return end
 
-    local iAxisAngle = M28Utilities.GetAngleFromAToB(tBaseCenter, tEnemyRef)
-    local iAxisRad = iAxisAngle * math.pi / 180
-    local iAxisDirX = math.sin(iAxisRad)
-    local iAxisDirZ = -math.cos(iAxisRad)
+    local tOldBandCache = M28Team.tTeamData[iTeam][M28Team.reftDefenseBands]
+    local tOldBands = tOldBandCache and tOldBandCache.tBands or {}
 
-    local tMexProjections = {}
+    local tAllMexPositions = {}
     local tAllPlateaus = M28Map.tAllPlateaus
     for iPlateau, tPlateauData in tAllPlateaus do
         if iPlateau > 0 and tPlateauData[M28Map.subrefPlateauLandZones] then
@@ -7041,9 +7127,7 @@ function ComputeDefenseBands(aiBrain)
                         if not M28Utilities.IsTableEmpty(tMexes) then
                             for _, oMex in tMexes do
                                 if not oMex.Dead then
-                                    local tPos = oMex:GetPosition()
-                                    local iProj = (tPos[1] - tBaseCenter[1]) * iAxisDirX + (tPos[3] - tBaseCenter[3]) * iAxisDirZ
-                                    table.insert(tMexProjections, {iProj, tPos})
+                                    table.insert(tAllMexPositions, oMex:GetPosition())
                                 end
                             end
                         end
@@ -7053,48 +7137,209 @@ function ComputeDefenseBands(aiBrain)
         end
     end
 
-    if table.getn(tMexProjections) == 0 then
-        M28Team.tTeamData[iTeam][M28Team.reftDefenseBands] = nil
-        M28Team.tTeamData[iTeam][M28Team.refiDefenseBandLastUpdate] = GetGameTimeSeconds()
-        return
+    local tClusters = {}
+    if table.getn(tAllMexPositions) > 0 then
+        tClusters = ClusterMexes(tAllMexPositions, 30)
     end
-
-    table.sort(tMexProjections, function(a, b) return a[1] < b[1] end)
-
-    local tBands = {}
-    local tCurrentCluster = {tMexProjections[1]}
-    for i = 2, table.getn(tMexProjections) do
-        if tMexProjections[i][1] - tMexProjections[i - 1][1] > 40 then
-            table.insert(tBands, tCurrentCluster)
-            tCurrentCluster = {}
-        end
-        table.insert(tCurrentCluster, tMexProjections[i])
-    end
-    table.insert(tBands, tCurrentCluster)
 
     local tResult = {
         tBaseCenter = tBaseCenter,
-        tEnemyRef = tEnemyRef,
-        iAxisAngle = iAxisAngle,
         tBands = {},
     }
 
-    for iBand, tCluster in tBands do
-        local tMexPositions = {}
-        for _, tEntry in tCluster do
-            table.insert(tMexPositions, tEntry[2])
+    for _, tCluster in tClusters do
+        local tMidpoint = M28Utilities.GetAverageOfLocations(tCluster)
+        local tEnemyRef = GetThreatDirection(aiBrain, tMidpoint)
+
+        if tEnemyRef then
+            local iAxisAngle = M28Utilities.GetAngleFromAToB(tMidpoint, tEnemyRef)
+            local tDefensePos = M28Utilities.MoveInDirection(tMidpoint, iAxisAngle, 25, true)
+
+            if not IsPositionSafeForDefense(tDefensePos) then
+                tDefensePos = tMidpoint
+                if not IsPositionSafeForDefense(tDefensePos) then
+                    local iBestDist = 99999
+                    local tFallback
+                    for _, tMexPos in tCluster do
+                        if IsPositionSafeForDefense(tMexPos) then
+                            local iDist = M28Utilities.GetDistanceBetweenPositions(tMidpoint, tMexPos)
+                            if iDist < iBestDist then
+                                iBestDist = iDist
+                                tFallback = tMexPos
+                            end
+                        end
+                    end
+                    if tFallback then
+                        tDefensePos = tFallback
+                    else
+                        tDefensePos = nil
+                    end
+                end
+            end
+
+            if tDefensePos then
+                table.insert(tResult.tBands, {
+                    tMidpoint = tMidpoint,
+                    tDefensePos = tDefensePos,
+                    tEnemyRef = tEnemyRef,
+                    iAxisAngle = iAxisAngle,
+                    iMexCount = table.getn(tCluster),
+                    iDistToEnemy = M28Utilities.GetDistanceBetweenPositions(tMidpoint, tEnemyRef),
+                    iMexDeathTime = nil,
+                })
+            end
         end
-        local tMidpoint = M28Utilities.GetAverageOfLocations(tMexPositions)
-        local tDefensePos = M28Utilities.MoveInDirection(tMidpoint, iAxisAngle, 15, true)
-        table.insert(tResult.tBands, {
-            tMidpoint = tMidpoint,
-            tDefensePos = tDefensePos,
-            iMexCount = table.getn(tMexPositions),
-        })
+    end
+
+    if not M28Utilities.IsTableEmpty(tOldBands) then
+        for _, tOldBand in tOldBands do
+            local bStillExists = false
+            for _, tNewBand in tResult.tBands do
+                if M28Utilities.GetDistanceBetweenPositions(tOldBand.tMidpoint, tNewBand.tMidpoint) < 15 then
+                    bStillExists = true
+                    break
+                end
+            end
+            if not bStillExists then
+                local iDeathTime = tOldBand.iMexDeathTime or iNow
+                if iNow - iDeathTime <= 300 then
+                    local tGhostEnemyRef = GetThreatDirection(aiBrain, tOldBand.tMidpoint)
+                    if tGhostEnemyRef then
+                        local iGhostAngle = M28Utilities.GetAngleFromAToB(tOldBand.tMidpoint, tGhostEnemyRef)
+                        table.insert(tResult.tBands, {
+                            tMidpoint = tOldBand.tMidpoint,
+                            tDefensePos = tOldBand.tDefensePos,
+                            tEnemyRef = tGhostEnemyRef,
+                            iAxisAngle = iGhostAngle,
+                            iMexCount = 0,
+                            iDistToEnemy = M28Utilities.GetDistanceBetweenPositions(tOldBand.tMidpoint, tGhostEnemyRef),
+                            iMexDeathTime = iDeathTime,
+                        })
+                    end
+                end
+            end
+        end
+    end
+
+    if table.getn(tResult.tBands) == 0 then
+        M28Team.tTeamData[iTeam][M28Team.reftDefenseBands] = nil
+        M28Team.tTeamData[iTeam][M28Team.refiDefenseBandLastUpdate] = iNow
+        return
+    end
+
+    for _, tBand in tResult.tBands do
+        local tEnemies = aiBrain:GetUnitsAroundPoint(M28UnitInfo.refCategoryMobileLand, tBand.tMidpoint, 250, 'Enemy')
+        local iNearbyEnemyMass = 0
+        local iClosestEnemyDist = 99999
+        if not M28Utilities.IsTableEmpty(tEnemies) then
+            for _, oUnit in tEnemies do
+                if not oUnit.Dead then
+                    iNearbyEnemyMass = iNearbyEnemyMass + (oUnit:GetBlueprint().Economy.BuildCostMass or 0)
+                    local iDist = M28Utilities.GetDistanceBetweenPositions(tBand.tMidpoint, oUnit:GetPosition())
+                    if iDist < iClosestEnemyDist then
+                        iClosestEnemyDist = iDist
+                    end
+                end
+            end
+        end
+        if iNearbyEnemyMass > 0 then
+            tBand.bWantsShield = true
+            if iClosestEnemyDist <= 150 then
+                tBand.bWantsPD = true
+                if iNearbyEnemyMass > 2000 then
+                    tBand.bWantsArti = true
+                    tBand.iArtiTier = 2
+                elseif iNearbyEnemyMass > 500 then
+                    tBand.bWantsArti = true
+                    tBand.iArtiTier = 1
+                else
+                    tBand.bWantsArti = false
+                    tBand.iArtiTier = 0
+                end
+            else
+                tBand.bWantsPD = false
+                if iNearbyEnemyMass > 2000 then
+                    tBand.bWantsArti = true
+                    tBand.iArtiTier = 2
+                else
+                    tBand.bWantsArti = false
+                    tBand.iArtiTier = 0
+                end
+            end
+        else
+            tBand.bWantsPD = false
+            tBand.bWantsArti = false
+            tBand.bWantsShield = false
+            tBand.iArtiTier = 0
+        end
+        tBand.iNearbyEnemyMass = iNearbyEnemyMass
+        tBand.iClosestEnemyDist = iClosestEnemyDist
+
+        local tNavalEnemies = aiBrain:GetUnitsAroundPoint(M28UnitInfo.refCategoryMobileNavalSurface, tBand.tMidpoint, 250, 'Enemy')
+        local iNavalEnemyMass = 0
+        if not M28Utilities.IsTableEmpty(tNavalEnemies) then
+            for _, oUnit in tNavalEnemies do
+                if not oUnit.Dead then
+                    iNavalEnemyMass = iNavalEnemyMass + (oUnit:GetBlueprint().Economy.BuildCostMass or 0)
+                end
+            end
+        end
+        tBand.iNavalEnemyMass = iNavalEnemyMass
+        if iNavalEnemyMass > 0 then
+            tBand.bWantsShield = true
+            tBand.bWantsArti = true
+            tBand.iArtiTier = math.max(tBand.iArtiTier, 2)
+        end
     end
 
     M28Team.tTeamData[iTeam][M28Team.reftDefenseBands] = tResult
-    M28Team.tTeamData[iTeam][M28Team.refiDefenseBandLastUpdate] = GetGameTimeSeconds()
+    M28Team.tTeamData[iTeam][M28Team.refiDefenseBandLastUpdate] = iNow
+
+    local M28Config = import('/mods/M28AI-Blackops-Shields/lua/M28Config.lua')
+    if M28Config.M28ShowDefenseBands then
+        local iLastDraw = M28Team.tTeamData[iTeam][M28Team.refiDefenseBandLastDraw] or 0
+        if iNow - iLastDraw >= 120 then
+            M28Team.tTeamData[iTeam][M28Team.refiDefenseBandLastDraw] = iNow
+            DrawDefenseBands(tResult)
+        end
+    end
+end
+
+function DrawDefenseBands(tResult)
+    local iDisplayCount = 50
+    LOG('DrawDefenseBands: BaseCenter='..repru(tResult.tBaseCenter)..'; BandCount='..table.getn(tResult.tBands))
+    M28Utilities.DrawCircleAtTarget(tResult.tBaseCenter, 7, iDisplayCount, 15)
+    for iBand, tBand in tResult.tBands do
+        local sType = 'Band'
+        if tBand.iMexDeathTime then sType = 'Ghost' end
+        local sRole = ''
+        if tBand.bWantsPD then sRole = sRole..'PD ' end
+        if tBand.bWantsArti then sRole = sRole..'T'..tBand.iArtiTier..'Arti ' end
+        if tBand.bWantsShield then sRole = sRole..'Shield ' end
+        if tBand.iNavalEnemyMass > 0 then sRole = sRole..'Naval ' end
+        if sRole == '' then sRole = 'None ' end
+        LOG('DrawDefenseBands: '..sType..' '..iBand..': Midpoint='..repru(tBand.tMidpoint)..'; DefensePos='..repru(tBand.tDefensePos)..'; DistToEnemy='..math.floor(tBand.iDistToEnemy)..'; MexCount='..tBand.iMexCount..'; EnemyMass='..math.floor(tBand.iNearbyEnemyMass)..'; NavalMass='..math.floor(tBand.iNavalEnemyMass)..'; ClosestEnemy='..math.floor(tBand.iClosestEnemyDist)..'; Role='..sRole)
+        local iMidColor = 1
+        local iMidRadius = math.max(5, tBand.iMexCount * 3)
+        if tBand.bWantsPD then
+            iMidColor = 2
+        elseif tBand.bWantsArti then
+            iMidColor = 4
+        elseif tBand.bWantsShield then
+            iMidColor = 9
+        end
+        if tBand.iMexDeathTime then
+            iMidColor = 3
+        end
+        M28Utilities.DrawCircleAtTarget(tBand.tMidpoint, iMidColor, iDisplayCount, iMidRadius)
+        if tBand.bWantsPD or tBand.bWantsArti then
+            local iDefColor = tBand.bWantsPD and 2 or 4
+            if tBand.iMexDeathTime then iDefColor = 3 end
+            M28Utilities.DrawCircleAtTarget(tBand.tDefensePos, iDefColor, iDisplayCount, 8)
+            ForkThread(M28Utilities.ForkedDrawLine, tBand.tMidpoint, tBand.tDefensePos, 4, iDisplayCount)
+        end
+        ForkThread(M28Utilities.ForkedDrawLine, tBand.tMidpoint, tBand.tEnemyRef, 7, iDisplayCount)
+    end
 end
 
 function GetDefenseBandPosition(aiBrain, iPlateau, iLandZone, iActionType)
@@ -7108,19 +7353,76 @@ function GetDefenseBandPosition(aiBrain, iPlateau, iLandZone, iActionType)
     if iActionType ~= 32 then
         local tLZTeamData = tLZData[M28Map.subrefLZTeamData] and tLZData[M28Map.subrefLZTeamData][iTeam]
         if tLZTeamData and tLZTeamData[M28Map.subrefLZbCoreBase] and tBandCache.tBaseCenter then
-            return M28Utilities.MoveInDirection(tBandCache.tBaseCenter, tBandCache.iAxisAngle, 100, true)
+            local tZoneMid = tLZData[M28Map.subrefMidpoint]
+            local iBestDist = 99999
+            local tNearestBand
+            for _, tBand in tBandCache.tBands do
+                local iDist = M28Utilities.GetDistanceBetweenPositions(tZoneMid, tBand.tMidpoint)
+                if iDist < iBestDist then
+                    iBestDist = iDist
+                    tNearestBand = tBand
+                end
+            end
+            if tNearestBand then
+                local tCoreDefPos = M28Utilities.MoveInDirection(tBandCache.tBaseCenter, tNearestBand.iAxisAngle, 100, true)
+                if IsPositionSafeForDefense(tCoreDefPos) then
+                    return tCoreDefPos
+                end
+            end
         end
     end
 
     local tZoneMid = tLZData[M28Map.subrefMidpoint]
+
+    if iActionType == 32 then
+        local iBestDist = 99999
+        local tBestPos
+        for _, tBand in tBandCache.tBands do
+            local iDist = M28Utilities.GetDistanceBetweenPositions(tZoneMid, tBand.tMidpoint)
+            if iDist < iBestDist then
+                iBestDist = iDist
+                tBestPos = tBand.tMidpoint
+            end
+        end
+        return tBestPos
+    end
+
+    local sBandFlag
+    local bReturnMidpoint = false
+    if iActionType == 33 then
+        sBandFlag = 'bWantsPD'
+    elseif iActionType == 42 then
+        sBandFlag = 'bWantsArti'
+    elseif iActionType == 84 then
+        sBandFlag = 'bWantsShield'
+        bReturnMidpoint = true
+    end
+
+    if sBandFlag then
+        local iBestDist = 99999
+        local tBestBand
+        for _, tBand in tBandCache.tBands do
+            if tBand[sBandFlag] then
+                local iDist = M28Utilities.GetDistanceBetweenPositions(tZoneMid, tBand.tMidpoint)
+                if iDist < iBestDist then
+                    iBestDist = iDist
+                    tBestBand = tBand
+                end
+            end
+        end
+        if tBestBand then
+            return bReturnMidpoint and tBestBand.tMidpoint or tBestBand.tDefensePos
+        end
+        return nil
+    end
+
     local iBestDist = 99999
     local tBestPos
     for _, tBand in tBandCache.tBands do
-        local tPos = (iActionType == 32) and tBand.tMidpoint or tBand.tDefensePos
         local iDist = M28Utilities.GetDistanceBetweenPositions(tZoneMid, tBand.tMidpoint)
         if iDist < iBestDist then
             iBestDist = iDist
-            tBestPos = tPos
+            tBestPos = tBand.tDefensePos
         end
     end
     return tBestPos

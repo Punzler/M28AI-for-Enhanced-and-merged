@@ -4,6 +4,15 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 
 ---
 
+## [v1.5]
+
+### Added
+- Threat-based defense placement. Mex clusters dynamically assess nearby enemy presence and assign PD, artillery, and shields accordingly. Clusters without threats get no defenses; clusters near enemies get layered defense based on proximity and enemy mass value.
+- Naval threat awareness for coastal defenses. Land-based mex clusters near enemy ships prioritize shields and T2 artillery.
+- Defense positions face toward actual enemy units instead of just the nearest enemy factory.
+
+---
+
 ## [v1.4]
 
 ### Added

@@ -168,6 +168,7 @@ refActionBuildSecondPD = 80
 refActionGiveEngineerToTeammate = 81 --Transfers engineer to subrefoBrainWantingEngi
 refActionBuildThirdTMD = 82 --used for T2 arti builder
 refActionBuildSpecialObjective = 83 --E.g. for UEF M4 to build T2 radar at special locations
+refActionBuildBandShield = 84
 
 --tiEngiActionsThatDontBuild = {refActionReclaimArea, refActionSpare, refActionNavalSpareAction, refActionHasNearbyEnemies, refActionReclaimFriendlyUnit, refActionReclaimTrees, refActionUpgradeBuilding, refActionAssistSMD, refActionAssistTML, refActionAssistMexUpgrade, refActionAssistAirFactory, refActionAssistNavalFactory, refActionUpgradeHQ, refActionAssistNuke, refActionLoadOntoTransport, refActionAssistShield}
 
@@ -292,6 +293,7 @@ tiActionOrder = {
     [refActionAssistQuantumGateway] = M28Orders.refiOrderIssueGuard,
     [refActionBuildThirdTMD] = M28Orders.refiOrderIssueBuild,
     [refActionBuildSpecialObjective] = M28Orders.refiOrderIssueBuild,
+    [refActionBuildBandShield] = M28Orders.refiOrderIssueBuild,
 }
 
 --Adjacent categories to search for for a particular action
@@ -5239,6 +5241,8 @@ function GetCategoryToBuildOrAssistFromAction(iActionToAssign, iMinTechLevel, ai
                 iCategoryToBuild = M28UnitInfo.refCategoryFixedShield * categories.TECH2
                 if bDebugMessages == true then LOG(sFunctionRef..': Will build T2 shield') end
             end
+        elseif iActionToAssign == refActionBuildBandShield then
+            iCategoryToBuild = M28UnitInfo.refCategoryFixedShield * categories.TECH2
         elseif iActionToAssign == refActionBuildSpecialObjective then
             if bDebugMessages == true then LOG(sFunctionRef..': Will return nil as should have override category') end
             iCategoryToBuild = nil
@@ -10411,7 +10415,7 @@ function ConsiderActionToAssign(iActionToAssign, iMinTechWanted, iTotalBuildPowe
                                             M28Utilities.DelayChangeVariable(vOptionalVariable, refiFailedShieldConstructionCount, -1, 180, nil, nil, nil, nil, true)
                                         end
                                     end
-                                elseif vOptionalVariable and (iActionToAssign == refActionBuildEmergencyPD or iActionToAssign == refActionBuildSecondPD or iActionToAssign == refActionBuildEmergencyArti or iActionToAssign == refActionBuildAA or iActionToAssign == refActionBuildT1TorpLauncher or iActionToAssign == refActionBuildTorpLauncher) then
+                                elseif vOptionalVariable and (iActionToAssign == refActionBuildEmergencyPD or iActionToAssign == refActionBuildSecondPD or iActionToAssign == refActionBuildEmergencyArti or iActionToAssign == refActionBuildAA or iActionToAssign == refActionBuildT1TorpLauncher or iActionToAssign == refActionBuildTorpLauncher or iActionToAssign == refActionBuildBandShield) then
                                     --GetBlueprintAndLocationToBuild(aiBrain, oEngineer, iOptionalEngineerAction, iCategoryToBuild, iMaxAreaToSearch, iCatToBuildBy,                tAlternativePositionToLookFrom, bNotYetUsedLookForQueuedBuildings, oUnitToBuildBy, iOptionalCategoryForStructureToBuild, bBuildCheapestStructure, tLZData, tLZTeamData, bCalledFromGetBestLocation, sBlueprintOverride)
                                     sBlueprint, tBuildLocation = GetBlueprintAndLocationToBuild(aiBrain, oFirstEngineer, iActionToAssign, iCategoryWanted, iMaxSearchRange, tiActionAdjacentCategory[iActionToAssign], vOptionalVariable,       false,                              nil,             nil,                                   bGetCheapest,                   tLZOrWZData, tLZOrWZTeamData)
                                     if bDebugMessages == true then
@@ -10463,7 +10467,7 @@ function ConsiderActionToAssign(iActionToAssign, iMinTechWanted, iTotalBuildPowe
                                 end
                                 if bDebugMessages == true then LOG(sFunctionRef..': Just got blueprint and location to build for oFirstEngineer='..oFirstEngineer.UnitId..M28UnitInfo.GetUnitLifetimeCount(oFirstEngineer)..'; iActionTOAssign='..iActionToAssign..'; sBlueprint='..(sBlueprint or 'nil')..'; tBuildLocation='..repru(tBuildLocation)..'; Is tiActionAdjacentCategory[iActionToAssign] nil='..tostring(tiActionAdjacentCategory[iActionToAssign] == nil)) end
                                 if M28Utilities.IsTableEmpty(tBuildLocation) then
-                                    if not(iActionToAssign == refActionBuildShield or iActionToAssign == refActionBuildSecondShield) then
+                                    if not(iActionToAssign == refActionBuildShield or iActionToAssign == refActionBuildSecondShield or iActionToAssign == refActionBuildBandShield) then
                                         if sBlueprint and (GetGameTimeSeconds() <= 300 or GetGameTimeSeconds() - (tLZOrWZTeamData[M28Map.refiTimeLastShowedBuildLocationFailure] or -300) >= 300) then
                                             --Couldnt find a build locaiton, but might be valid particularly later in the game or on small island maps, so only show as a warning message every 5m
                                             if not(M28UnitInfo.IsUnitRestricted(sBlueprint, M28Team.GetFirstActiveM28Brain(iTeam))) then
@@ -12623,6 +12627,14 @@ function ConsiderCoreBaseLandZoneEngineerAssignment(tLZTeamData, iTeam, iPlateau
                     end
                     local tDefPos = M28Building.GetDefenseBandPosition(aiBrain, iPlateau, iLandZone, refActionBuildEmergencyPD)
                     if tDefPos then HaveActionToAssign(refActionBuildEmergencyPD, 2, iBPWanted, tDefPos) end
+                    if tDefPos and not M28Building.HasPDNearPosition(aiBrain, tDefPos, 25) then
+                        local tRearPos = M28Building.GetDefenseBandPosition(aiBrain, iPlateau, iLandZone, refActionBuildEmergencyArti)
+                        if tRearPos then HaveActionToAssign(refActionBuildEmergencyPD, 2, iBPWanted * 0.5, tRearPos) end
+                    end
+                    if M28Team.tTeamData[iTeam][M28Team.subrefiHighestFriendlyFactoryTech] >= 2 then
+                        local tShieldPos = M28Building.GetDefenseBandPosition(aiBrain, iPlateau, iLandZone, refActionBuildBandShield)
+                        if tShieldPos then HaveActionToAssign(refActionBuildBandShield, 2, math.max(15, iBPWanted * 0.5), tShieldPos) end
+                    end
                     if bDebugMessages == true then LOG(sFunctionRef..': Will build emergency T2 PD, iBPWanted='..iBPWanted..'; tDefPos='..repru(tDefPos)) end
                 end
             end
@@ -14257,6 +14269,14 @@ function ConsiderCoreBaseLandZoneEngineerAssignment(tLZTeamData, iTeam, iPlateau
                             if M28Utilities.IsTableEmpty(tLZTeamData[M28Map.subreftoAllNearbyEnemyT2ArtiUnits]) == false then iBPWanted = iBPWanted * 0.5 end
                             local tDefPos = M28Building.GetDefenseBandPosition(aiBrain, iPlateau, iLandZone, refActionBuildEmergencyPD)
                             if tDefPos then HaveActionToAssign(refActionBuildEmergencyPD, iPDTechLevelWanted, iBPWanted, tDefPos) end
+                            if tDefPos and not M28Building.HasPDNearPosition(aiBrain, tDefPos, 25) then
+                                local tRearPos = M28Building.GetDefenseBandPosition(aiBrain, iPlateau, iLandZone, refActionBuildEmergencyArti)
+                                if tRearPos then HaveActionToAssign(refActionBuildEmergencyPD, iPDTechLevelWanted, iBPWanted * 0.5, tRearPos) end
+                            end
+                            if M28Team.tTeamData[iTeam][M28Team.subrefiHighestFriendlyFactoryTech] >= 2 then
+                                local tShieldPos = M28Building.GetDefenseBandPosition(aiBrain, iPlateau, iLandZone, refActionBuildBandShield)
+                                if tShieldPos then HaveActionToAssign(refActionBuildBandShield, 2, math.max(15, iBPWanted * 0.5), tShieldPos) end
+                            end
                             if bDebugMessages == true then LOG(sFunctionRef..': Will build emergency PD, iPDTechLevelWanted='..iPDTechLevelWanted..'; tDefPos='..repru(tDefPos)) end
                         end
                     end
@@ -14381,6 +14401,14 @@ function ConsiderCoreBaseLandZoneEngineerAssignment(tLZTeamData, iTeam, iPlateau
                                     if M28Utilities.IsTableEmpty(tLZTeamData[M28Map.subreftoAllNearbyEnemyT2ArtiUnits]) == false then iBPWanted = iBPWanted * 0.5 end
                                     local tDefPos = M28Building.GetDefenseBandPosition(aiBrain, iPlateau, iLandZone, refActionBuildEmergencyPD)
                                     if tDefPos then HaveActionToAssign(refActionBuildEmergencyPD, iMinTechWanted, iBPWanted, tDefPos) end
+                                    if tDefPos and not M28Building.HasPDNearPosition(aiBrain, tDefPos, 25) then
+                                        local tRearPos = M28Building.GetDefenseBandPosition(aiBrain, iPlateau, iLandZone, refActionBuildEmergencyArti)
+                                        if tRearPos then HaveActionToAssign(refActionBuildEmergencyPD, iMinTechWanted, iBPWanted * 0.5, tRearPos) end
+                                    end
+                                    if M28Team.tTeamData[iTeam][M28Team.subrefiHighestFriendlyFactoryTech] >= 2 then
+                                        local tShieldPos = M28Building.GetDefenseBandPosition(aiBrain, iPlateau, iLandZone, refActionBuildBandShield)
+                                        if tShieldPos then HaveActionToAssign(refActionBuildBandShield, 2, math.max(15, iBPWanted * 0.5), tShieldPos) end
+                                    end
                                     if bDebugMessages == true then LOG(sFunctionRef..': Will build emergency PD to stop enemy ground threat, iMinTechWanted='..iMinTechWanted..'; tDefPos='..repru(tDefPos)) end
                                 end
                             elseif iCurPDThreat == 0 or tLZTeamData[M28Map.subrefLZFortify] then

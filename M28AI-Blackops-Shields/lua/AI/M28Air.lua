@@ -9619,8 +9619,14 @@ function ManageAirScouts(iTeam, iAirSubteam)
                             end
                             if bDebugMessages == true then LOG(sFunctionRef..': Considering if P'..tPlateauAndZoneRef[1]..'Z'..tPlateauAndZoneRef[2]..' is closest to the scout from the scouting shortlist, iCurDist='..iCurDist..'; iClosestDist='..iClosestDist) end
                         end
-                        M28Orders.IssueTrackedMove(tAvailableScouts[iUnit], tClosestMidpoint, 10, false, 'ASP'..iClosestPlateauOrZero..'Z'..iClosestLZOrWZRef, false)
-                        if bDebugMessages == true then LOG(sFunctionRef..': Telling scout to go to P'..iClosestPlateauOrZero..'Z'..iClosestLZOrWZRef..'; iClosestDist='..iClosestDist) end
+                        local tScoutWaypoint = GetLowestThreatScoutRoute(tAvailableScouts[iUnit]:GetPosition(), tClosestMidpoint, iTeam)
+                        if tScoutWaypoint then
+                            M28Orders.IssueTrackedMove(tAvailableScouts[iUnit], tScoutWaypoint, 10, false, 'ASW'..iClosestPlateauOrZero..'Z'..iClosestLZOrWZRef, false)
+                            M28Orders.IssueTrackedMove(tAvailableScouts[iUnit], tClosestMidpoint, 10, true, 'ASP'..iClosestPlateauOrZero..'Z'..iClosestLZOrWZRef, false)
+                        else
+                            M28Orders.IssueTrackedMove(tAvailableScouts[iUnit], tClosestMidpoint, 10, false, 'ASP'..iClosestPlateauOrZero..'Z'..iClosestLZOrWZRef, false)
+                        end
+                        if bDebugMessages == true then LOG(sFunctionRef..': Telling scout to go to P'..iClosestPlateauOrZero..'Z'..iClosestLZOrWZRef..'; iClosestDist='..iClosestDist..'; Has waypoint='..tostring(tScoutWaypoint ~= nil)) end
                         --Update tracking
                         tAvailableScouts[iUnit][reftScoutAssignedPlateauAndZoneRef] = {[1] = iClosestPlateauOrZero, [2] = iClosestLZOrWZRef}
                         table.remove(M28Team.tTeamData[iTeam][M28Team.subreftLandAndWaterZoneScoutingShortlist], iClosestShortlistRef)
@@ -9649,6 +9655,89 @@ function ManageAirScouts(iTeam, iAirSubteam)
         LOG(sFunctionRef..': Will send '..table.getn(tScoutsForRefueling)..' units to refuel')
     end
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+end
+
+function GetLowestThreatScoutRoute(tScoutPosition, tTargetPosition, iTeam)
+    local bDebugMessages = false if M28Profiler.bGlobalDebugOverride == true then   bDebugMessages = true end
+    local sFunctionRef = 'GetLowestThreatScoutRoute'
+    M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
+
+    local iDistance = M28Utilities.GetDistanceBetweenPositions(tScoutPosition, tTargetPosition)
+    if iDistance < 100 then
+        M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+        return nil
+    end
+
+    local dx = tTargetPosition[1] - tScoutPosition[1]
+    local dz = tTargetPosition[3] - tScoutPosition[3]
+    local iPerpX = -dz / iDistance
+    local iPerpZ = dx / iDistance
+    local iMidX = (tScoutPosition[1] + tTargetPosition[1]) * 0.5
+    local iMidZ = (tScoutPosition[3] + tTargetPosition[3]) * 0.5
+
+    local tOffsets = {0, 0.2, -0.2, 0.45, -0.45, 0.75}
+    local iSampleCount = 6
+    local iBestThreat = 999999
+    local tBestWaypoint = nil
+
+    for iRoute, iOffset in tOffsets do
+        local tWaypoint
+        if iOffset ~= 0 then
+            local iWpX = math.max(M28Map.rMapPlayableArea[1] + 4, math.min(M28Map.rMapPlayableArea[3] - 4, iMidX + iPerpX * iOffset * iDistance))
+            local iWpZ = math.max(M28Map.rMapPlayableArea[2] + 4, math.min(M28Map.rMapPlayableArea[4] - 4, iMidZ + iPerpZ * iOffset * iDistance))
+            tWaypoint = {iWpX, GetSurfaceHeight(iWpX, iWpZ), iWpZ}
+        end
+
+        local iTotalThreat = 0
+        for iSample = 1, iSampleCount do
+            local iFraction = iSample / (iSampleCount + 1)
+            local iSampleX, iSampleZ
+            if tWaypoint then
+                if iFraction <= 0.5 then
+                    local f = iFraction * 2
+                    iSampleX = tScoutPosition[1] + (tWaypoint[1] - tScoutPosition[1]) * f
+                    iSampleZ = tScoutPosition[3] + (tWaypoint[3] - tScoutPosition[3]) * f
+                else
+                    local f = (iFraction - 0.5) * 2
+                    iSampleX = tWaypoint[1] + (tTargetPosition[1] - tWaypoint[1]) * f
+                    iSampleZ = tWaypoint[3] + (tTargetPosition[3] - tWaypoint[3]) * f
+                end
+            else
+                iSampleX = tScoutPosition[1] + dx * iFraction
+                iSampleZ = tScoutPosition[3] + dz * iFraction
+            end
+
+            local tSamplePos = {iSampleX, GetSurfaceHeight(iSampleX, iSampleZ), iSampleZ}
+            local iPlateauOrZero, iZone = M28Map.GetClosestPlateauOrZeroAndZoneToPosition(tSamplePos)
+            if (iZone or 0) > 0 then
+                local tTeamData
+                if iPlateauOrZero > 0 then
+                    local tLZData = M28Map.tAllPlateaus[iPlateauOrZero][M28Map.subrefPlateauLandZones][iZone]
+                    if tLZData then tTeamData = tLZData[M28Map.subrefLZTeamData][iTeam] end
+                else
+                    local iPond = M28Map.tiPondByWaterZone[iZone]
+                    if iPond then
+                        local tWZData = M28Map.tPondDetails[iPond][M28Map.subrefPondWaterZones][iZone]
+                        if tWZData then tTeamData = tWZData[M28Map.subrefWZTeamData][iTeam] end
+                    end
+                end
+                if tTeamData then
+                    iTotalThreat = iTotalThreat + (tTeamData[M28Map.subrefiThreatEnemyGroundAA] or 0)
+                end
+            end
+        end
+
+        if bDebugMessages == true then LOG(sFunctionRef..': Route '..iRoute..' offset='..iOffset..' threat='..iTotalThreat) end
+
+        if iTotalThreat < iBestThreat then
+            iBestThreat = iTotalThreat
+            tBestWaypoint = tWaypoint
+        end
+    end
+
+    if bDebugMessages == true then LOG(sFunctionRef..': Best threat='..iBestThreat..'; Has waypoint='..tostring(tBestWaypoint ~= nil)) end
+    M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+    return tBestWaypoint
 end
 
 function OnAirScoutDeath(oUnit)

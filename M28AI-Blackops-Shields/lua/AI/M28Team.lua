@@ -268,6 +268,7 @@ tTeamData = {} --[x] is the aiBrain.M28Team number - stores certain team-wide in
     tPotentiallyActiveGETemplates = 'M28TGETA' --when a gameender template is created, it gets added to this table, to allow quick referencing of other templates
     reftDefenseBands = 'M28DefBands' --cached defense band data for mex-cluster-based PD/AA/Arti placement
     refiDefenseBandLastUpdate = 'M28DefBandTime' --GetGameTimeSeconds() of last ComputeDefenseBands call
+    refiDefenseBandLastDraw = 'M28DefBandDraw' --GetGameTimeSeconds() of last defense band debug draw
     reftiCoreZonesByPlateau = 'M28CZBPl' --[x] = plateau ref, [y] = LZ ref, returns true
     reftiFortifyZonesByPlateau = 'M28CZBFPl' --[x] = plateau or zero ref (zero for WZ), [y] = LZ ref, returns true
     reftEnemyShieldsFailedToArti = 'M28SFlArt' --[x] = 1,2,3...x; returns the fixed shield unit

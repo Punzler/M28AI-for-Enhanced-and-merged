@@ -9,6 +9,9 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 ### Added
 - Pre-emptive SMD in core base after 15 minutes, even without confirmed enemy nuke launchers.
 
+### Fixed
+- Priority scout targets (e.g. nuke subs) no longer attract all available scouts. Each priority target gets exactly one scout; the rest continue normal scouting.
+
 ---
 
 ## [v1.3]

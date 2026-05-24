@@ -9550,14 +9550,19 @@ function ManageAirScouts(iTeam, iAirSubteam)
                 while M28Utilities.IsTableEmpty(M28Team.tAirSubteamData[iAirSubteam][M28Team.reftPriorityUnitsWantingAirScout]) == false do
                     iCurCount = iCurCount + 1
                     if iCurCount >= 100 then M28Utilities.ErrorHandler('Infinite loop protection') break end
+                    iLongestTimeSinceScouted = -1
+                    oUnitToScout = nil
+                    local iUnitToScoutRef
                     for iPossibleUnitToScout, oPossibleUnitToScout in M28Team.tAirSubteamData[iAirSubteam][M28Team.reftPriorityUnitsWantingAirScout] do
                         iCurTimeSinceScouted = GetGameTimeSeconds() - (M28Team.tAirSubteamData[iAirSubteam][M28Team.reftPriorityUnitsWantingAirScout][iPossibleUnitToScout][refiTimeLastWantedPriorityAirScout] or GetGameTimeSeconds())
                         if EntityCategoryContains(M28UnitInfo.refCategoryTMD, oPossibleUnitToScout.UnitId) then iCurTimeSinceScouted = iCurTimeSinceScouted - math.min(90, iCurTimeSinceScouted - 1)  end --prioritise non-TMD
                         if iCurTimeSinceScouted > iLongestTimeSinceScouted then
                             iLongestTimeSinceScouted = iCurTimeSinceScouted
                             oUnitToScout = oPossibleUnitToScout
+                            iUnitToScoutRef = iPossibleUnitToScout
                         end
                     end
+                    if not oUnitToScout then break end
                     --Find the nearest spy plane
                     iClosestDist = 100000
                     local iClosestRef
@@ -9572,6 +9577,7 @@ function ManageAirScouts(iTeam, iAirSubteam)
                         M28Orders.IssueTrackedMove(tAvailableScouts[iClosestRef], oUnitToScout:GetPosition(), 10, false, 'PrASc', false)
                         table.remove(tAvailableScouts, iClosestRef)
                     end
+                    table.remove(M28Team.tAirSubteamData[iAirSubteam][M28Team.reftPriorityUnitsWantingAirScout], iUnitToScoutRef)
                     if M28Utilities.IsTableEmpty(tAvailableScouts) then
                         break
                     end

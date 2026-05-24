@@ -625,7 +625,6 @@ function SafeToUpgradeUnit(oUnit)
     local bDebugMessages = false if M28Profiler.bGlobalDebugOverride == true then   bDebugMessages = true end
     local sFunctionRef = 'SafeToUpgradeUnit'
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
-
     if M28Overseer.bNoRushActive and M28Overseer.iNoRushTimer - GetGameTimeSeconds() >= 120 then --have al ower 60s timer later on which just flags the zone as safe but does other checks after that
         M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
         return true
@@ -4773,3 +4772,47 @@ function IsAirMoveLocationSafeToIdle(tMoveLocation, iTeam, bRequireCoreBase)
         return true
     end
 end
+
+function CanTravelToDestinationWithinMapBounds(tStart, tEnd, sPathing, bDrawPathing)
+    if (M28Map.rMapPlayableArea[3] < M28Map.rMapPotentialPlayableArea[3] or M28Map.rMapPlayableArea[4] < M28Map.rMapPotentialPlayableArea[4]) then
+        local tFullPath, iPathSize, iDistance = NavUtils.PathTo((sPathing or 'Land'), tStart, tEnd, nil)
+        if M28Utilities.IsTableEmpty(tFullPath) == false then
+            if bDrawPathing then M28Utilities.DrawPath(tFullPath) end
+            for iEntry, tPosition in tFullPath do
+                if not(IsLocationInPlayableArea(tPosition)) then
+                    return nil
+                end
+            end
+            return true
+        else
+            return nil
+        end
+    end
+end
+
+
+function IsZoneAPacifistZone(iPlateauOrZero, iLandOrWaterZone)
+    if M28Utilities.IsTableEmpty(M28Overseer.tiPacifistZonesByPlateau[iPlateauOrZero]) == false then
+        for iEntry, iPacifistZone in M28Overseer.tiPacifistZonesByPlateau[iPlateauOrZero] do
+            if iPacifistZone == iLandOrWaterZone then return true end
+        end
+    end
+    return false
+end
+
+function IsLocationInAPacifistZone(tLocation)
+    local iPlateauOrZero, iZone = M28Map.GetClosestPlateauOrZeroAndZoneToPosition(tLocation)
+    return IsZoneAPacifistZone(iPlateauOrZero, iZone)
+end
+
+function IsCloseToPacifistUnit(tPosition, iOptionalDistThreshold)
+    if M28Overseer.toPacifistUnits[1] then
+        for iUnit, oUnit in M28Overseer.toPacifistUnits do
+            if not(oUnit.Dead) and M28Utilities.GetDistanceBetweenPositions(oUnit:GetPosition(), tPosition) <= (iOptionalDistThreshold or 120) then
+                return true
+            end
+        end
+    end
+    return false
+end
+

@@ -100,7 +100,7 @@ function UpgradeUnit(oUnitToUpgrade, bUpdateUpgradeTracker, iOptionalWait)
             bUpdateUpgradeTracker = false
         end
         local aiBrain = oUnitToUpgrade:GetAIBrain()
-        if bDebugMessages == true then LOG(sFunctionRef..': About to issue ugprade to unit '..oUnitToUpgrade.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnitToUpgrade)..'; Current state='..M28UnitInfo.GetUnitState(oUnitToUpgrade)..'; Work progress='..(oUnitToUpgrade:GetWorkProgress() or 'nil')..'; Is unit upgrading='..tostring(oUnitToUpgrade:IsUnitState('Upgrading'))..'; Fraction complete='..oUnitToUpgrade:GetFractionComplete()) end
+        if bDebugMessages == true then LOG(sFunctionRef..': About to issue ugprade to unit '..oUnitToUpgrade.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnitToUpgrade)..'; Current state='..M28UnitInfo.GetUnitState(oUnitToUpgrade)..'; Work progress='..(oUnitToUpgrade:GetWorkProgress() or 'nil')..'; Is unit upgrading='..tostring(oUnitToUpgrade:IsUnitState('Upgrading'))..'; Fraction complete='..oUnitToUpgrade:GetFractionComplete()..'; bDelayedUpgradeTrackingCheck='..tostring(bDelayedUpgradeTrackingCheck)..'; M28Overseer.bUnitRestrictionsArePresent='..tostring(M28Overseer.bUnitRestrictionsArePresent or false)..'; CanBuild check='..tostring(oUnitToUpgrade:CanBuild(sUpgradeID))) end
 
         if not(oUnitToUpgrade:IsUnitState('Upgrading')) then
             if not(oUnitToUpgrade:IsUnitState('BeingUpgraded')) then
@@ -1046,9 +1046,9 @@ function UpdateGrossIncomeForUnit(oUnit, bDestroyed, bIgnoreEnhancements, iOptio
                         if M28UnitInfo.GetUnitLifetimeCount(oUnit) <= 2 then
                             local iUnitTechLevel = M28UnitInfo.GetUnitTechLevel(oUnit)
                             if iUnitTechLevel > 1 and (M28Team.tTeamData[iTeam][M28Team.subrefiTeamNetEnergy] or 0) >= iEnergyGen * 0.2 then
-                                iTimeToWait = math.max(6, math.min(30, M28Team.tTeamData[iTeam][M28Team.subrefiTeamEnergyStored] / math.max(0.1, M28Team.tTeamData[iTeam][M28Team.subrefiTeamAverageEnergyPercentStored])))
+                                iTimeToWait = math.max(6, math.min(30, (M28Team.tTeamData[iTeam][M28Team.subrefiTeamEnergyStored] or 1) / math.max(0.1, (M28Team.tTeamData[iTeam][M28Team.subrefiTeamAverageEnergyPercentStored] or 1))))
                             end
-                            if iTimeToWait < 10 and (M28Team.tTeamData[iTeam][M28Team.subrefiTeamNetEnergy] or 0) >= iEnergyGen * 0.1 and (M28UnitInfo.GetUnitLifetimeCount(oUnit) == 1 or (M28Team.tTeamData[iTeam][M28Team.subrefiTeamNetMass] < -1 and M28Team.tTeamData[iTeam][M28Team.subrefiTeamNetMass] < -M28Team.tTeamData[iTeam][M28Team.subrefiTeamGrossMass] * 0.3 and M28Team.tTeamData[iTeam][M28Team.subrefiTeamAverageMassPercentStored] <= 0.4)) then
+                            if iTimeToWait < 10 and (M28Team.tTeamData[iTeam][M28Team.subrefiTeamNetEnergy] or 0) >= iEnergyGen * 0.1 and (M28UnitInfo.GetUnitLifetimeCount(oUnit) == 1 or ((M28Team.tTeamData[iTeam][M28Team.subrefiTeamNetMass] or 0) < -1 and M28Team.tTeamData[iTeam][M28Team.subrefiTeamNetMass] < -M28Team.tTeamData[iTeam][M28Team.subrefiTeamGrossMass] * 0.3 and M28Team.tTeamData[iTeam][M28Team.subrefiTeamAverageMassPercentStored] <= 0.4)) then
                                 iTimeToWait = 10
                             end
                         end
@@ -1371,7 +1371,7 @@ function ConsiderReclaimingPower(iTeam, oPowerJustBuilt)
             --Check we have 1 T2 power per M28 player
             local iT2PowerEquivalent = 0
             for iBrain, oBrain in M28Team.tTeamData[iTeam][M28Team.subreftoFriendlyActiveM28Brains] do
-                iT2PowerEquivalent = oBrain:GetCurrentUnits(M28UnitInfo.refCategoryPower * categories.TECH2) + oBrain:GetCurrentUnits(M28UnitInfo.refCategoryPower * categories.TECH3) * 4
+                iT2PowerEquivalent = iT2PowerEquivalent + oBrain:GetCurrentUnits(M28UnitInfo.refCategoryPower * categories.TECH2) + oBrain:GetCurrentUnits(M28UnitInfo.refCategoryPower * categories.TECH3) * 4
             end
             if iT2PowerEquivalent >= M28Team.tTeamData[iTeam][M28Team.subrefiActiveM28BrainCount] * 0.65 or M28Team.tTeamData[iTeam][M28Team.subrefiTeamGrossEnergy] >= 1000 * M28Team.tTeamData[iTeam][M28Team.subrefiActiveM28BrainCount] * M28Team.tTeamData[iTeam][M28Team.refiHighestBrainResourceMultiplier] then
                 if iT2PowerEquivalent >= 2 then M28Team.tTeamData[iTeam][M28Team.refbFocusOnT1Spam] = false end --If game is late enough that we have built multiple t2 pgens then should start ecoing
@@ -1386,7 +1386,7 @@ function ConsiderReclaimingPower(iTeam, oPowerJustBuilt)
         if not(M28Team.tTeamData[iTeam][M28Team.subrefbActiveT2PowerReclaimer]) then
             local iT3PowerEquivalent = 0
             for iBrain, oBrain in M28Team.tTeamData[iTeam][M28Team.subreftoFriendlyActiveM28Brains] do
-                iT3PowerEquivalent = oBrain:GetCurrentUnits(M28UnitInfo.refCategoryPower * categories.TECH3)
+                iT3PowerEquivalent = iT3PowerEquivalent + oBrain:GetCurrentUnits(M28UnitInfo.refCategoryPower * categories.TECH3)
             end
             if not(M28Utilities.bLoudModActive or M28Utilities.bQuietModActive) and M28Team.tTeamData[iTeam][M28Team.subrefiTeamGrossEnergy] >= 600 * M28Team.tTeamData[iTeam][M28Team.subrefiActiveM28BrainCount] * 0.65 * M28Team.tTeamData[iTeam][M28Team.refiHighestBrainResourceMultiplier] and (iT3PowerEquivalent >= M28Team.tTeamData[iTeam][M28Team.subrefiActiveM28BrainCount] or M28Team.tTeamData[iTeam][M28Team.subrefiTeamGrossEnergy] >= 2000 * M28Team.tTeamData[iTeam][M28Team.subrefiActiveM28BrainCount] * M28Team.tTeamData[iTeam][M28Team.refiHighestBrainResourceMultiplier]) then
                 M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
@@ -3197,12 +3197,13 @@ function ConsiderFutureMexUpgrade(oMex, iOverrideSecondsToWait)
         tLZOrWZTeamData = tLZOrWZData[M28Map.subrefLZTeamData][iTeam]
     end
 
-    if bDebugMessages == true then LOG(sFunctionRef..': Near start of code, iOverrideSecondsToWait='..(iOverrideSecondsToWait or 'nil')..'; oMex='..oMex.UnitId..M28UnitInfo.GetUnitLifetimeCount(oMex)..' owned by '..aiBrain.Nickname..'; P'..iPlateauOrZero..'Z'..iLandOrWaterZone..'; Time='..GetGameTimeSeconds()) end
+    if bDebugMessages == true then LOG(sFunctionRef..': Near start of code, iOverrideSecondsToWait='..(iOverrideSecondsToWait or 'nil')..'; oMex='..oMex.UnitId..M28UnitInfo.GetUnitLifetimeCount(oMex)..' owned by '..aiBrain.Nickname..'; P'..iPlateauOrZero..'Z'..iLandOrWaterZone..'; iMexTechLevel='..(iMexTechLevel or 'nil')..'; Time='..GetGameTimeSeconds()) end
 
     if not(iTimeToWait) then
         if iMexTechLevel == 1 then
-            if bDebugMessages == true then LOG(sFunctionRef..': tLZOrWZTeamData[M28Map.subrefMexCountByTech]='..repru(tLZOrWZTeamData[M28Map.subrefMexCountByTech])..'; tLZOrWZData[M28Map.subrefLZOrWZMexCount]='..tLZOrWZData[M28Map.subrefLZOrWZMexCount]..'; Brain highest tech='..aiBrain[refiOurHighestFactoryTechLevel]..'; Gross mass inc='..aiBrain[refiGrossMassBaseIncome]..'; Dangerous enemies in LZ='..tostring(tLZOrWZTeamData[M28Map.subrefbDangerousEnemiesInThisLZ] or false)..'; Air to ground threat='..(tLZOrWZTeamData[M28Map.refiEnemyAirToGroundThreat] or 'nil')..'; Enemies in adj zone='..tostring(tLZOrWZTeamData[M28Map.subrefbEnemiesInThisOrAdjacentLZ] or false)..'; Is table of active mex upgrades empty='..tostring(M28Utilities.IsTableEmpty(tLZOrWZTeamData[M28Map.subrefiActiveMexUpgrades]))) end
+            if bDebugMessages == true then LOG(sFunctionRef..': tLZOrWZTeamData[M28Map.subrefMexCountByTech]='..repru(tLZOrWZTeamData[M28Map.subrefMexCountByTech])..'; tLZOrWZData[M28Map.subrefLZOrWZMexCount]='..tLZOrWZData[M28Map.subrefLZOrWZMexCount]..'; Brain highest tech='..aiBrain[refiOurHighestFactoryTechLevel]..'; Gross mass inc='..aiBrain[refiGrossMassBaseIncome]..'; Dangerous enemies in LZ='..tostring(tLZOrWZTeamData[M28Map.subrefbDangerousEnemiesInThisLZ] or false)..'; Air to ground threat='..(tLZOrWZTeamData[M28Map.refiEnemyAirToGroundThreat] or 'nil')..'; Enemies in adj zone='..tostring(tLZOrWZTeamData[M28Map.subrefbEnemiesInThisOrAdjacentLZ] or false)..'; Is table of active mex upgrades empty='..tostring(M28Utilities.IsTableEmpty(tLZOrWZTeamData[M28Map.subrefiActiveMexUpgrades]))..'; refbBaseInSafePosition='..tostring(tLZOrWZTeamData[M28Map.refbBaseInSafePosition] or false)) end
             --Eco slot in FAF - consider upgrading first mex relatively early on if lots of mexes in start zone and have a resource multiplier
+                --Have further eco slot condition a bit lower down that is slower than this for where we dont have lots of mexes
             if M28UnitInfo.GetUnitLifetimeCount(oMex) == 1 and (tLZOrWZTeamData[M28Map.refbBaseInSafePosition] or aiBrain[M28Overseer.refbPrioritiseHighTech]) and tLZOrWZData[M28Map.subrefLZOrWZMexCount] >= 6 and oMex:GetAIBrain()[refiBrainBuildRateMultiplier] <= 1.1 and M28Utilities.bFAFActive then
                 if bDebugMessages == true then LOG(sFunctionRef..': First mex in eco slot so want to be more likely to get upgrade really early in FAF') end
                 iTimeToWait = 150 - GetGameTimeSeconds()
@@ -3251,6 +3252,10 @@ function ConsiderFutureMexUpgrade(oMex, iOverrideSecondsToWait)
                 else
                     iTimeToWait = 7 * 60
                 end
+            end
+            if M28UnitInfo.GetUnitLifetimeCount(oMex) == 1 and (tLZOrWZTeamData[M28Map.refbBaseInSafePosition] or aiBrain[M28Overseer.refbPrioritiseHighTech]) and tLZOrWZData[M28Map.subrefLZOrWZMexCount] >= 3 then
+                if bDebugMessages == true then LOG(sFunctionRef..': First mex in eco slot but dont have large number of mexes in this zone, will ensure time to wait is low, if not already lower, iTimeToWait pre adj='..iTimeToWait) end
+                iTimeToWait = math.min(iTimeToWait, 250 - GetGameTimeSeconds())
             end
         elseif iMexTechLevel == 2 then
             if aiBrain[refiGrossMassBaseIncome] < 10 and (not(M28Utilities.bLoudModActive or M28Utilities.bQuietModActive) or iMexesOnMap > 20 * M28Team.tTeamData[iTeam][M28Team.subrefiActiveM28BrainCount]) then
@@ -3394,7 +3399,7 @@ function ConsiderFutureMexUpgrade(oMex, iOverrideSecondsToWait)
                     end
                 end
                 if bDebugMessages == true then LOG(sFunctionRef..': Zoen wants t1 spam='..tostring(M28Conditions.ZoneWantsT1Spam(tLZOrWZTeamData, iTeam) or false)..'; Team has low mass='..tostring(M28Conditions.TeamHasLowMass(iTeam) or false)..'; iMexTechLevel='..iMexTechLevel..'; LZ mex count='..(tLZOrWZData[M28Map.subrefLZOrWZMexCount] or 0)..'; Active mex upgrades='..(tLZOrWZTeamData[M28Map.subrefiActiveMexUpgrades] or 0)..'; T1 mexes in zone='..tLZOrWZTeamData[M28Map.subrefMexCountByTech][1]..'; Brain gross mass='..aiBrain[refiGrossMassBaseIncome]..'; bUpgradeDueToHowLongHadMex='..tostring(bUpgradeDueToHowLongHadMex)) end
-                if not(M28Conditions.ZoneWantsT1Spam(tLZOrWZTeamData, iTeam)) and (bUpgradeDueToHowLongHadMex or not(M28Conditions.TeamHasLowMass(iTeam)) or iMexTechLevel == 3 or ((tLZOrWZData[M28Map.subrefLZOrWZMexCount] or 0) >= 3 and (tLZOrWZTeamData[M28Map.subrefiActiveMexUpgrades] or 0) == 0 and (tLZOrWZTeamData[M28Map.subrefMexCountByTech][1] > 0 or aiBrain[refiGrossMassBaseIncome] >= 8 or (M28Utilities.bLoudModActive or M28Utilities.bQuietModActive)))) then
+                if not(M28Conditions.ZoneWantsT1Spam(tLZOrWZTeamData, iTeam)) and (bUpgradeDueToHowLongHadMex or not(M28Conditions.TeamHasLowMass(iTeam)) or iMexTechLevel == 3 or ((tLZOrWZData[M28Map.subrefLZOrWZMexCount] or 0) >= 3 and (tLZOrWZTeamData[M28Map.subrefiActiveMexUpgrades] or 0) == 0 and (tLZOrWZTeamData[M28Map.subrefMexCountByTech][1] > 0 or aiBrain[refiGrossMassBaseIncome] >= 8 or (M28Utilities.bLoudModActive or M28Utilities.bQuietModActive) or (((tLZOrWZTeamData[M28Map.refbBaseInSafePosition] and (not(M28Team.tTeamData[iTeam][M28Team.subrefbRushT3AirInAirSlot]) or aiBrain[refiOurHighestAirFactoryTech] >= 3)) or aiBrain[M28Overseer.refbPrioritiseHighTech]) and not(tLZOrWZTeamData[M28Map.subrefbDangerousEnemiesInThisLZ]) and (tLZOrWZTeamData[M28Map.subrefMexCountByTech][3] > 0 or (tLZOrWZTeamData[M28Map.subrefMexCountByTech][2] > 0 and tLZOrWZTeamData[M28Map.subrefMexCountByTech][1] + tLZOrWZTeamData[M28Map.subrefMexCountByTech][2] >= tLZOrWZData[M28Map.subrefLZOrWZMexCount])))))) then
 
                     --Are there enough mexes that we want to consider upgrading?
                     if bDebugMessages == true then
@@ -3412,7 +3417,7 @@ function ConsiderFutureMexUpgrade(oMex, iOverrideSecondsToWait)
                     if iMexTechLevel == 3 or
                             bUpgradeDueToHowLongHadMex or
                             tLZOrWZData[M28Map.subrefLZOrWZMexCount] >= 3 or
-                            (iPlateauOrZero > 0 and tLZOrWZData[M28Map.subrefLZOrWZMexCount] >= math.max(2, M28Map.tAllPlateaus[iPlateauOrZero][M28Map.subrefPlateauTotalMexCount] * 0.5)) or
+                            (iPlateauOrZero > 0 and tLZOrWZData[M28Map.subrefLZOrWZMexCount] >= math.max(2,(M28Map.tAllPlateaus[iPlateauOrZero][M28Map.subrefPlateauTotalMexCount] or 0) * 0.5)) or
                             (iPlateauOrZero > 0 and tLZOrWZTeamData[M28Map.refiModDistancePercent] <= 0.25 and (not(M28Conditions.IsTableOfUnitsStillValid(M28Team.tTeamData[iTeam][M28Team.subreftTeamUpgradingMexes])) or table.getn(M28Team.tTeamData[iTeam][M28Team.subreftTeamUpgradingMexes]) < math.max(2, M28Team.tTeamData[iTeam][M28Team.subrefiActiveM28BrainCount], M28Team.tTeamData[iTeam][M28Team.subrefiTeamGrossMass] / (2 * M28Team.tTeamData[iTeam][M28Team.refiHighestBrainBuildMultiplier] * M28UnitInfo.GetUnitTechLevel(oMex))))) then
                         --Do we have any active mex upgrades?
                         if bDebugMessages == true then LOG(sFunctionRef..': active mex upgrades='..(tLZOrWZTeamData[M28Map.subrefiActiveMexUpgrades] or 0)..'; Stalling mass='..tostring(M28Team.tTeamData[iTeam][M28Team.subrefbTeamIsStallingMass])..'; Stalling energy='..tostring(M28Team.tTeamData[iTeam][M28Team.subrefbTeamIsStallingEnergy])..'; Is team table of upgrading mexes empty='..tostring(M28Utilities.IsTableEmpty(M28Team.tTeamData[iTeam][M28Team.subreftTeamUpgradingMexes]))..'; Gross mass for brain='..aiBrain[refiGrossMassBaseIncome])

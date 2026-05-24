@@ -99,11 +99,6 @@ tNearestPlateauOrZeroAndZoneSegmentOverride = {} --Global, [x] is segmentx, [y] 
 
 iPlateauCount = 0
 tAllPlateaus = {} --[x] = AmphibiousPathingGroup, [y]: subrefs, e.g. subrefPlateauMexes;
---aibrain variables for plateaus (not currently incorporated):
-reftPlateausOfInterest = 'M28PlateausOfInterest' --[x] = Amphibious pathing group; will record a table of the pathing groups we're interested in expanding to, returns the location of then earest mex
---refiLastPlateausUpdate = 'M28LastTimeUpdatedPlateau' --gametime that we last updated the plateaus
---reftOurPlateauInformation = 'M28OurPlateauInformation' --[x] = AmphibiousPathingGroup; [y] = subref, e.g. subrefPlateauLandFactories; Used to store details such as factories on the plateau
---refiOurBasePlateauGroup = 'M28PlateausOurBaseGroup' --Segment group of our base (so can easily check somewhere is in a dif plateau)
 
 --subrefs for tables
 --tAllPlateaus[iPlateau] subrefs
@@ -223,7 +218,7 @@ iLandZoneSegmentSize = 5 --Gets updated by the SetupLandZones - the size of one 
         subreftoUnitsToCapture = 'UnitsToCap' --AGAINST ZONEData not TEAMZoneData
         subreftoUnitsToRepair = 'UnitsToRep' --AGAINST ZONEData not TEAMZoneData
         --Mission objective specific - disable targeting logic
-        subrefbPacifistArea = 'PacAre' --true if this is a pacificst area
+        subrefbPacifistArea = 'PacAre' --Against LZ or WZ data (not team data), true if this is a pacificst area
 
         --Land zone subteam data (update M28Teams.TeamInitialisation function to include varaibles here so dont have to check if they exist each time)
         subrefLZTeamData = 'Subteam' --tAllPlateaus[iPlateau][subrefPlateauLandZones][iLandZone][subrefLZTeamData] - Table for all the data by team for a plateau's land zone
@@ -498,6 +493,8 @@ tPondDetails = {}
         subrefMexIndirectUnblockedLocation = 'PondMexIndirectLocation' --i.e. the closest location we found where an indirect unit should be able to hit the mex
     subrefBuildLocationByStartPosition = 'PondBuildLocationByStart' --Subtable, key is start position number, which stores the build location for that start position (will only record for M28 brain start positions)
 
+    refiCampaignLastBombardmentWeaponFired = 'PnBmbF' --time that a unit of the bombardment category last fired its weapon in this pond
+
     --Water zones (against tPondDetails)
     subrefPondWZCount = 'PWZCount' --Total number of water zones in a pond (cant use table.getn on below as theyre not ordered from 1-x)
     subrefPondWaterZones = 'PondWZ' --e.g. access the water zone data tables via M28Map.tPondDetails[iPond][M28Map.subrefPondWaterZones][iWaterZone], where iWaterZone is the NavUtils refPathingTypeNavy pathing result
@@ -591,6 +588,8 @@ tPondDetails = {}
             subrefWZCombatThreatWanted = 'CombWant'
             subrefWZMAAThreatWanted = 'MAAWant'
             subrefbWZWantsSupport = 'WZWntSup'
+            refbNoSurfaceSupportPoint = 'WZNoSrfS' --true if surface units in this WZ couldnt find another WZ they could path to to support (campaign specific for where playable area smaller than map area)
+            refbNoSubSupportPoint = 'WZNoSbS' --true if sub units in this WZ couldnt find another WZ they could path to to support (campaign specific for where playable area smaller than map area)
             subrefbWZOnlyHoverEnemies = 'WZHvEn' --true if only hover units (so we dont want to send subs to support)
             subrefbWZOnlySubmersibleEnemies = 'WZSubEn' --true if only submersible enemies (so we dont want to send units without antinavy to support)
 

@@ -8,6 +8,7 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 
 ### Changed
 - ACU retreats earlier on large maps (20km+). The retreat trigger at 16:40 game time now applies in all game modes, not just assassination.
+- Merged upstream M28AI v298–v300 changes: ACU aggression tuning, bomber targeting without air control, mex upgrade timing, fortify zone rally points, pacifist mode support, campaign mission fixes, T2 support factory logic, and various bugfixes.
 
 ---
 

@@ -358,7 +358,9 @@ if categories.bal0403 then
     refCategoryLandCombat = refCategoryLandCombat + categories.bal0403
 end
 if M28Utilities.bSteamActive or M28Utilities.bLoudModActive or M28Utilities.bQuietModActive then
-    refCategorySkirmisher = refCategorySkirmisher + categories.del0204 + categories.drl0204 - refCategoryMobileBomb
+    refCategorySkirmisher = refCategorySkirmisher - refCategoryMobileBomb
+    if categories.del0204 then refCategorySkirmisher = refCategorySkirmisher + categories.del0204 end
+    if categories.drl0204 then refCategorySkirmisher = refCategorySkirmisher + categories.drl0204 end
 else
     refCategorySkirmisher = refCategorySkirmisher +  refCategoryMobileDFLand * categories.UEF * categories.TECH2 * categories.BOT + refCategoryMobileDFLand * categories.CYBRAN * categories.TECH2 * categories.BOT - refCategoryMobileBomb
 end

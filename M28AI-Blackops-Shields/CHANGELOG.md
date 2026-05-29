@@ -5,7 +5,8 @@ Fork of [maudlin27/M28AI](https://github.com/maudlin27/M28AI) v297, tuned for pl
 ---
 ## [v3.0]
 
-### Release
+### Changed
+- Merged upstream M28AI v301 changes: ACU upgrade restriction handling, core base relocation on air factory loss, improved power construction timing, strat bomber in-combat targeting, TML nil-crash fix, submarine category excludes battleships, naval suicide prevention, land units ignore unreachable navy, AA overbuild prevention, ACU attacks adjacent-zone enemies, TMD avoids T2 artillery range, Cybran destroyer amphibious toggle, PCx compatibility for cheat modifiers, reclaim logic improvements, and various bugfixes.
 
 ## [v2.5]
 

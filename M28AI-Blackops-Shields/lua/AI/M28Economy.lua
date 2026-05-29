@@ -709,6 +709,17 @@ function UpdateHighestFactoryTechLevelForDestroyedUnit(oUnitJustDestroyed)
                             break
                         end
                     end
+                    if aiBrain[refiOurHighestAirFactoryTech] == 0 then
+                        --We have lost our air HQ, consider a flag so that significant minor zones will try and build air factories
+                        --Losing signficant unit in core base - consider moving core base
+                        local iTeam = aiBrain.M28Team
+                        local tLZOrWZData = M28Map.tAllPlateaus[oUnitJustDestroyed[M28UnitInfo.reftAssignedPlateauAndLandZoneByTeam][iTeam][1]][M28Map.subrefPlateauLandZones][oUnitJustDestroyed[M28UnitInfo.reftAssignedPlateauAndLandZoneByTeam][iTeam][2]]
+                        local tLZOrWZTeamData = tLZOrWZData[M28Map.subrefLZTeamData][iTeam]
+                        if tLZOrWZTeamData[M28Map.subrefLZbCoreBase] then
+                            --Consider relocating core base if have another location that is either further from the enemy base or on a different plateau
+                            ForkThread(ConsiderChangingCoreBase, aiBrain, oUnitJustDestroyed[M28UnitInfo.reftAssignedPlateauAndLandZoneByTeam][iTeam][1], oUnitJustDestroyed[M28UnitInfo.reftAssignedPlateauAndLandZoneByTeam][iTeam][2])
+                        end
+                    end
                 end
             elseif EntityCategoryContains(M28UnitInfo.refCategoryNavalFactory, oUnitJustDestroyed.UnitId) then
                 if iUnitTechLevel >= aiBrain[refiOurHighestNavalFactoryTech] then
@@ -781,7 +792,7 @@ function UpdateMassStorageAdjacencyValues(oStorage, bDestroyed)
             local iStorageSize = M28UnitInfo.GetBuildingSize(oStorage.UnitId)
             --Adjust for AIx
             if aiBrain.CheatEnabled then
-                iAIxMod = tonumber(ScenarioInfo.Options.CheatMult or 1.5)
+                iAIxMod = (aiBrain[refiBrainResourceMultiplier] or tonumber(ScenarioInfo.Options.CheatMult or 1.5))
             end
             oStorage[refiStorageMassAdjacencyBonus] = 0
             --Get all adjacent mexes
@@ -1024,7 +1035,7 @@ function UpdateGrossIncomeForUnit(oUnit, bDestroyed, bIgnoreEnhancements, iOptio
 
                     --Adjust for AIx
                     if aiBrain.CheatEnabled then
-                        local iAIxMod = iOptionalResourceModAdjustmentOverride or tonumber(ScenarioInfo.Options.CheatMult or tostring(1.5))
+                        local iAIxMod = iOptionalResourceModAdjustmentOverride or aiBrain[refiBrainResourceMultiplier] or tonumber(ScenarioInfo.Options.CheatMult or tostring(1.5))
                         iMassGen = iMassGen * iAIxMod
                         iEnergyGen = iEnergyGen * iAIxMod
                     end
@@ -2623,7 +2634,7 @@ function ManageEnergyStalls(iTeam)
                                                 end
                                             elseif bConsideringFactory then
                                                 --Primary factions - if dealing with T1 (or T2 with lots of E) and is a primary factory, then dont pause, as too big a risk we pause an expansion and lose the whole expansion
-                                                if (oUnit[M28Factory.refbPrimaryFactoryForIslandOrPond] or oBrain[refiGrossEnergyBaseIncome] >= 300 or (oBrain[refiGrossEnergyBaseIncome] >= 150 and EntityCategoryContains(M28UnitInfo.refCategoryLandFactory - categories.TECH3, oUnit.UnitId)) or (oBrain[refiGrossEnergyBaseIncome] >= 100 and EntityCategoryContains(M28UnitInfo.refCategoryLandFactory * categories.TECH1, oUnit.UnitId))) and oBrain[refiGrossEnergyBaseIncome] >= 30 and (oBrain[refiGrossEnergyBaseIncome] >= 150 or (oBrain[refiGrossEnergyBaseIncome] >= 80 and EntityCategoryContains(M28UnitInfo.refCategoryLandFactory - categories.TECH3, oUnit.UnitId)) or EntityCategoryContains(M28UnitInfo.refCategoryLandFactory * categories.TECH1, oUnit.UnitId)) and (oBrain[refiGrossEnergyBaseIncome] >= 300 or not(oUnit:IsUnitState('Upgrading')) or bDontPauseUpgradingT1LandOrT2Land or (oUnit[M28Factory.refbPrimaryFactoryForIslandOrPond] and oBrain[refiGrossEnergyBaseIncome] >= 85 and EntityCategoryContains(categories.TECH1, oUnit.UnitId))) then
+                                                if (oUnit[M28Factory.refbPrimaryFactoryForIslandOrPond] or oBrain[refiGrossEnergyBaseIncome] >= 300 or (oBrain[refiGrossEnergyBaseIncome] >= 150 and EntityCategoryContains(M28UnitInfo.refCategoryLandFactory - categories.TECH3, oUnit.UnitId)) or (oBrain[refiGrossEnergyBaseIncome] >= 100 and EntityCategoryContains(M28UnitInfo.refCategoryLandFactory * categories.TECH1, oUnit.UnitId))) and (oBrain[refiGrossEnergyBaseIncome] >= 30 or oBrain[refiGrossEnergyBaseIncome] * oBrain[refiBrainBuildRateMultiplier] >= 30) and (oBrain[refiGrossEnergyBaseIncome] >= 150 or (oBrain[refiGrossEnergyBaseIncome] >= 80 * oBrain[refiBrainBuildRateMultiplier] and EntityCategoryContains(M28UnitInfo.refCategoryLandFactory - categories.TECH3 + M28UnitInfo.refCategoryNavalFactory * categories.TECH1, oUnit.UnitId)) or EntityCategoryContains(M28UnitInfo.refCategoryLandFactory * categories.TECH1, oUnit.UnitId)) and (oBrain[refiGrossEnergyBaseIncome] >= 300 or not(oUnit:IsUnitState('Upgrading')) or bDontPauseUpgradingT1LandOrT2Land or (oUnit[M28Factory.refbPrimaryFactoryForIslandOrPond] and oBrain[refiGrossEnergyBaseIncome] >= 85 * oBrain[refiBrainBuildRateMultiplier] and EntityCategoryContains(categories.TECH1, oUnit.UnitId))) then
                                                     bApplyActionToUnit = false
                                                     if bDebugMessages == true then LOG(sFunctionRef..': Primary fac for island/pond so wont pause') end
                                                     --Dont want to pause an HQ upgrade since it will give us better power, unless we already have access to that tech for the factory brain owner
@@ -3941,4 +3952,82 @@ function JustBuiltSignificantPowerMonitor(iTeam, iMaxTimeToWait, iEnergyGenPerTi
         M28Team.tTeamData[iTeam][M28Team.refbJustBuiltLotsOfPower] = false
         M28Team.tTeamData[iTeam][M28Team.refiTimeEndingActiveCheckOfLotsOfPower] = nil
     end
+end
+
+function ConsiderChangingCoreBase(aiBrain, iOriginalPlateau, iOriginalZone)
+    --Assumed has been called after our air fac was destroyed, suggesting core base is in trouble
+    local bDebugMessages = false if M28Profiler.bGlobalDebugOverride == true then   bDebugMessages = true end
+    local sFunctionRef = 'ConsiderChangingCoreBase'
+    M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
+
+    local iTeam = aiBrain.M28Team
+    local tOrigLZData = M28Map.tAllPlateaus[iOriginalPlateau][M28Map.subrefPlateauLandZones][iOriginalZone]
+    local tOrigLZTeamData = tOrigLZData[M28Map.subrefLZTeamData][iTeam]
+    local bLookForDifferentZone = false
+    local iNewBasePlateau, iNewBaseLandZone
+    local iSValueWanted
+    if bDebugMessages == true then LOG(sFunctionRef..': About to start loop for aiBrain='..aiBrain.Nickname..'; refiOurHighestAirFactoryTech='..aiBrain[refiOurHighestAirFactoryTech]..'; iOriginalPlateau='..iOriginalPlateau..'; iOriginalZone='..iOriginalZone..'; subrefiActiveM28BrainCount='..M28Team.tTeamData[iTeam][M28Team.subrefiActiveM28BrainCount]..'; Time='..GetGameTimeSeconds()) end
+    while aiBrain[refiOurHighestAirFactoryTech] == 0 do
+        --Only consider changing if we lack land facts in our core base
+        if M28Team.tTeamData[iTeam][M28Team.subrefiActiveM28BrainCount] <= 1 then
+            bLookForDifferentZone = true
+            if M28Utilities.IsTableEmpty(tOrigLZTeamData[M28Map.subreftoLZOrWZAlliedUnits]) then
+                bLookForDifferentZone = false
+                if bDebugMessages == true then LOG(sFunctionRef..': Have no units in orig base') end
+            else
+                local tFactoriesInCoreZone = EntityCategoryFilterDown(M28UnitInfo.refCategoryFactory, tOrigLZTeamData[M28Map.subreftoLZOrWZAlliedUnits])
+                if M28Utilities.IsTableEmpty(tFactoriesInCoreZone) == false then
+                    for iFactory, oFactory in tFactoriesInCoreZone do
+                        if not(oFactory.Dead) and oFactory:GetFractionComplete() == 1 and oFactory[M28UnitInfo.reftAssignedPlateauAndLandZoneByTeam][iTeam][2] == iOriginalZone then
+                            if bDebugMessages == true then LOG(sFunctionRef..': We still have a constructed factory in the old core base, oFactory='..oFactory.UnitId..M28UnitInfo.GetUnitLifetimeCount(oFactory)..'; reftAssignedPlateauAndLandZoneByTeam='..repru(oFactory[M28UnitInfo.reftAssignedPlateauAndLandZoneByTeam][iTeam])) end
+                            bLookForDifferentZone = false
+                            break
+                        end
+                    end
+                end
+            end
+            if bDebugMessages == true then LOG(sFunctionRef..': bLookForDifferentZone='..tostring(bLookForDifferentZone)..'; time='..GetGameTimeSeconds()) end
+            if bLookForDifferentZone then
+                iSValueWanted = tOrigLZTeamData[M28Map.subrefLZSValue]
+                local toLandFactories = aiBrain:GetListOfUnits(M28UnitInfo.refCategoryLandFactory + M28UnitInfo.refCategoryAirFactory)
+                if bDebugMessages == true then LOG(sFunctionRef..': is toLandFactories empty='..tostring(M28Utilities.IsTableEmpty(toLandFactories))) end
+                if M28Utilities.IsTableEmpty(toLandFactories) == false then
+                    local tbZoneConsideredByPlateau = {}
+                    tbZoneConsideredByPlateau[iOriginalPlateau] = {}
+                    tbZoneConsideredByPlateau[iOriginalPlateau][iOriginalZone] = true
+                    local iCurPlateau, iCurZone
+
+                    for iFactory, oFactory in toLandFactories do
+                        iCurPlateau = oFactory[M28UnitInfo.reftAssignedPlateauAndLandZoneByTeam][iTeam][1]
+                        iCurZone = oFactory[M28UnitInfo.reftAssignedPlateauAndLandZoneByTeam][iTeam][2]
+                        if not(tbZoneConsideredByPlateau[iCurPlateau]) then tbZoneConsideredByPlateau[iCurPlateau] = {} end
+                        if not(tbZoneConsideredByPlateau[iCurPlateau][iCurZone]) then
+                            tbZoneConsideredByPlateau[iCurPlateau][iCurZone] = true
+                            local tCurLZData = M28Map.tAllPlateaus[iCurPlateau][M28Map.subrefPlateauLandZones][iCurZone]
+                            local tCurLZTeamData = tCurLZData[M28Map.subrefLZTeamData][iTeam]
+                            if bDebugMessages == true then LOG(sFunctionRef..': Considering iCurPlateau='..iCurPlateau..'; iCurZone='..iCurZone..'; iSValueWanted='..iSValueWanted..'; subrefLZSValue='..tCurLZTeamData[M28Map.subrefLZSValue]..'; refiEnemyAirToGroundThreat='..tCurLZTeamData[M28Map.refiEnemyAirToGroundThreat]..'; subrefMexCountByTech='..repru(tCurLZTeamData[M28Map.subrefMexCountByTech])..'; tCurLZData[M28Map.subrefLZOrWZMexCount]='..tCurLZData[M28Map.subrefLZOrWZMexCount]..'; subrefTThreatEnemyCombatTotal='..tCurLZTeamData[M28Map.subrefTThreatEnemyCombatTotal]) end
+                            if tCurLZTeamData[M28Map.subrefLZSValue] > iSValueWanted and (tCurLZTeamData[M28Map.subrefTThreatEnemyCombatTotal] or 0) == 0 and tCurLZTeamData[M28Map.refiEnemyAirToGroundThreat] == 0 and tCurLZTeamData[M28Map.subrefMexCountByTech][1] + tCurLZTeamData[M28Map.subrefMexCountByTech][2] + tCurLZTeamData[M28Map.subrefMexCountByTech][3] >= tCurLZData[M28Map.subrefLZOrWZMexCount] then
+                                iSValueWanted = tCurLZTeamData[M28Map.subrefLZSValue]
+                                iNewBasePlateau = iCurPlateau
+                                iNewBaseLandZone = iCurZone
+                                if bDebugMessages == true then LOG(sFunctionRef..': Have a new plateau and zone to call our base') end
+                            end
+                        end
+                    end
+                    if iNewBasePlateau and iNewBaseLandZone then break end
+                end
+            end
+        end
+        M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+        WaitSeconds(30)
+        M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
+        if bDebugMessages == true then LOG(sFunctionRef..': About to restart loop, M28Team.tTeamData[iTeam][M28Team.subrefiActiveM28BrainCount]='..M28Team.tTeamData[iTeam][M28Team.subrefiActiveM28BrainCount]..'; refiOurHighestAirFactoryTech='..aiBrain[refiOurHighestAirFactoryTech]..'; Time='..GetGameTimeSeconds()) end
+    end
+    if iNewBasePlateau and iNewBaseLandZone then
+        local tNewLZData = M28Map.tAllPlateaus[iNewBasePlateau][M28Map.subrefPlateauLandZones][iNewBaseLandZone]
+        local tNewLZTeamData = tNewLZData[M28Map.subrefLZTeamData][iTeam]
+        tNewLZTeamData[M28Map.subrefbCoreBaseOverride] = true
+        if bDebugMessages == true then LOG(sFunctionRef..': have flagged for iNewBasePlateau='..iNewBasePlateau..'iNewBaseLandZone='..iNewBaseLandZone..' to be a core base') end
+    end
+    M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
 end

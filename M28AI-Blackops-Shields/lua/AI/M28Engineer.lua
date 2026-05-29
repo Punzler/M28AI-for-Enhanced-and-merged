@@ -70,6 +70,7 @@ refiGETemplateTimeTryingToBuild = 'M28UnitTimBldGE' --If an engineer on gameende
 refiPlateauAndZoneTravelingBeforeTempReclaimOrder = 'M28EngTrZT' --If engineer was moving to a land zone but was then temporarily given a reclaim order, then this shoudl record the zone itw as traveling to prior to the reclaim order and then give it a new travel order to this zone even if another engi is also going there
 refiSequentialReclaimCount = 'M28EngSeqRc' --when an engineer finishes reclaiming, it should continue to try reclaiming; this is used as a count, so if it is reclaiming a lot it should periodically consider new orders
 refiRepairProgressWhenLastChecked = 'M28EngRePr' --If engi assisting GE template this should be recorded so we reassess if we want to repair periodically
+refiLastReclaimTargetValue = 'M28ERecV' --when engi reclaiming an area and given reclaim order it records the value of the last wreck it found
 
 --Shield related variables against a unit
 refiFailedShieldBuildDistance = 'M28EngFailedShieldBuildDist' --against a building wanting shielding - records the distance of the closest location that we can build (so can decide if the unit can even be shielded)
@@ -1818,7 +1819,7 @@ function GetBestBuildLocationForTarget(oEngineer, sBlueprintToBuild, tTargetLoca
 
     if not(tLocationToBuildTowards) then
         --Build towards the midpoing except for certain unit categories
-        if not(EntityCategoryContains(M28UnitInfo.refCategoryPD + M28UnitInfo.refCategoryTMD + M28UnitInfo.refCategoryFixedT2Arti + M28UnitInfo.refCategoryFixedShield, sBlueprintToBuild)) then
+        if not(EntityCategoryContains(M28UnitInfo.refCategoryPD + M28UnitInfo.refCategoryFixedT2Arti + M28UnitInfo.refCategoryFixedShield, sBlueprintToBuild)) then
             if (iLandZone or 0) > 0 and iPlateau > 0 then
                 if tArtiAndOtherPositionsToBuildAwayFrom then
                     tLocationToBuildTowards = nil
@@ -6094,13 +6095,18 @@ function GetEngineerToReclaimNearbyArea(oEngineer, iPriorityOverride, tLZOrWZTea
         local sTotalReclaimValueRef
         local iReclaimValuePerEngi
         local oNearestReclaim
+        local iNearestReclaim = 10000
+        local iNearestReclaimWithAnyValue = 10000
+        local oNearestAnyValueReclaim
         local iEngiPlateau = NavUtils.GetTerrainLabel(M28Map.refPathingTypeHover, oEngineer:GetPosition())
 
         local iMinSignifSegmentValue = 0
         local bDontCheckSignificantValue = true
+        local bIncludeIfNoSignificantMass = true
         local bReduceModDistIfSignificantMass = false
         if not(bWantEnergyNotMass) then
             if not(bOnlyConsiderReclaimInRangeOfEngineer) then
+                if iMinSignifSegmentValue >= M28Map.iSignificantMassThreshold then bIncludeIfNoSignificantMass = false end
                 if tLZOrWZData[M28Map.subrefTotalSignificantMassReclaim] >= 500 then
                     iMinSignifSegmentValue = M28Map.iSignificantMassThreshold --10 (as of v43)
                     bDontCheckSignificantValue = false
@@ -6141,7 +6147,7 @@ function GetEngineerToReclaimNearbyArea(oEngineer, iPriorityOverride, tLZOrWZTea
         if not(bOnlyConsiderReclaimInRangeOfEngineer) then
             for iSegmentCount, tSegmentXZ in tLZOrWZData[M28Map.subrefReclaimSegments] do
                 if bDebugMessages == true then LOG(sFunctionRef..': Reclaim in segment X='..tSegmentXZ[1]..'Z'..tSegmentXZ[2]..'='..(M28Map.tReclaimAreas[tSegmentXZ[1]][tSegmentXZ[2]][sReclaimTableRef] or 'nil')..' using sReclaimTableRef='..sReclaimTableRef..'; iMinReclaimIndividualValue='..iMinReclaimIndividualValue..'; bDontCheckSignificantValue='..tostring(bDontCheckSignificantValue or false)..'; iMinSignifSegmentValue='..(iMinSignifSegmentValue or 'nil')..'; Total signif mass='..(M28Map.tReclaimAreas[tSegmentXZ[1]][tSegmentXZ[2]][M28Map.refReclaimTotalSignificantMass] or 'nil')) end
-                if M28Map.tReclaimAreas[tSegmentXZ[1]][tSegmentXZ[2]][sReclaimTableRef] >= iMinReclaimIndividualValue and (bDontCheckSignificantValue or M28Map.tReclaimAreas[tSegmentXZ[1]][tSegmentXZ[2]][M28Map.refReclaimTotalSignificantMass] >= iMinSignifSegmentValue) then
+                if M28Map.tReclaimAreas[tSegmentXZ[1]][tSegmentXZ[2]][sReclaimTableRef] >= iMinReclaimIndividualValue and (bIncludeIfNoSignificantMass or M28Map.tReclaimAreas[tSegmentXZ[1]][tSegmentXZ[2]][M28Map.refReclaimTotalSignificantMass] > 0) and (bDontCheckSignificantValue or M28Map.tReclaimAreas[tSegmentXZ[1]][tSegmentXZ[2]][M28Map.refReclaimTotalSignificantMass] >= iMinSignifSegmentValue) then
                     if bDebugMessages == true then LOG(sFunctionRef..': Considering reclaim location at position '..repru(M28Map.GetReclaimLocationFromSegment(tSegmentXZ[1], tSegmentXZ[2]))..'; plyaable area='..repru(M28Map.rMapPlayableArea)..'; Is in playable area='..tostring(M28Conditions.IsLocationInPlayableArea(M28Map.GetReclaimLocationFromSegment(tSegmentXZ[1], tSegmentXZ[2])))..'; bDontConsiderPlayableArea='..tostring(bDontConsiderPlayableArea)..'; Mass reclaim in segment='..(M28Map.tReclaimAreas[tSegmentXZ[1]][tSegmentXZ[2]][M28Map.refReclaimTotalMass] or 'nil')..'; Signif mass in segment='..(M28Map.tReclaimAreas[tSegmentXZ[1]][tSegmentXZ[2]][M28Map.refReclaimTotalSignificantMass] or 'nil')) end
                     if bDontConsiderPlayableArea or M28Conditions.IsLocationInPlayableArea(M28Map.GetReclaimLocationFromSegment(tSegmentXZ[1], tSegmentXZ[2])) then
                         if bDontConsiderNoRush or M28Conditions.IsLocationInNoRushArea(M28Map.GetReclaimLocationFromSegment(tSegmentXZ[1], tSegmentXZ[2])) then
@@ -6151,7 +6157,12 @@ function GetEngineerToReclaimNearbyArea(oEngineer, iPriorityOverride, tLZOrWZTea
                                     iCurModDist = iCurModDist + 60 * tLZOrWZTeamData[M28Map.subrefReclaimAreaAssignmentsBySegment][tSegmentXZ[1]][tSegmentXZ[2]] * iReclaimValuePerEngi / math.max(5, tLZOrWZData[sTotalReclaimValueRef]) --Low priority area
                                 end
                             end
-                            if bReduceModDistIfSignificantMass and M28Map.tReclaimAreas[tSegmentXZ[1]][tSegmentXZ[2]][M28Map.refReclaimTotalSignificantMass] > 0 then iCurModDist = iCurModDist * 0.5 end --Prioritise locations with significant reclaim over those without
+                            if bReduceModDistIfSignificantMass then
+                                if M28Map.tReclaimAreas[tSegmentXZ[1]][tSegmentXZ[2]][M28Map.refReclaimTotalSignificantMass] > 0 then
+                                    iCurModDist = iCurModDist * 0.5
+                                else iCurModDist = iCurModDist + 12
+                                end --Prioritise locations with significant reclaim over those without
+                            end
                             tiSegmentCountToSegmentXZ[iSegmentCount] = {tSegmentXZ[1], tSegmentXZ[2]}
                             tiSegmentsToConsiderByCountAndDist[iSegmentCount] = iCurModDist
                             if iCurModDist < iClosestSegmentDist then
@@ -6165,11 +6176,20 @@ function GetEngineerToReclaimNearbyArea(oEngineer, iPriorityOverride, tLZOrWZTea
             end
         end
         if bDebugMessages == true then LOG(sFunctionRef..': tiClosestSegmentXZ='..repru(tiClosestSegmentXZ)..'; bOnlyConsiderReclaimInRangeOfEngineer='..tostring(bOnlyConsiderReclaimInRangeOfEngineer or false)) end
-        function TryToGetReclaimForSegmentOrAroundEngineer(tiSegmentTargetToUseUnlessConsideringReclaimInRangeOfEngineer, bDontConsiderAnyValueYetOverride, bAbortAsSoonAsFoundPossibleReclaim)
+        function TryToGetReclaimForSegmentOrAroundEngineer(tiSegmentTargetToUseUnlessConsideringReclaimInRangeOfEngineer, bDontConsiderAnyValueYetOverride, bAbortAsSoonAsFoundPossibleReclaim, bForceUsAnyValueReclaim)
             if tiSegmentTargetToUseUnlessConsideringReclaimInRangeOfEngineer then tiClosestSegmentXZ = tiSegmentTargetToUseUnlessConsideringReclaimInRangeOfEngineer end
-            if tiClosestSegmentXZ or bOnlyConsiderReclaimInRangeOfEngineer then
-                --Get reclaim in the segment
+            if tiClosestSegmentXZ or bOnlyConsiderReclaimInRangeOfEngineer or (bForceUsAnyValueReclaim and oNearestAnyValueReclaim) then
+                local tNearbyReclaim
                 local tTargetPos
+                local iCurDistToTargetPos
+                local bConsiderBelowMinValueIfCantFindAny = true
+                local iCurMinToUse = 0
+
+                if bForceUsAnyValueReclaim then
+                    tNearbyReclaim = {oNearestAnyValueReclaim}
+                    tTargetPos = oEngineer:GetPosition()
+                else
+                --Get reclaim in the segment
                 if bOnlyConsiderReclaimInRangeOfEngineer then
                     tTargetPos = oEngineer:GetPosition()
                 else tTargetPos = M28Map.GetReclaimLocationFromSegment(tiClosestSegmentXZ[1], tiClosestSegmentXZ[2])
@@ -6193,26 +6213,26 @@ function GetEngineerToReclaimNearbyArea(oEngineer, iPriorityOverride, tLZOrWZTea
                     if bDebugMessages == true then LOG(sFunctionRef..': Will consider the reclaim segment using iMaxDistanceToEngineer='..(iMaxDistanceToEngineer or 'nil')..'; Reclaim segment midpoint='..repru(M28Map.tReclaimAreas[tiClosestSegmentXZ[1]][tiClosestSegmentXZ[2]][M28Map.refReclaimSegmentMidpoint])..'; Playable area='..repru(M28Map.rMapPlayableArea)) end
                     rReclaimRectangle = M28Map.GetReclaimSegmentRectangle(tiClosestSegmentXZ[1], tiClosestSegmentXZ[2], iMaxDistanceToEngineer)
                 end
-                local tNearbyReclaim = M28Map.GetReclaimInRectangle(4, rReclaimRectangle)
+                tNearbyReclaim = M28Map.GetReclaimInRectangle(4, rReclaimRectangle)
                 if bDebugMessages == true then
                     local iTargetPosPlateau, iTargetPosLZ = M28Map.GetPlateauAndLandZoneReferenceFromPosition(tTargetPos)
                     if bDebugMessages == true then LOG(sFunctionRef..': Considering for iPlateauOrPond='..(iPlateauOrPond or 'nil')..'; iLandOrWaterZone='..(iLandOrWaterZone or 'nil')..'; Engineer='..(oEngineer.UnitId or 'nil')..(M28UnitInfo.GetUnitLifetimeCount(oEngineer) or 'nil')..'; iMaxDistanceToEngineer='..(iMaxDistanceToEngineer or 'nil')..'; oEngBP.Economy.MaxBuildDistance='..(oEngBP.Economy.MaxBuildDistance or 'nil')..'; tiClosestSegmentXZ='..repru(tiClosestSegmentXZ)..'; Is tNearbyReclaim empty='..tostring(M28Utilities.IsTableEmpty(tNearbyReclaim))..'; Total mass recorded against this reclaim segment='..(M28Map.tReclaimAreas[tiClosestSegmentXZ[1]][tiClosestSegmentXZ[2]][M28Map.refReclaimTotalMass] or 'nil')..'; tTargetPos='..repru(tTargetPos)..'; Eng pos='..repru(oEngineer:GetPosition())..'; Target Plateau and LZ='..(iTargetPosPlateau or 'nil')..'-'..(iTargetPosLZ or 0)..'; Reclaim segment='..repru(tiClosestSegmentXZ)..'; rReclaimRectangle='..repru(rReclaimRectangle)..'; M28Map.iReclaimSegmentSizeX='..(M28Map.iReclaimSegmentSizeX or 'nil')..'; iMaxDistanceToEngineer='..(iMaxDistanceToEngineer or 'nil')) end
                     M28Utilities.DrawRectangle(rReclaimRectangle, 2, 20)
                 end
 
-                local bConsiderBelowMinValueIfCantFindAny = true
-                if bOnlyConsiderReclaimInRangeOfEngineer or EntityCategoryContains(categories.COMMAND, oEngineer.UnitId)  then
-                    bConsiderBelowMinValueIfCantFindAny = false
-                elseif iMinIndividualValueOverride and not(bWantEnergyNotMass) and (tLZOrWZData[M28Map.subrefHighestIndividualReclaim] or 0) < iMinIndividualValueOverride then M28Utilities.ErrorHandler('Are trying to send reclaim order with min threshold below the amount in the zone so the engineer will likely end up wasting time on lower value reclaim', true, true)
-                end
 
-                local iCurMinToUse = 0
-                if not(bConsiderBelowMinValueIfCantFindAny) then iCurMinToUse = iMinReclaimIndividualValue end
+                    if bOnlyConsiderReclaimInRangeOfEngineer or EntityCategoryContains(categories.COMMAND, oEngineer.UnitId)  then
+                        bConsiderBelowMinValueIfCantFindAny = false
+                    else
+                        if bDontConsiderAnyValueYetOverride then bConsiderBelowMinValueIfCantFindAny = false end
+                        if iMinIndividualValueOverride and not(bWantEnergyNotMass) and (tLZOrWZData[M28Map.subrefHighestIndividualReclaim] or 0) < iMinIndividualValueOverride then M28Utilities.ErrorHandler('Are trying to send reclaim order with min threshold below the amount in the zone so the engineer will likely end up wasting time on lower value reclaim', true, true) end
+                    end
+
+                    if not(bConsiderBelowMinValueIfCantFindAny) then iCurMinToUse = iMinReclaimIndividualValue end
+                    if bDebugMessages == true then LOG(sFunctionRef..': Is tNearbyReclaim empty='..tostring(tNearbyReclaim)..'; bConsiderBelowMinValueIfCantFindAny='..tostring(bConsiderBelowMinValueIfCantFindAny)..'; iCurMinToUse='..iCurMinToUse) end
+                end
                 if bDebugMessages == true then LOG(sFunctionRef..': Is tNearbyReclaim empty='..tostring(tNearbyReclaim)..'; bConsiderBelowMinValueIfCantFindAny='..tostring(bConsiderBelowMinValueIfCantFindAny)..'; iCurMinToUse='..iCurMinToUse) end
                 if M28Utilities.IsTableEmpty(tNearbyReclaim) == false then
-                    local iNearestReclaim = 10000
-                    local iNearestReclaimWithAnyValue = 10000
-                    local oNearestAnyValueReclaim
                     local iReclaimRadius
 
                     local iEngiTerrainLabel = NavUtils.GetTerrainLabel(M28Map.refPathingTypeHover, oEngineer:GetPosition())
@@ -6330,6 +6350,11 @@ function GetEngineerToReclaimNearbyArea(oEngineer, iPriorityOverride, tLZOrWZTea
                             M28Orders.IssueTrackedAggressiveMove(oEngineer, oNearestReclaim:GetPosition(), 3, false, 'ReclLZeSeg', false)
                         else
                             M28Orders.IssueTrackedReclaim(oEngineer, oNearestReclaim, false, 'ReclLZSeg')
+                            if bWantEnergyNotMass then
+                                oEngineer[refiLastReclaimTargetValue] = oNearestReclaim.MaxEnergyReclaim
+                            else
+                                oEngineer[refiLastReclaimTargetValue] = oNearestReclaim.MaxMassReclaim
+                            end
                         end
                         if bDebugMessages == true then
                             LOG(sFunctionRef..': Will send order to get reclaim at position '..repru(oNearestReclaim.CachePosition)..'; will draw a box around here; oNearestReclaim ID='..(oNearestReclaim.UnitId or 'nil')..'; mass value='..(oNearestReclaim.MaxMassReclaim or 'nil')..'; Dist to engi='..M28Utilities.GetDistanceBetweenPositions(oEngineer:GetPosition(), oNearestReclaim.CachePosition)..'; Engi cur position='..repru(oEngineer:GetPosition()))
@@ -6362,10 +6387,16 @@ function GetEngineerToReclaimNearbyArea(oEngineer, iPriorityOverride, tLZOrWZTea
             end
             if not(bGivenOrder) then
                 --Ignore value restriction
-                if bDebugMessages == true then LOG(sFunctionRef..': Will now try cycling through ignoring low value restriction and stop the moment we find a pathable wreck') end
-                for iSegmentCount, iModDist in M28Utilities.SortTableByValue(tiSegmentsToConsiderByCountAndDist, false) do
-                    TryToGetReclaimForSegmentOrAroundEngineer(tiSegmentCountToSegmentXZ[iSegmentCount], false, true)
-                    if bGivenOrder then break end
+                if oNearestAnyValueReclaim then
+                    if bDebugMessages == true then LOG(sFunctionRef..': Will just get the nearest any value reclaim to reclaim') end
+                    TryToGetReclaimForSegmentOrAroundEngineer(nil, false, true, true)
+                end
+                if not(bGivenOrder) then
+                    if bDebugMessages == true then LOG(sFunctionRef..': Will now try cycling through ignoring low value restriction and stop the moment we find a pathable wreck') end
+                    for iSegmentCount, iModDist in M28Utilities.SortTableByValue(tiSegmentsToConsiderByCountAndDist, false) do
+                        TryToGetReclaimForSegmentOrAroundEngineer(tiSegmentCountToSegmentXZ[iSegmentCount], false, true)
+                        if bGivenOrder then break end
+                    end
                 end
             end
         end
@@ -11932,7 +11963,7 @@ function AssignBuildExperimentalOrT3NavyAction(fnHaveActionToAssign, iPlateau, i
         LOG(sFunctionRef..': Start of code, iPlateau='..(iPlateau or 'nil')..'; iLandOrWaterZone='..iLandOrWaterZone..'; iTeam='..iTeam..'; iActionToAssign='..(iActionToAssign or 'nil')..'; iMinTechLevelWanted='..(iMinTechLevelWanted or 'nil')..'; iBuildPowerWanted='..(iBuildPowerWanted or 'nil')..'; Is table of T3 navy and exp empty for our team (i.e. for nonM28 units)='..tostring(M28Utilities.IsTableEmpty(M28Team.tTeamData[iTeam][M28Team.reftoNonM28ConstructingExpAndT3Navy]))..'; Is table of enemy air exp empty='..tostring(M28Utilities.IsTableEmpty(M28Team.tTeamData[iTeam][M28Team.reftEnemyAirExperimentals]))..'; Team airaa threat='..M28Team.tTeamData[iTeam][M28Team.subrefiOurAirAAThreat]..'; Enemy air to ground threat='..M28Team.tTeamData[iTeam][M28Team.refiEnemyAirToGroundThreat]..'; Have low mass='..tostring(M28Conditions.TeamHasLowMass(iTeam))..'; Mass% stored='..M28Team.tTeamData[iTeam][M28Team.subrefiTeamAverageMassPercentStored]..'; Do we have exp under construction in this zone='..tostring(GetExperimentalsBeingBuiltInThisAndOtherLandZones(iTeam, iPlateau, iLandOrWaterZone, false, 0, nil, false) or false)..'; Do we have air control='..tostring(M28Conditions.TeamHasAirControl(iTeam))..'; Time since last E stall='..GetGameTimeSeconds() - (M28Team.tTeamData[iTeam][M28Team.refiTimeOfLastEnergyStall] or 0) ..'; E when stalled='..M28Team.tTeamData[iTeam][M28Team.subrefiGrossEnergyWhenStalled]..'; Cur gross E='..M28Team.tTeamData[iTeam][M28Team.subrefiTeamGrossEnergy])
         local bHaveExperimentalForThisLandZone, iOtherLandZonesWithExperimental, iMassToComplete = GetExperimentalsBeingBuiltInThisAndOtherLandZones(iTeam, iPlateau, iLandOrWaterZone, true, 500, M28UnitInfo.refCategoryExperimentalLevel, nil, nil, nil)
         LOG(sFunctionRef..': bHaveExperimentalForThisLandZone='..tostring(bHaveExperimentalForThisLandZone)..'; iOtherLandZonesWithExperimental='..iOtherLandZonesWithExperimental..'; iMassToComplete='..iMassToComplete..'; Team mass stored actual='..M28Team.tTeamData[iTeam][M28Team.subrefiTeamMassStored]..'; Team mass% stored='..M28Team.tTeamData[iTeam][M28Team.subrefiTeamAverageMassPercentStored])
-        if iMassToComplete >= 100000 and not(M28Team.tTeamData[iTeam][M28Team.refbBuiltParagon]) then M28Utilities.ErrorHandler('Audit trail 100k plus mass to complete', true, true) end
+
     end
     if M28Utilities.IsTableEmpty(M28Team.tTeamData[iTeam][M28Team.reftoNonM28ConstructingExpAndT3Navy]) == false then
         --Update the table
@@ -13769,9 +13800,11 @@ function ConsiderCoreBaseLandZoneEngineerAssignment(tLZTeamData, iTeam, iPlateau
 
     --Power stalling and either gross power significantly lower than gross mass, or we are completely stalling E
     iCurPriority = iCurPriority + 1
-    if bHaveLowPower and M28Team.tTeamData[iTeam][M28Team.subrefbTeamIsStallingEnergy] and M28Team.tTeamData[iTeam][M28Team.subrefiTeamAverageEnergyPercentStored] < M28Team.tTeamData[iTeam][M28Team.subrefiTeamAverageMassPercentStored] then
+    if bDebugMessages == true then LOG(sFunctionRef..': Stalling power high priority power builder, subrefbTeamIsStallingEnergy='..tostring(M28Team.tTeamData[iTeam][M28Team.subrefbTeamIsStallingEnergy])..'; bHaveLowPower='..tostring(bHaveLowPower)..'; subrefiTeamAverageEnergyPercentStored='..M28Team.tTeamData[iTeam][M28Team.subrefiTeamAverageEnergyPercentStored]..'; subrefiTeamAverageMassPercentStored='..M28Team.tTeamData[iTeam][M28Team.subrefiTeamAverageMassPercentStored]) end
+    if bHaveLowPower and M28Team.tTeamData[iTeam][M28Team.subrefiTeamAverageEnergyPercentStored] < M28Team.tTeamData[iTeam][M28Team.subrefiTeamAverageMassPercentStored] and (M28Team.tTeamData[iTeam][M28Team.subrefbTeamIsStallingEnergy] or (M28Team.tTeamData[iTeam][M28Team.subrefiTeamAverageMassPercentStored] > 0.4 and M28Team.tTeamData[iTeam][M28Team.subrefiTeamAverageEnergyPercentStored] < 0.8 and (tLZTeamData[M28Map.subrefMexCountByTech][3] >= 2 or M28Team.tTeamData[iTeam][M28Team.subrefiTeamGrossMass] * 13 >= M28Team.tTeamData[iTeam][M28Team.subrefiTeamGrossEnergy]))) then
         iBPWanted = math.min(300, aiBrain[M28Economy.refiGrossMassBaseIncome] * 10)
         HaveActionToAssign(refActionBuildPower, iMinTechLevelForPower, iBPWanted)
+        if bDebugMessages == true then LOG(sFunctionRef..': Will try and get more power, iMinTechLevelForPower='..iMinTechLevelForPower..'; iBPWanted='..iBPWanted) end
     end
 
     --1st experimental - Enemy has land experimental and we dont have one of our own yet (and havent completed one before), unless enemy has a fatboy (in which case we want to focus more on getting t2 arti)
@@ -16033,7 +16066,7 @@ function ConsiderCoreBaseLandZoneEngineerAssignment(tLZTeamData, iTeam, iPlateau
         if M28Utilities.IsTableEmpty(M28Team.tTeamData[iTeam][M28Team.subreftoFriendlyActiveM28Brains]) == false then
             for iBrain, oBrain in M28Team.tTeamData[iTeam][M28Team.subreftoFriendlyActiveM28Brains] do
                 if oBrain.CheatEnabled then
-                    iHighestCheatModifier = tonumber(ScenarioInfo.Options.CheatMult or 1.5)
+                    iHighestCheatModifier = oBrain[M28Economy.refiBrainResourceMultiplier] or tonumber(ScenarioInfo.Options.CheatMult or 1.5)
                     break
                 end
             end
@@ -16376,8 +16409,10 @@ function ConsiderCoreBaseLandZoneEngineerAssignment(tLZTeamData, iTeam, iPlateau
             if iIdleEngineers >= 8 then
                 local iKilled
                 for iCurEngiTechLevel = 1, 3 do
-                    iKilled = ConsiderDestroyingLowTechEngineers(toAvailableEngineersByTech[iCurEngiTechLevel][1], 1, toAvailableEngineersByTech[iCurEngiTechLevel])
-                    if iKilled > 0 then break end
+                    if toAvailableEngineersByTech[iCurEngiTechLevel][1] then
+                        iKilled = ConsiderDestroyingLowTechEngineers(toAvailableEngineersByTech[iCurEngiTechLevel][1], 1, toAvailableEngineersByTech[iCurEngiTechLevel])
+                        if iKilled > 0 then break end
+                    end
                 end
             end
         end
@@ -17131,7 +17166,7 @@ function ConsiderMinorLandZoneEngineerAssignment(tLZTeamData, iTeam, iPlateau, i
                 end
             end
             if bDebugMessages == true then LOG(sFunctionRef..': Will assign '..iBPWanted..' to high priorty reclaimer') end
-            HaveActionToAssign(refActionReclaimArea, 1, iBPWanted, {false, nil})
+            HaveActionToAssign(refActionReclaimArea, 1, iBPWanted, {false, M28Map.iSignificantMassThreshold})
         end
     else
         iCurPriority = iCurPriority + 1
@@ -17246,10 +17281,14 @@ function ConsiderMinorLandZoneEngineerAssignment(tLZTeamData, iTeam, iPlateau, i
                         iTechLevelWanted = iHighestTechActuallyAvailable
                     end
                 end
-
-                --HaveActionToAssign(iActionToAssign, iMinTechLevelWanted,                                          iBuildPowerWanted, vOptionalVariable, bDontIncreaseLZBPWanted, bBPIsInAdditionToExisting)
-                HaveActionToAssign(refActionBuildAA, iTechLevelWanted, iBPWanted     , M28Building.GetDefenseBandPosition(aiBrain, iPlateau, iLandZone, refActionBuildAA),              true)
-                if bDebugMessages == true then LOG(sFunctionRef..': Minor Zone AA builder if no fixed AA: iBPWanted='..iBPWanted..'; iNearbyEnemyAirToGroundThreat='..iNearbyEnemyAirToGroundThreat..'; tLZTeamData[M28Map.refiEnemyAirToGroundThreat]='..tLZTeamData[M28Map.refiEnemyAirToGroundThreat]..'; subrefiAlliedGroundAAThreat='..tLZTeamData[M28Map.subrefLZOrWZThreatAllyGroundAA]..'; iTechLevelWanted='..iTechLevelWanted) end
+                --If we are only building because we lack a SAM, but we dont have engineers avialable for it, then dont keep building T1-T2 fixed AA
+                if iTechLevelWanted < M28Team.tTeamData[iTeam][M28Team.subrefiHighestFriendlyFactoryTech] and tLZTeamData[M28Map.subrefLZOrWZThreatAllyGroundAA] < iTechLevelWanted * iTechLevelWanted * 1000 and iNearbyEnemyAirToGroundThreat * 2 < tLZTeamData[M28Map.subrefLZOrWZThreatAllyGroundAA] then
+                    if bDebugMessages == true then LOG(sFunctionRef..': We lack t3 engis for sam so wont build any more AA') end
+                else
+                    --HaveActionToAssign(iActionToAssign, iMinTechLevelWanted,                                          iBuildPowerWanted, vOptionalVariable, bDontIncreaseLZBPWanted, bBPIsInAdditionToExisting)
+                    HaveActionToAssign(refActionBuildAA, iTechLevelWanted, iBPWanted     , M28Building.GetDefenseBandPosition(aiBrain, iPlateau, iLandZone, refActionBuildAA),              true)
+                    if bDebugMessages == true then LOG(sFunctionRef..': Minor Zone AA builder if no fixed AA: iBPWanted='..iBPWanted..'; iNearbyEnemyAirToGroundThreat='..iNearbyEnemyAirToGroundThreat..'; tLZTeamData[M28Map.refiEnemyAirToGroundThreat]='..tLZTeamData[M28Map.refiEnemyAirToGroundThreat]..'; subrefiAlliedGroundAAThreat='..tLZTeamData[M28Map.subrefLZOrWZThreatAllyGroundAA]..'; iTechLevelWanted='..iTechLevelWanted) end
+                end
             end
         end
     end
@@ -19011,15 +19050,24 @@ function ConsiderWaterZoneEngineerAssignment(tWZTeamData, iTeam, iPond, iWaterZo
         end
         if bDebugMessages == true then LOG(sFunctionRef..': iAdjacentEnemyAirToGroundThreat='..iAdjacentEnemyAirToGroundThreat) end
         if (not(tWZTeamData[M28Map.subrefWZTimeLastDestroyedForStuckNavy]) or tWZTeamData[M28Map.subrefLZOrWZThreatAllyGroundAA] <= 4000) and iAdjacentEnemyAirToGroundThreat * 1.5 > (tWZTeamData[M28Map.subrefLZOrWZThreatAllyGroundAA] or 0) or (iAdjacentEnemyAirToGroundThreat * 3 > (tWZTeamData[M28Map.subrefLZOrWZThreatAllyGroundAA] or 0) and tWZTeamData[M28Map.refiEnemyAirToGroundThreat] >= 200) then
-
-            iBPWanted = 25
-            if (not (bHaveLowMass) and not (bHaveLowPower)) or (M28Team.tTeamData[iTeam][M28Team.subrefiTeamGrossMass] >= 10 and (M28Team.tTeamData[iTeam][M28Team.subrefiHighestFriendlyNavalFactoryTech] or 1) >= 2) then
-                iBPWanted = 50
+            --If we have blueprint override for naval fac, and already have AA, then assist naval fac instead (for campaign missions where enemy can s tart with large air to ground threat like cybran mission 5)
+            if oFirstWaterFactory and oFirstWaterFactory[M28Factory.refsFactoryNextBlueprintOverride] and (M28Map.bIsCampaignMap or EntityCategoryContains(categories.TECH1, oFirstWaterFactory.UnitId)) and tWZTeamData[M28Map.subrefLZOrWZThreatAllyGroundAA] >= math.max(150, tWZTeamData[M28Map.refiEnemyAirToGroundThreat] * 2) then
+                iBPWanted = 20
+                HaveActionToAssign(refActionAssistNavalFactory, 1, iBPWanted, oFirstWaterFactory)
+                if bDebugMessages == true then LOG(sFunctionRef..': Will assist naval factory as top priority as it has blueprint overrides') end
+                iBPWanted = 5
+                local iTechLevelWanted = math.max(1, (M28Team.tTeamData[iTeam][M28Team.subrefiHighestFriendlyNavalFactoryTech] or 1) - 1)
+                HaveActionToAssign(refActionBuildAA, iTechLevelWanted, iBPWanted)
+            else
+                iBPWanted = 25
+                if (not (bHaveLowMass) and not (bHaveLowPower)) or (M28Team.tTeamData[iTeam][M28Team.subrefiTeamGrossMass] >= 10 and (M28Team.tTeamData[iTeam][M28Team.subrefiHighestFriendlyNavalFactoryTech] or 1) >= 2) then
+                    iBPWanted = 50
+                end
+                if bDebugMessages == true then LOG(sFunctionRef..': Will try and build AA for water zone') end
+                local iTechLevelWanted = math.max(1, (M28Team.tTeamData[iTeam][M28Team.subrefiHighestFriendlyNavalFactoryTech] or 1) - 1)
+                if M28Team.tTeamData[iTeam][M28Team.subrefiHighestFriendlyNavalFactoryTech] >= 2 and (tWZTeamData[M28Map.subrefLZOrWZThreatAllyGroundAA] or 0) - (tWZTeamData[M28Map.subrefWZThreatAlliedMAA] or 0) >= 2000 then iTechLevelWanted = M28Team.tTeamData[iTeam][M28Team.subrefiHighestFriendlyNavalFactoryTech] end
+                HaveActionToAssign(refActionBuildAA, iTechLevelWanted, iBPWanted)
             end
-            if bDebugMessages == true then LOG(sFunctionRef..': Will try and build AA for water zone') end
-            local iTechLevelWanted = math.max(1, (M28Team.tTeamData[iTeam][M28Team.subrefiHighestFriendlyNavalFactoryTech] or 1) - 1)
-            if M28Team.tTeamData[iTeam][M28Team.subrefiHighestFriendlyNavalFactoryTech] >= 2 and (tWZTeamData[M28Map.subrefLZOrWZThreatAllyGroundAA] or 0) - (tWZTeamData[M28Map.subrefWZThreatAlliedMAA] or 0) >= 2000 then iTechLevelWanted = M28Team.tTeamData[iTeam][M28Team.subrefiHighestFriendlyNavalFactoryTech] end
-            HaveActionToAssign(refActionBuildAA, iTechLevelWanted, iBPWanted)
         end
     end
 
@@ -21131,13 +21179,13 @@ function ClearEngineersWhoseTargetIsNowBlockedByUnitConstructionStarted(oEnginee
 
 end
 
-function ConsiderDestroyingLowTechEngineers(oJustBuilt, iOptionalMaxNumberToKill, toOptionalEngineersToConsderKilling)
+function ConsiderDestroyingLowTechEngineers(oJustBuilt, iOptionalMaxNumberToKill, toOptionalEngineersToConsderKilling, bDontReturnNumberKilled)
     --Intended late game where lots of low tech engis in a core base; will kill engineers and returns the number of engineers killed
     local bDebugMessages = false
     if M28Profiler.bGlobalDebugOverride == true then   bDebugMessages = true end
     local sFunctionRef = 'ConsiderDestroyingLowTechEngineers'
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
-
+    if not(oJustBuilt.Dead) then
     local aiBrain = oJustBuilt:GetAIBrain()
     local iCurEngineers = aiBrain:GetCurrentUnits(M28UnitInfo.refCategoryEngineer)
     local iEngineersKilled = 0
@@ -21205,7 +21253,16 @@ function ConsiderDestroyingLowTechEngineers(oJustBuilt, iOptionalMaxNumberToKill
             end
         end
     end
-    return iEngineersKilled
+    if not(bDontReturnNumberKilled) then
+        M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+        return iEngineersKilled
+    end
+    else
+        if not(bDontReturnNumberKilled) then
+            M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+            return 0
+        end
+    end
 end
 
 function RecordUnitAsCaptureTarget(oUnit, bOptionalOnlyRecordIfSameUnitIdInCaptureList)

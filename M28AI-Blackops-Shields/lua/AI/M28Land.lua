@@ -4280,6 +4280,7 @@ function BackupUnitTowardsRallyIfAvailable(oUnit, tRallyPoint, iIslandPlateauOrP
         local iBackupDist = 0
         local iMaxAngleDifference = iMaxAngleDifForMovingBackwardsOverride or 35
         local bValidTowardsLocation = false
+        local bContinue = true
         if oUnit[M28UnitInfo.refbCanKite] then
             iBackupDist = (oUnit:GetBlueprint().Physics.BackUpDistance or 0)
         end
@@ -4363,7 +4364,9 @@ function BackupUnitTowardsRallyIfAvailable(oUnit, tRallyPoint, iIslandPlateauOrP
                         M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
                         if bDebugMessages == true then LOG(sFunctionRef..': Speed after waiting 1 tick='..M28UnitInfo.GetUnitSpeed(oUnit)..'; iTotalTimeWaited in ticks='..iTotalTimeWaited) end
                     end
-                    if not(M28UnitInfo.IsUnitValid(oUnit)) then M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd) return nil end
+                    if not(M28UnitInfo.IsUnitValid(oUnit)) then
+                        bContinue = false
+                    end
 
 
                     --Ticks to wait:
@@ -4372,9 +4375,10 @@ function BackupUnitTowardsRallyIfAvailable(oUnit, tRallyPoint, iIslandPlateauOrP
                     --Therefore will try waiting 1 tick until speed is sub-1 (speed being total velocity * 10); when did this, with a speed threshold of 1, it failed with fatboy; speed of 0.73837280273438 was ok
 
                 end
-                if bDebugMessages == true then LOG(sFunctionRef..': tPotentialMoveLocation='..repru(tPotentialMoveLocation)..'; Unit position='..repru(oUnit:GetPosition())..'; iDistToMove='..(iDistToMove or 'nil')..'; Dist to potential move location='..M28Utilities.GetDistanceBetweenPositions(oUnit:GetPosition(), tPotentialMoveLocation)..'; bStopFirst='..tostring(bStopFirst)..'; iUnitSpeed='..iUnitSpeed) end
-                M28Orders.IssueTrackedMove(oUnit, tPotentialMoveLocation, math.min(iDistToMove * 0.2, 5), false, sOrderDesc..'T', false)
-                --Check if we are being blocked - decided to leave out in the end as not convinced it was actually helping significantly (ignore for water)
+                if bContinue then
+                    if bDebugMessages == true then LOG(sFunctionRef..': tPotentialMoveLocation='..repru(tPotentialMoveLocation)..'; Unit position='..repru(oUnit:GetPosition())..'; iDistToMove='..(iDistToMove or 'nil')..'; Dist to potential move location='..M28Utilities.GetDistanceBetweenPositions(oUnit:GetPosition(), tPotentialMoveLocation)..'; bStopFirst='..tostring(bStopFirst)..'; iUnitSpeed='..iUnitSpeed) end
+                    M28Orders.IssueTrackedMove(oUnit, tPotentialMoveLocation, math.min(iDistToMove * 0.2, 5), false, sOrderDesc..'T', false)
+                    --Check if we are being blocked - decided to leave out in the end as not convinced it was actually helping significantly (ignore for water)
                 if iDistToMove > 2 and iTicksPerLandCycle <= 15 and M28Map.GetLandZoneFromPosition(oUnit:GetPosition()) then
                     local tViaPoint = M28Utilities.MoveInDirection(oUnit:GetPosition(),iAngleActuallyMoving, 0.5)
                     if tViaPoint then
@@ -4401,21 +4405,22 @@ function BackupUnitTowardsRallyIfAvailable(oUnit, tRallyPoint, iIslandPlateauOrP
                         end
                     end
                 end
-                if iUnitSpeed * iTicksPerLandCycle * 0.1 > iDistToMove * 0.75 then
-                    if bDebugMessages == true then LOG(sFunctionRef..': Want to issue an interim move order after the first, will first wait '..math.ceil(iTicksPerLandCycle * 0.5)..' ticks') end
-                    M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
-                    WaitTicks(math.ceil(iTicksPerLandCycle * 0.5))
-                    M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
-                    if bDebugMessages == true then LOG(sFunctionRef..': Finished waiting, will issue interim order now for unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)) end
-                    if M28UnitInfo.IsUnitValid(oUnit) then
+                    if iUnitSpeed * iTicksPerLandCycle * 0.1 > iDistToMove * 0.75 then
+                        if bDebugMessages == true then LOG(sFunctionRef..': Want to issue an interim move order after the first, will first wait '..math.ceil(iTicksPerLandCycle * 0.5)..' ticks') end
                         M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
-                        BackupUnitTowardsRallyIfAvailable(oUnit, tRallyPoint, iIslandPlateauOrPondRef, sOrderDesc, bAmphibiousAndUsingPlateauRef, iDefaultDistOverride, iMaxAngleDifForMovingBackwardsOverride, bUsingPondRef)
+                        WaitTicks(math.ceil(iTicksPerLandCycle * 0.5))
                         M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
+                        if bDebugMessages == true then LOG(sFunctionRef..': Finished waiting, will issue interim order now for unit '..oUnit.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnit)) end
+                        if M28UnitInfo.IsUnitValid(oUnit) then
+                            M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+                            BackupUnitTowardsRallyIfAvailable(oUnit, tRallyPoint, iIslandPlateauOrPondRef, sOrderDesc, bAmphibiousAndUsingPlateauRef, iDefaultDistOverride, iMaxAngleDifForMovingBackwardsOverride, bUsingPondRef)
+                            M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
+                        end
                     end
                 end
             end
         end
-        if not(bValidTowardsLocation) then
+        if bContinue and not(bValidTowardsLocation) then
             M28Orders.IssueTrackedMove(oUnit, tRallyPoint, 5, false, sOrderDesc..'R', false)
         end
     end
@@ -6709,6 +6714,42 @@ function ManageCombatUnitsInLandZone(tLZData, tLZTeamData, iTeam, iPlateau, iLan
                         if bDebugMessages == true then LOG(sFunctionRef..': We think we are in scenario 1 but nearest enemy is in the water, checking if we can hit them if we move towards them, Island ref (if is one)='..(NavUtils.GetLabel(M28Map.refPathingTypeLand, tLandPoint) or 'nil')..'; This zone island ref='..(tLZData[M28Map.subrefLZIslandRef] or 'nil')..'; bAreInScenario1 after checking this='..tostring(bAreInScenario1)) end
 
                     end
+                    if not(bAreInScenario1) then
+                        --Do we have units with a better range than enemy navy range? in which case change the nearest enemy to be a land unit if is one, or clear altogether so we can reinforce other zones
+                        local iWaterZone = M28Map.tWaterZoneBySegment[iUnitSegmentX][iUnitSegmentZ]
+                        local tWZData = M28Map.tPondDetails[M28Map.tiPondByWaterZone[iWaterZone]][M28Map.subrefPondWaterZones][iWaterZone]
+                        local tWZTeamData = tWZData[M28Map.subrefWZTeamData][iTeam]
+                        if iBestRange > tWZTeamData[M28Map.subrefWZBestEnemyDFRange] then
+                            bAreInScenario1 = true
+                            --ignore navy and look for other targets
+                            if bDebugMessages == true then LOG(sFunctionRef..': clearing nearest enemy as it is a naval unit we outrange but cant reach, will look for land based targets instead') end
+                            oNearestEnemyToFriendlyBase = nil
+                            if M28Utilities.IsTableEmpty(tLZTeamData[M28Map.reftoNearestDFEnemies]) == false then
+                                for iEnemy, oEnemy in tLZTeamData[M28Map.reftoNearestDFEnemies] do
+                                    if M28UnitInfo.IsUnitValid(oEnemy) and oEnemy[M28UnitInfo.reftAssignedPlateauAndLandZoneByTeam] and oEnemy[M28UnitInfo.reftAssignedPlateauAndLandZoneByTeam][iTeam] and oEnemy[M28UnitInfo.reftAssignedPlateauAndLandZoneByTeam][iTeam][1] == iPlateau then
+                                        oNearestEnemyToFriendlyBase = oEnemy
+                                        if bDebugMessages == true then LOG(sFunctionRef..': Found a land based enemy to target instead='..oEnemy.UnitId..M28UnitInfo.GetUnitLifetimeCount(oEnemy)) end
+                                        break
+                                    end
+                                end
+                            end
+                            if not(oNearestEnemyToFriendlyBase) and M28Utilities.IsTableEmpty(tLZData[M28Map.subrefLZAdjacentLandZones]) == false then
+                                for _, iAdjLZ in tLZData[M28Map.subrefLZAdjacentLandZones] do
+                                    local tAdjLZTeamData = M28Map.tAllPlateaus[iPlateau][M28Map.subrefPlateauLandZones][iAdjLZ][M28Map.subrefLZTeamData][iTeam]
+                                    if M28Utilities.IsTableEmpty(tAdjLZTeamData[M28Map.reftoNearestDFEnemies]) == false then
+                                        for iEnemy, oEnemy in tAdjLZTeamData[M28Map.reftoNearestDFEnemies] do
+                                            if M28UnitInfo.IsUnitValid(oEnemy) and oEnemy[M28UnitInfo.reftAssignedPlateauAndLandZoneByTeam] and oEnemy[M28UnitInfo.reftAssignedPlateauAndLandZoneByTeam][iTeam] and oEnemy[M28UnitInfo.reftAssignedPlateauAndLandZoneByTeam][iTeam][1] == iPlateau then
+                                                oNearestEnemyToFriendlyBase = oEnemy
+                                                if bDebugMessages == true then LOG(sFunctionRef..': Found a land based enemy in adjacent zone to target instead='..oEnemy.UnitId..M28UnitInfo.GetUnitLifetimeCount(oEnemy)) end
+                                                break
+                                            end
+                                        end
+                                        if oNearestEnemyToFriendlyBase then break end
+                                    end
+                                end
+                            end
+                        end
+                    end
                     if bAreInScenario1 and oNearestEnemyToFriendlyBase and not(M28UnitInfo.CanSeeUnit(ArmyBrains[tLZTeamData[M28Map.reftiClosestFriendlyM28BrainIndex]], oNearestEnemyToFriendlyBase, false)) and not(EntityCategoryContains(M28UnitInfo.refCategoryStructure, oNearestEnemyToFriendlyBase.UnitId)) then
                         if bDebugMessages == true then LOG(sFunctionRef..': we dont have intel of the closest enemy so dont want to be in scenario 1 afterall (unless we have friendly ACU  or land scout in this zone or the zone with the nearest enemy, and not dealing with very long range units), will flag that we lack intel, nearest enemy combat range='..(oNearestEnemyToFriendlyBase[M28UnitInfo.refiCombatRange] or 'nil')..'; Dist between last known position and actual position='..M28Utilities.GetDistanceBetweenPositions(oNearestEnemyToFriendlyBase:GetPosition(), oNearestEnemyToFriendlyBase[M28UnitInfo.reftLastKnownPositionByTeam][iTeam])..'; iFriendlyBestMobileIndirectRange='..iFriendlyBestMobileIndirectRange..'; iEnemyBestDFRange='..(iEnemyBestDFRange or 'nil')) end
                         bAreInScenario1 = false
@@ -6741,12 +6782,27 @@ function ManageCombatUnitsInLandZone(tLZData, tLZTeamData, iTeam, iPlateau, iLan
                                     if bDebugMessages == true then LOG(sFunctionRef..': Have friendly ACU in this zone which enemy is in, so will actually stick to being scenario 1') end
                                     bAreInScenario1 = true
                                 end
+                                if bDebugMessages == true then LOG(sFunctionRef..': bAreInScenario1 before checking for short range nearest enemy='..tostring(bAreInScenario1)..'; refiCombatRange of nearest enemy='.. oNearestEnemyToFriendlyBase[M28UnitInfo.refiCombatRange]) end
+                                if not(bAreInScenario1) and oNearestEnemyToFriendlyBase[M28UnitInfo.refiCombatRange] <= 18 then
+                                    --Good chance we can get visual on the nearest enemy, check if are other enemies that are close to it who do have a decent combat range, and which we cant see
+                                    bAreInScenario1 = true
+                                    if M28Utilities.IsTableEmpty(tLZTeamData[M28Map.reftoNearestDFEnemies]) == false then
+                                        for iEnemy, oEnemy in tLZTeamData[M28Map.reftoNearestDFEnemies] do
+                                            if not(oEnemy == oNearestEnemyToFriendlyBase) and (oEnemy[M28UnitInfo.refiDFRange] or 0) >= 15 and M28Utilities.GetDistanceBetweenPositions(oEnemy:GetPosition(), oNearestEnemyToFriendlyBase:GetPosition()) - oEnemy[M28UnitInfo.refiDFRange] <= -10 and not(M28UnitInfo.CanSeeUnit(aiBrain, oEnemy)) then
+                                                if bDebugMessages == true then LOG(sFunctionRef..': oEnemy='..oEnemy.UnitId..M28UnitInfo.GetUnitLifetimeCount(oEnemy)..'; Dist to nearestenemytofriendlybase='..M28Utilities.GetDistanceBetweenPositions(oEnemy:GetPosition(), oNearestEnemyToFriendlyBase:GetPosition())..'; so since cant see nearest enemy will exit scenario 1') end
+                                                bAreInScenario1 = false
+                                                break
+                                            end
+                                        end
+                                    end
+
+                                end
                             end
                         end
                     end
                 end
                 --If we outrange nearest enemy unit (both DF and IF), then lower the DF range requirement for units to try and kite it, and consider going into scenario 1 even if we wouldnt normally
-                if (iFriendlyBestMobileDFRange > (oNearestEnemyToFriendlyBase[M28UnitInfo.refiDFRange] or 0) or (oNearestEnemyToFriendlyBase:IsUnitState('Upgrading') and (bAreInScenario1 or iFriendlyBestMobileIndirectRange > oNearestEnemyToFriendlyBase[M28UnitInfo.refiCombatRange])) or (iFriendlyBestMobileIndirectRange > iEnemyBestDFRange + 10 and iFriendlyBestMobileIndirectRange > oNearestEnemyToFriendlyBase[M28UnitInfo.refiCombatRange] and M28UnitInfo.CanSeeUnit(ArmyBrains[tLZTeamData[M28Map.reftiClosestFriendlyM28BrainIndex]], oNearestEnemyToFriendlyBase, false)))
+                if oNearestEnemyToFriendlyBase and (iFriendlyBestMobileDFRange > (oNearestEnemyToFriendlyBase[M28UnitInfo.refiDFRange] or 0) or (oNearestEnemyToFriendlyBase:IsUnitState('Upgrading') and (bAreInScenario1 or iFriendlyBestMobileIndirectRange > oNearestEnemyToFriendlyBase[M28UnitInfo.refiCombatRange])) or (iFriendlyBestMobileIndirectRange > iEnemyBestDFRange + 10 and iFriendlyBestMobileIndirectRange > oNearestEnemyToFriendlyBase[M28UnitInfo.refiCombatRange] and M28UnitInfo.CanSeeUnit(ArmyBrains[tLZTeamData[M28Map.reftiClosestFriendlyM28BrainIndex]], oNearestEnemyToFriendlyBase, false)))
                         and (not(bAreInScenario1) or math.max(iFriendlyBestMobileDFRange, iFriendlyBestMobileIndirectRange) > (oNearestEnemyToFriendlyBase[M28UnitInfo.refiDFRange] or 0) + 6) and oNearestEnemyToFriendlyBase[M28UnitInfo.reftAssignedPlateauAndLandZoneByTeam][iTeam][1] == iPlateau and iFirebaseThreatAdjust == 0
                         and ((oNearestEnemyToFriendlyBase[M28UnitInfo.refiDFRange] or 0) < iEnemyBestDFRange or (oNearestEnemyToFriendlyBase[M28UnitInfo.refiDFRange] or 0) < iFriendlyBestMobileIndirectRange)
                 then
@@ -7048,7 +7104,8 @@ function ManageCombatUnitsInLandZone(tLZData, tLZTeamData, iTeam, iPlateau, iLan
                 --SCENARIO 1 - We outrange enemy DF units (mobile and fix), or have equal range but with either significantly more threat at that range, or nearest enemy lacks that range
                 if bAreInScenario1 then
                     --ARE IN SCENARIO 1
-
+                    --In one scenario above there is a nearby naval unit that we cant reach by land so we clear nearest enemy value, and keep us in scenario 1, so we want to flag we havent given orders so units will then look for a zone to reinforce
+                    if oNearestEnemyToFriendlyBase then
                     if bDebugMessages == true then LOG(sFunctionRef..': In scenario 1, so we either outrange enemy, or we have significantly more threat at their best range - i.e. equal range, bAttackWithSameRange='..tostring(bAttackWithSameRange)) end
                     local tOutrangedCombatUnits = {}
                     local tUnitsToSupport = {}
@@ -8665,6 +8722,7 @@ function ManageCombatUnitsInLandZone(tLZData, tLZTeamData, iTeam, iPlateau, iLan
                         end--]]
                         end
                     end
+                    end --close oNearestEnemyToFriendlyBase guard
                 end
                 if not(bAreInScenario1) then
                     --SCENARIO 2 - we dont outrange enemy with DF, but have slightly more threat than them, or have nowhere left to run

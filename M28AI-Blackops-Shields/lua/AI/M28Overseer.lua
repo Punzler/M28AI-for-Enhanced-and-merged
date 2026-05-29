@@ -4174,4 +4174,3 @@ function SendACUsToCampaignObjective(sArea)
     end
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
 end
-end

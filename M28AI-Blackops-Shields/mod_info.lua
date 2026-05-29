@@ -1,8 +1,8 @@
 name = "M28AI for Blackops+Shields"
-uid = "78fdf018-6337-4153-ac66-21beda6d4ea3"
-version = 3
+uid = "78fdf018-6337-4153-ac66-21beda6d4ea4"
+version = 4
 copyright = "CC BY-NC-SA 4.0 Deed. Based on M28AI v297 by maudlin27 (https://github.com/maudlin27/M28AI)."
-description = "Fork of M28AI v297 tuned for play with Shields Enhanced, BlackOpsFAF-Merged and BlackOpsFAF-ACUs-Enhanced. Read the Changelog. All credits go to the great maudlin27 for creating such a wonderfull AI mod"
+description = "Fork of M28AI v297, current with v301, tuned for play with Shields Enhanced, BlackOpsFAF-Merged and BlackOpsFAF-ACUs-Enhanced. Read the Changelog. All credits go to the great maudlin27 for creating such a wonderfull AI mod"
 author = "Punzler"
 url = "https://github.com/Punzler/M28AI-for-Enhanced-and-merged"
 icon = "/mods/M28AI-Blackops-Shields/M28AI.jpg"

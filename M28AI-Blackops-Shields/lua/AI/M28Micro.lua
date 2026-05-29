@@ -751,6 +751,7 @@ function DodgeShot(oTarget, oOptionalWeapon, oAttacker, iTimeToDodge)
     local bDebugMessages = false if M28Profiler.bGlobalDebugOverride == true then   bDebugMessages = true end
     local sFunctionRef = 'DodgeShot'
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
+    local bContinue = true
 
     if bDebugMessages == true then LOG(sFunctionRef..': Start of code, time='..GetGameTimeSeconds()..'; oTarget='..oTarget.UnitId..M28UnitInfo.GetUnitLifetimeCount(oTarget)..' owned by brain '..oTarget:GetAIBrain().Nickname..'; Is unit valid='..tostring(M28UnitInfo.IsUnitValid(oTarget))..'; oAttacker='..(oAttacker.UnitId or 'nil')..(M28UnitInfo.GetUnitLifetimeCount(oAttacker) or 'nil')..'; Attacker assigned LZ for oUnit team='..(oAttacker[M28UnitInfo.reftAssignedPlateauAndLandZoneByTeam][oTarget:GetAIBrain().M28Team][2] or 'nil')) end
 
@@ -759,13 +760,13 @@ function DodgeShot(oTarget, oOptionalWeapon, oAttacker, iTimeToDodge)
         local aiBrain = oTarget:GetAIBrain()
         if bDebugMessages == true then LOG(sFunctionRef..': Considering if have too many units dodging at once, aiBrain[refiCurUnitsDodging]='..aiBrain[refiCurUnitsDodging]..'; aiBrain[refiMaxUnitsToDodgeMicroAtOnce]='..aiBrain[refiMaxUnitsToDodgeMicroAtOnce]) end
         if aiBrain[refiCurUnitsDodging] >= aiBrain[refiMaxUnitsToDodgeMicroAtOnce] then
-            M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
-            return nil
+            bContinue = false
         else
             aiBrain[refiCurUnitsDodging] = aiBrain[refiCurUnitsDodging] + 1
             bAdjustDodgeMicroCount = true
         end
     end
+    if bContinue then
 
     M28Orders.UpdateRecordedOrders(oTarget)
     local tCurDestination
@@ -876,6 +877,7 @@ function DodgeShot(oTarget, oOptionalWeapon, oAttacker, iTimeToDodge)
         --M28Orders.IssueTrackedMove(oTarget, tCurDestination, 0.25, true, 'MiDod3', true)
         --Disabled for v89 given new 'get goal' position and increase in the micro dodge distance
     end
+    end
 
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
 end
@@ -885,6 +887,7 @@ function AltDodgeShot(oTarget, oWeapon, oAttacker, iTimeToDodge)
     local bDebugMessages = false if M28Profiler.bGlobalDebugOverride == true then   bDebugMessages = true end
     local sFunctionRef = 'AltDodgeShot'
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
+    local bContinue = true
 
     if bDebugMessages == true then LOG(sFunctionRef..': Start of code, time='..GetGameTimeSeconds()..'; oTarget='..oTarget.UnitId..M28UnitInfo.GetUnitLifetimeCount(oTarget)..'; Is unit valid='..tostring(M28UnitInfo.IsUnitValid(oTarget))) end
     local bAdjustDodgeMicroCount = false
@@ -892,13 +895,13 @@ function AltDodgeShot(oTarget, oWeapon, oAttacker, iTimeToDodge)
         local aiBrain = oTarget:GetAIBrain()
         if bDebugMessages == true then LOG(sFunctionRef..': Considering whether have too many units dodging at once, aiBrain[refiCurUnitsDodging]='..aiBrain[refiCurUnitsDodging]..'; aiBrain[refiMaxUnitsToDodgeMicroAtOnce]='..aiBrain[refiMaxUnitsToDodgeMicroAtOnce]) end
         if aiBrain[refiCurUnitsDodging] >= aiBrain[refiMaxUnitsToDodgeMicroAtOnce] then
-            M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
-            return nil
+            bContinue = false
         else
             aiBrain[refiCurUnitsDodging] = aiBrain[refiCurUnitsDodging] + 1
             bAdjustDodgeMicroCount = true
         end
     end
+    if bContinue then
 
     M28Orders.UpdateRecordedOrders(oTarget)
     local iCurFacingAngle = M28UnitInfo.GetUnitFacingAngle(oTarget)
@@ -913,6 +916,7 @@ function AltDodgeShot(oTarget, oWeapon, oAttacker, iTimeToDodge)
         M28Utilities.DelayChangeVariable(oTarget:GetAIBrain(), refiCurUnitsDodging, -1, iTimeToDodge, nil, nil, nil, nil, true)
     end
     M28Orders.IssueTrackedMove(oTarget, tTempDestination, 0.1, false, 'MiAltDod1', true)
+    end
 
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
 end
@@ -1440,8 +1444,7 @@ function TurnAirUnitAndMoveToTarget(oBomber, tDirectionToMoveTo, iMaxAcceptableA
                 if bDebugMessages == true then LOG(sFunctionRef..': Checking if reached hover micro limit, aiBrain[refiMaxUnitsToHoverMicroAtOnce]='..aiBrain[refiMaxUnitsToHoverMicroAtOnce]..'; aiBrain[refiCurUnitsHoverMicroing]='..aiBrain[refiCurUnitsHoverMicroing]..'; oBomber='..oBomber.UnitId..M28UnitInfo.GetUnitLifetimeCount(oBomber)..'; Time='..GetGameTimeSeconds()) end
                 if aiBrain[refiCurUnitsHoverMicroing] >= aiBrain[refiMaxUnitsToHoverMicroAtOnce] then
                     M28Orders.IssueTrackedMove(oBomber, tDirectionToMoveTo, 2, false, 'NoMiAirMv', false)
-                    M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
-                    return nil
+                    bContinue = false
                 else
                     aiBrain[refiCurUnitsHoverMicroing] = aiBrain[refiCurUnitsHoverMicroing] + 1
                     bAdjustHoverMicroCount = true
@@ -1560,13 +1563,14 @@ function TurnAirUnitAndAttackTarget(oBomber, oTarget, bDontAdjustMicroFlag, bCon
     local sFunctionRef = 'TurnAirUnitAndAttackTarget'
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
 
+    local bContinue = true
     if not(EntityCategoryContains(categories.EXPERIMENTAL, oBomber.UnitId)) then
         if M28UnitInfo.IsUnitValid(oBomber) and M28UnitInfo.IsUnitValid(oTarget) then
             M28Orders.IssueTrackedAttack(oBomber, oTarget, false, 'NoMiAtck', false)
         end
-        M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
-        return nil
+        bContinue = false
     end
+    if bContinue then
     if bDebugMessages == true then LOG(sFunctionRef..': Start of code, oBomber='..oBomber.UnitId..M28UnitInfo.GetUnitLifetimeCount(oBomber)..'; oTarget='..oTarget.UnitId..M28UnitInfo.GetUnitLifetimeCount(oTarget)..'; bDontAdjustMicroFlag='..tostring(bDontAdjustMicroFlag or false)..'; bContinueAttackUntilFiredBomb='..tostring((bContinueAttackUntilFiredBomb or false))..'; GameTime='..GetGameTimeSeconds()) end
     if M28UnitInfo.IsUnitValid(oBomber) and M28UnitInfo.IsUnitValid(oTarget) then
         local aiBrain = oBomber:GetAIBrain()
@@ -1575,8 +1579,7 @@ function TurnAirUnitAndAttackTarget(oBomber, oTarget, bDontAdjustMicroFlag, bCon
         if aiBrain[refiMaxUnitsToHoverMicroAtOnce] then
             if aiBrain[refiCurUnitsHoverMicroing] >= aiBrain[refiMaxUnitsToHoverMicroAtOnce] then
                 M28Orders.IssueTrackedAttack(oBomber, oTarget, false, 'NoMiAtck', false)
-                M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
-                return nil
+                bContinue = false
             else
                 aiBrain[refiCurUnitsHoverMicroing] = aiBrain[refiCurUnitsHoverMicroing] + 1
                 bAdjustHoverMicroCount = true
@@ -1776,6 +1779,7 @@ function TurnAirUnitAndAttackTarget(oBomber, oTarget, bDontAdjustMicroFlag, bCon
             oBomber[M28UnitInfo.refiGameTimeToResetMicroActive] = GetGameTimeSeconds()
             if bDebugMessages == true then LOG(sFunctionRef..': Turning off special micro5') end
         end
+    end
     end
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
 end

@@ -4287,11 +4287,12 @@ function RecordClosestAllyAndEnemyBaseForEachLandZone(iTeam, bOnlyCheckIfEnemyBa
         end
 
     end
+    local bContinue = true
     if bOnlyCheckIfEnemyBaseToIgnore and M28Utilities.IsTableEmpty(toIgnoredEnemyBrains) and bNearestEnemyBaseLZSetupComplete then
         if bDebugMessages == true then LOG(sFunctionRef..': Will abort as no brains to ignore') end
-        M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
-        return nil
+        bContinue = false
     end
+    if bContinue then
 
     function IsInPlayableArea(tLocation)
         if tLocation[1] >= rMapPlayableArea[1] and tLocation[1] <= rMapPlayableArea[3] and tLocation[2] >= rMapPlayableArea[2] and tLocation[4] <= rMapPlayableArea[4] then
@@ -4448,6 +4449,7 @@ function RecordClosestAllyAndEnemyBaseForEachLandZone(iTeam, bOnlyCheckIfEnemyBa
         end
     end
     bNearestEnemyBaseLZSetupComplete = true
+    end
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
 end
 
@@ -6959,9 +6961,8 @@ function CreateWaterZones()
     function ConsiderUnassignedSegment(iCurSegmentX, iCurSegmentZ)
         if not(tbConsideredOverride[iCurSegmentX]) then
             tbConsideredOverride[iCurSegmentX] = {}
-        elseif tbConsideredOverride[iCurSegmentX][iCurSegmentZ] then
-            return nil
         end
+        if not(tbConsideredOverride[iCurSegmentX][iCurSegmentZ]) then
         tbConsideredOverride[iCurSegmentX][iCurSegmentZ] = true
         bFoundWZToAddTo = false
         local tSegmentPosition = GetPositionFromPathingSegments(iCurSegmentX, iCurSegmentZ)
@@ -7007,6 +7008,7 @@ function CreateWaterZones()
                     tBaseWaterStartPositionTable = {}
                 end
             end
+        end
         end
     end
     --for iCycleInterval = 4, 2, -2 do
@@ -7060,9 +7062,8 @@ function CreateWaterZones()
         function ConsiderUnassignedPondSegment(iBaseSegmentX, iBaseSegmentZ)
             if not(tbConsideredPondSegmentOverride[iBaseSegmentX]) then
                 tbConsideredPondSegmentOverride[iBaseSegmentX] = {}
-            elseif tbConsideredPondSegmentOverride[iBaseSegmentX][iBaseSegmentZ] then
-                return nil
             end
+            if not(tbConsideredPondSegmentOverride[iBaseSegmentX][iBaseSegmentZ]) then
             tbConsideredPondSegmentOverride[iBaseSegmentX][iBaseSegmentZ] = true
             --search for nearby zone to be a part of; if have none, then add to existing zone for the pond
             iNewWaterZone = nil
@@ -7118,6 +7119,7 @@ function CreateWaterZones()
                 AddSegmentToWaterZone(iCurPond, iNewWaterZone, iBaseSegmentX, iBaseSegmentZ)
             else
                 RecordWaterZoneAtPosition(GetPositionFromPathingSegments(iBaseSegmentX, iBaseSegmentZ))
+            end
             end
         end
 

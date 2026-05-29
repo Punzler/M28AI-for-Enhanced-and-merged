@@ -638,6 +638,7 @@ function GetACUEarlyGameOrders(aiBrain, oACU)
     if not(oACU[reftPreferredUpgrades]) then
         GetUpgradePathForACU(oACU)
     end
+    local bContinue = true
     if bDebugMessages == true and oACU[reftPreferredUpgrades][1] then LOG(sFunctionRef..': oACU[reftPreferredUpgrades][1]='..oACU[reftPreferredUpgrades][1]..'; Build cost mass='..(oACU:GetBlueprint().Enhancements[oACU[reftPreferredUpgrades][1]].BuildCostMass or 'nil')..'; Build time='..(oACU:GetBlueprint().Enhancements[oACU[reftPreferredUpgrades][1]].BuildTime or 'nil')..'; Has enhancement='..tostring(oACU:HasEnhancement(oACU[reftPreferredUpgrades][1]))) end
     if oACU[reftPreferredUpgrades][1] and oACU:GetBlueprint().Enhancements[oACU[reftPreferredUpgrades][1]].BuildCostMass <= 10 and oACU:GetBlueprint().Enhancements[oACU[reftPreferredUpgrades][1]].BuildTime <= 10 and not(oACU:HasEnhancement(oACU[reftPreferredUpgrades][1])) then
         GetUpgradePathForACU(oACU) --Refresh to be safe
@@ -652,10 +653,10 @@ function GetACUEarlyGameOrders(aiBrain, oACU)
             end
         end
         if bQueuedEnhancement then
-            M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
-            return nil
+            bContinue = false
         end
     end
+    if bContinue then
 
 
     --Nearby enemy units in other land zone if we already have a complete land factory
@@ -1442,6 +1443,7 @@ function GetACUEarlyGameOrders(aiBrain, oACU)
         end
     end
     if bDebugMessages == true then LOG(sFunctionRef..': End of code, is ACU table of last orders empty='..tostring(M28Utilities.IsTableEmpty(oACU[M28Orders.reftiLastOrders]))..'; Does ACU have valid order='..tostring(M28Conditions.DoesACUHaveValidOrder(oACU))) end
+    end
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
 end
 

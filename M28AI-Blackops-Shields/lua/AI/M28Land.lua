@@ -11467,16 +11467,17 @@ function ManageSpecificLandZone(aiBrain, iTeam, iPlateau, iLandZone)
     local bDebugMessages = false if M28Profiler.bGlobalDebugOverride == true then   bDebugMessages = true end
     local sFunctionRef = 'ManageSpecificLandZone'
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
+    local bContinue = true
 
     if not(aiBrain) or aiBrain.M28IsDefeated then
         --if Brain hasn't died in the last couple of ticks then give error message
         if GetGameTimeSeconds() - (M28Overseer.iTimeLastPlayerDefeat or 0) >= 0.3 then M28Utilities.ErrorHandler('Trying to run M28 logic on a defeated brain') end
         aiBrain = M28Team.GetFirstActiveM28Brain(iTeam)
         if not(aiBrain) or aiBrain.M28IsDefeated then
-            M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
-            return nil
+            bContinue = false
         end
     end
+    if bContinue then
 
     local bHaveCalledLogicForCombatUnits = false
 
@@ -12328,6 +12329,7 @@ function ManageSpecificLandZone(aiBrain, iTeam, iPlateau, iLandZone)
             tLZTeamData[M28Map.subrefTbWantBP] = true
         end
     end--]]
+    end
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
 end
 
@@ -12535,8 +12537,8 @@ function ManageAllLandZones(aiBrain, iTeam, bIgnoreMinorPlateaus, iCurMinorPlate
                             if aiBrain.M28IsDefeated or not(aiBrain) then
                                 aiBrain = M28Team.GetFirstActiveM28Brain(iTeam)
                                 if not(aiBrain) or aiBrain.M28IsDefeated then
-                                    M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
-                                    return nil
+                                    bContinue = false
+                                    break
                                 end
                             end
                         end

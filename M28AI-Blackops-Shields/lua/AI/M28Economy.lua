@@ -69,7 +69,7 @@ function UpgradeUnit(oUnitToUpgrade, bUpdateUpgradeTracker, iOptionalWait)
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
 
     if bDebugMessages == true then LOG(sFunctionRef..': Start of code, oUnitToUpgrade='..oUnitToUpgrade.UnitId..M28UnitInfo.GetUnitLifetimeCount(oUnitToUpgrade)..' owned by '..oUnitToUpgrade:GetAIBrain().Nickname..'; GetUnitUpgradeBlueprint='..reprs((M28UnitInfo.GetUnitUpgradeBlueprint(oUnitToUpgrade, true) or 'nil'))..'; bUpdateUpgradeTracker='..tostring((bUpdateUpgradeTracker or false))..'; unit brain='..oUnitToUpgrade:GetAIBrain().Nickname..'; Are we in T1 spam mode='..tostring(M28Team.tTeamData[oUnitToUpgrade:GetAIBrain().M28Team][M28Team.refbFocusOnT1Spam])..'; Unit enhancement upgrade count='..(oUnitToUpgrade[M28ACU.refiUpgradeCount] or 'nil')..'; refbTriedUpgrading='..tostring(oUnitToUpgrade[M28UnitInfo.refbTriedUpgrading] or false)..'; refbObjectiveUnit='..tostring(oUnitToUpgrade[M28UnitInfo.refbObjectiveUnit] or false)..'; Is oUnitToUpgrade.EventCallbacks.OnKilled nil='..tostring(oUnitToUpgrade.EventCallbacks.OnKilled == nil)..'; iOptionalWait='..(iOptionalWait or 'nil')) end
-
+    local bContinue = true
 
     if iOptionalWait and iOptionalWait > 0 then
         M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
@@ -80,9 +80,9 @@ function UpgradeUnit(oUnitToUpgrade, bUpdateUpgradeTracker, iOptionalWait)
     if oUnitToUpgrade[M28UnitInfo.refbObjectiveUnit] and M28Map.bIsCampaignMap and not(oUnitToUpgrade.EventCallbacks.OnKilled) then
         if bDebugMessages == true then LOG(sFunctionRef..': Wont upgrade afterall as we might break a campaign objective') end
         M28Utilities.ErrorHandler('Aborting upgrade of unit '..oUnitToUpgrade.UnitId..' as it might be a campaign objective unit', true, false)
-        M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
-        return nil
+        bContinue = false
     end
+    if bContinue then
     --Do we have any HQs of the same factory type of a higher tech level?
     local sUpgradeID = M28UnitInfo.GetUnitUpgradeBlueprint(oUnitToUpgrade, true) --If not a factory or dont recognise the faction then just returns the normal unit ID
     --Redundancy if unit is capable of upgrading but the CanBuild check fails
@@ -188,6 +188,7 @@ function UpgradeUnit(oUnitToUpgrade, bUpdateUpgradeTracker, iOptionalWait)
                 LOG(sFunctionRef..': oUnitToUpgrade:CanBuild(sExpectedUpgradeID)='..tostring(oUnitToUpgrade:CanBuild(sExpectedUpgradeID))..'; Cur T3 Air HQs='..oUnitToUpgrade:GetAIBrain():GetCurrentUnits(M28UnitInfo.refCategoryAirHQ*categories.TECH3)..'; Cur T3 land HQs='..oUnitToUpgrade:GetAIBrain():GetCurrentUnits(M28UnitInfo.refCategoryLandHQ*categories.TECH3))
             end
         end
+    end
     end
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
 end

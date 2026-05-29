@@ -5695,21 +5695,21 @@ function ConsiderSpecialStrategyAssignment(iTeam)
     local sFunctionRef = 'ConsiderSpecialStrategyAssignment'
     local bDebugMessages = false if M28Profiler.bGlobalDebugOverride == true then   bDebugMessages = true end
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
+    local bContinue = true
 
     --Ignore for campaign
     if M28Map.bIsCampaignMap then
-        M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
-        return nil
+        bContinue = false
     end
     --Wait until map setup complete
-    while not(M28Map.bMapLandSetupComplete) or not(M28Map.bNearestEnemyBaseLZSetupComplete) do
+    while bContinue and not(M28Map.bMapLandSetupComplete) or not(M28Map.bNearestEnemyBaseLZSetupComplete) do
         WaitTicks(1)
         if GetGameTimeSeconds() >= 6 then
             M28Utilities.ErrorHandler('Aborting special strategy as land zones not setup yet')
-            M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
-            return nil
+            bContinue = false
         end
     end
+    if bContinue then
     M28Map.CheckIfLowMexMap()
     if not(M28Map.bIsLowMexMap) and not(M28Overseer.bNoRushActive) then
         --Early bomber chance - lower if fewer enemies, lowest being 1v1 on small map
@@ -5943,6 +5943,7 @@ function ConsiderTMLForLongRangeEnemyThreat(iTeam)
             end
         end
         tTeamData[iTeam][refbTMLForLongRangeThreatMonitorActive] = false
+    end
     end
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
 end

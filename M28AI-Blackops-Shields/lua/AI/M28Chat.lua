@@ -1248,6 +1248,7 @@ function SendStartOfGameMessage(oOrigBrain, iOptionalExtraDelayInSeconds, sOptio
     local sFunctionRef = 'SendStartOfGameMessage'
     local bDebugMessages = false if M28Profiler.bGlobalDebugOverride == true then   bDebugMessages = true end
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
+    local bContinue = true
 
     --If this is a human brain, check if we have non-human M28AI in the game; if we do, then dont send a start of game message for this team
     local aiBrain
@@ -1268,11 +1269,11 @@ function SendStartOfGameMessage(oOrigBrain, iOptionalExtraDelayInSeconds, sOptio
         end
         if bDebugMessages == true then LOG(sFunctionRef..': Considering whether to abort sending message, bEnemyNonHumanM28AI='..tostring(bEnemyNonHumanM28AI or false)..'; oFriendlyM28AI nickname='..(oFriendlyM28AI.Nickname or 'nil')) end
         if bEnemyNonHumanM28AI and not(oFriendlyM28AI) then --Dont send start of game message
-            M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
-            return nil
+            bContinue = false
         end
         if oFriendlyM28AI then oOrigBrain = oFriendlyM28AI end
     end
+    if bContinue then
     if not(aiBrain) then aiBrain = oOrigBrain end
     if bDebugMessages == true then LOG(sFunctionRef..': aiBrain to use='..aiBrain.Nickname) end
 
@@ -1607,6 +1608,7 @@ function SendStartOfGameMessage(oOrigBrain, iOptionalExtraDelayInSeconds, sOptio
         if bDebugMessages == true then LOG(sFunctionRef..': iRand='..iRand..'; Chosen team message='..tsPotentialTeamMessages[iRand]) end
         --SendMessage(aiBrain, sMessageType, sMessage,                          iOptionalDelayBeforeSending, iOptionalTimeBetweenMessageType, bOnlySendToTeam, bWaitUntilHaveACU, sOptionalSoundCue, sOptionalSoundBank)
         SendMessage(oBrainToSendMessage, (sOptionalMessageTypePrefix or '')..'Team'..(aiBrain.M28Team or 1)..'Start', tsPotentialTeamMessages[iRand], 0, 60, true, M28Map.bIsCampaignMap, tsTeamCueIndex[iRand], tsTeamBankIndex[iRand])
+    end
     end
 
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)

@@ -5676,6 +5676,7 @@ function ApplyEngiHuntingBomberLogic(oBomber, iAirSubteam, iTeam)
     local bDebugMessages = false if M28Profiler.bGlobalDebugOverride == true then   bDebugMessages = true end
     local sFunctionRef = 'ApplyEngiHuntingBomberLogic'
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerStart)
+    local bContinue = true
 
     if bDebugMessages == true then LOG(sFunctionRef..': Start of code, oBomber='..(oBomber.UnitId or 'nil')..(M28UnitInfo.GetUnitLifetimeCount(oBomber) or 'nil')..' owned by '..oBomber:GetAIBrain().Nickname..'; AirSubteam='..iAirSubteam..'; iTeam='..iTeam..'; Time='..GetGameTimeSeconds()..'; Brain owner='..oBomber:GetAIBrain().Nickname) end
     M28Team.tAirSubteamData[iAirSubteam][M28Team.reftiTimeOfLastEngiHunterBomberOrder] = GetGameTimeSeconds()
@@ -5686,8 +5687,7 @@ function ApplyEngiHuntingBomberLogic(oBomber, iAirSubteam, iTeam)
             oBomber[rebEarlyBomberTargetBase] = true
             ForkThread(EnemyBaseEarlyBomber, oBomber)
             if bDebugMessages == true then LOG(sFunctionRef..': Starting early base bomber logic') end
-            M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
-            return nil
+            bContinue = false
         end
     elseif oBomber[refiBomberTargetNavalEngiWZ] == nil and M28Utilities.IsTableEmpty(M28Team.tTeamData[iTeam][M28Team.reftiWaterZonesForBomberToKillEngis]) == false then
         local iClosestWZDist = 10000
@@ -5712,6 +5712,7 @@ function ApplyEngiHuntingBomberLogic(oBomber, iAirSubteam, iTeam)
         end
     elseif bDebugMessages == true then LOG(sFunctionRef..': Will consider normal bomber logic')
     end
+    if bContinue then
 
     local tBomberTable = {oBomber}
     local tEnemyTargets = {}
@@ -5983,6 +5984,7 @@ function ApplyEngiHuntingBomberLogic(oBomber, iAirSubteam, iTeam)
                 end
             end
         end
+    end
     end
     M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
 end
@@ -6780,6 +6782,7 @@ function ManageTorpedoBombers(iTeam, iAirSubteam)
         local tbWaterZonesConsidered = {}
         function AddEnemyTargetsInWaterZone(iWaterZone, bIsPrimaryZoneToAttack, iMaxDistFromAirRallyPointForAdjacentZones)
             --See above for refiAASearchTypes, i.e. refiAvoidAllAA, refiAvoidOnlyGroundAA, refiIgnoreAllAA
+            local bContinue = true
             if bDebugMessages == true then LOG(sFunctionRef..': Adding enemytargetsi n water zone '..iWaterZone..'; bIsPrimaryZoneToAttack='..tostring(bIsPrimaryZoneToAttack or false)..'; tbAdjacentWaterZonesConsidered[iWaterZone]='..tostring(tbAdjacentWaterZonesConsidered[iWaterZone] or false)..'; tbWaterZonesConsidered[iWaterZone]='..tostring(tbWaterZonesConsidered[iWaterZone] or false)) end
             if not(tbAdjacentWaterZonesConsidered[iWaterZone]) and (bIsPrimaryZoneToAttack or not(tbWaterZonesConsidered[iWaterZone])) then
                 local iFurthestUnitFromRallyForZone = 0
@@ -6794,9 +6797,10 @@ function ManageTorpedoBombers(iTeam, iAirSubteam)
                         tEnemyUnitsOfInterest = EntityCategoryFilterDown(M28UnitInfo.refCategoryGroundAA, tWZTeamData[M28Map.subrefTEnemyUnits])
                         if M28Utilities.IsTableEmpty(tEnemyUnitsOfInterest) then
                             if bDebugMessages == true then LOG(sFunctionRef..': enemy has no AA units of interest so returning nil') end
-                            return nil
+                            bContinue = false
                         end
                     end
+                    if bContinue then
                     --Add enemy units if not hover
                     --local iCurDistToRally
                     --local iClosestOutOfRangeUnit = 10000
@@ -6862,7 +6866,8 @@ function ManageTorpedoBombers(iTeam, iAirSubteam)
                     end--]]
 
                 end
-                if bIsPrimaryZoneToAttack then
+                end
+                if bIsPrimaryZoneToAttack and bContinue then
                     if M28Utilities.IsTableEmpty(tWZData[M28Map.subrefWZAdjacentWaterZones]) == false then
                         if bDebugMessages == true then LOG(sFunctionRef..': Will add units in adjacent water zones if they arent too far away, iFurthestUnitFromRallyForZone='..(iFurthestUnitFromRallyForZone or 'nil')) end
                         for _, iAdjWZ in tWZData[M28Map.subrefWZAdjacentWaterZones] do

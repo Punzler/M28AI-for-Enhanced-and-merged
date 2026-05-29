@@ -21253,10 +21253,10 @@ function ConsiderDestroyingLowTechEngineers(oJustBuilt, iOptionalMaxNumberToKill
             end
         end
     end
-    if not(bDontReturnNumberKilled) then
-        M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
-        return iEngineersKilled
-    end
+        if not(bDontReturnNumberKilled) then
+            M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)
+            return iEngineersKilled
+        end
     else
         if not(bDontReturnNumberKilled) then
             M28Profiler.FunctionProfiler(sFunctionRef, M28Profiler.refProfilerEnd)

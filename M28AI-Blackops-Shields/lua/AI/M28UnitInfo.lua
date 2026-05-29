@@ -3640,4 +3640,3 @@ function EnableLandWalkingForDestroyerOwnedByPlayer(oUnit)
         --Disabling would expect to be oUnit:OnScriptBitClear(1)
     end
 end
-end
